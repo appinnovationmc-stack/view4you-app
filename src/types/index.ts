@@ -42,6 +42,7 @@ export interface Booking {
   customer_id: string | null
   category: BookingCategory
   status: BookingStatus
+
   first_name: string
   last_name: string
   phone: string
@@ -50,6 +51,7 @@ export interface Booking {
   suburb: string | null
   city: string | null
   postal_code: string | null
+
   dealership_id: string | null
   seller_name: string | null
   seller_contact_person: string | null
@@ -58,15 +60,18 @@ export interface Booking {
   viewing_suburb: string | null
   viewing_city: string | null
   viewing_postal_code: string | null
+
   vehicle_make: string | null
   vehicle_model: string | null
   vehicle_year: string | null
   vehicle_colour: string | null
   vehicle_vin: string | null
+
   preferred_date_1: string | null
   preferred_date_2: string | null
   preferred_date_3: string | null
   scheduled_date: string | null
+
   message: string | null
   total_excl_vat: number
   assigned_inspector_id: string | null
@@ -76,20 +81,17 @@ export interface Booking {
 export interface BookingServiceLine {
   id: string
   booking_id: string
-  service_id: string
-  price_excl_vat: number
-  service?: Service
+  service_id: string | null
+  service_name_snapshot: string
+  price_excl_vat_snapshot: number
 }
 
 export interface Report {
   id: string
   booking_id: string
-  status: 'draft' | 'published'
-  summary: string | null
-  findings: string | null
   file_url: string | null
+  summary: string | null
   published_at: string | null
-  created_at: string
 }
 
 export const CATEGORY_LABEL: Record<BookingCategory, string> = {
@@ -103,8 +105,8 @@ export const CATEGORY_LABEL: Record<BookingCategory, string> = {
 export const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: 'Pending',
   confirmed: 'Confirmed',
-  assigned: 'Assigned',
-  in_progress: 'In Progress',
+  assigned: 'Inspector Assigned',
+  in_progress: 'Inspection In Progress',
   report_ready: 'Report Ready',
   completed: 'Completed',
   cancelled: 'Cancelled',

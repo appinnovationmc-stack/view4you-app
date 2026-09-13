@@ -20,7 +20,7 @@ export function Home() {
       <div className="flex items-center justify-between mb-1">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--color-blue-400)]">We Inspect. You Decide.</p>
-          <h1 className="font-display font-bold text-[26px] text-white mt-1">Know what<br />you&apos;re buying.</h1>
+          <h1 className="font-display font-bold text-[26px] text-white mt-1">Know what<br />you're buying.</h1>
         </div>
         <Stamp variant="verified" size={64} />
       </div>
@@ -29,71 +29,82 @@ export function Home() {
         Independent, transparent inspections across South Africa — book in minutes, get a full digital report.
       </p>
 
-      <div className="grid gap-3">
-        {CATEGORIES.map((cat) => (
-          <Card
-            key={cat.key}
-            onClick={() => navigate(`/book/${cat.key}`)}
-            className="flex items-center gap-4 p-4 cursor-pointer active:scale-[0.98] transition-transform"
-          >
-            <div className="w-11 h-11 rounded-xl bg-[var(--color-navy-raised)] flex items-center justify-center text-[var(--color-blue-400)]">
-              {cat.icon()}
+      <h2 className="font-display font-semibold text-[15px] text-white mb-3">Book an inspection</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {CATEGORIES.map(({ key, title, blurb, icon: Icon }) => (
+          <Card key={key} onClick={() => navigate(`/book/${key}`)} className="flex flex-col gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-blue-glow)] flex items-center justify-center text-[var(--color-blue-400)]">
+              <Icon />
             </div>
-            <div className="flex-1">
-              <h3 className="font-display font-semibold text-[15px]">{cat.title}</h3>
-              <p className="text-[12px] text-[var(--color-steel-400)] mt-0.5">{cat.blurb}</p>
+            <div>
+              <p className="font-display font-semibold text-[14px] text-white">{title}</p>
+              <p className="text-[11.5px] text-[var(--color-steel-400)] mt-0.5 leading-snug">{blurb}</p>
             </div>
-            <svg className="w-4 h-4 text-[var(--color-steel-400)]" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
           </Card>
         ))}
+        <Card onClick={() => navigate('/index')} className="flex flex-col gap-3 border-[var(--color-blue-600)]">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-blue-glow)] flex items-center justify-center text-[var(--color-blue-400)]">
+            <IndexSearchIcon />
+          </div>
+          <div>
+            <p className="font-display font-semibold text-[14px] text-white">Dealership Index</p>
+            <p className="text-[11.5px] text-[var(--color-steel-400)] mt-0.5 leading-snug">Know who you're dealing with</p>
+          </div>
+        </Card>
       </div>
-
-      <button
-        onClick={() => navigate('/index')}
-        className="mt-6 w-full py-3.5 rounded-xl border border-[var(--color-navy-line)] text-[14px] font-medium text-[var(--color-blue-400)]"
-      >
-        Browse Dealership Index
-      </button>
     </div>
   )
 }
 
+function iconProps() {
+  return { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 } as const
+}
 function CarIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M5 17h14M7 17l1.5-6h7L17 17M9 11V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-      <circle cx="8" cy="17" r="1.5" /><circle cx="16" cy="17" r="1.5" />
+    <svg {...iconProps()}>
+      <path d="M4 16v-3l2-5h12l2 5v3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 16h16v2a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H7v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8" cy="16" r="1.3" />
+      <circle cx="16" cy="16" r="1.3" />
     </svg>
   )
 }
 function HouseIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="m3 12 9-8 9 8v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
-      <path d="M9 21v-8h6v8" />
+    <svg {...iconProps()}>
+      <path d="M4 11.5 12 4l8 7.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 function KeyIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <circle cx="8" cy="10" r="3" /><path d="M11 10h8l-2 2 2 2" />
+    <svg {...iconProps()}>
+      <circle cx="8" cy="14" r="3.3" />
+      <path d="M10.3 11.7 18 4M15.5 6.5 18 4M18 9l2.5-2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 function GemIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M6 3h12l3 6-9 12L3 9z" /><path d="M3 9h18" />
+    <svg {...iconProps()}>
+      <path d="M4 9l4-5h8l4 5-8 11-8-11Z" strokeLinejoin="round" />
+      <path d="M4 9h16M9.5 4 8 9l4 11 4-11-1.5-5" strokeLinejoin="round" />
     </svg>
   )
 }
 function ChatIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M21 12a8 8 0 1 1-3.2-6.4L21 4v8z" />
+    <svg {...iconProps()}>
+      <path d="M4 5h16v11H8l-4 4V5Z" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IndexSearchIcon() {
+  return (
+    <svg {...iconProps()}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M20 20l-5-5" strokeLinecap="round" />
     </svg>
   )
 }

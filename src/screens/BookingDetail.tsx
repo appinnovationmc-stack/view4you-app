@@ -56,8 +56,8 @@ export function BookingDetail() {
         <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--color-blue-400)] mb-3">Services</p>
         {lines.map((l) => (
           <div key={l.id} className="flex justify-between text-[13px] py-1.5">
-            <span className="text-white">{(l as any).service_name_snapshot ?? 'Service'}</span>
-            <span className="font-mono text-[var(--color-steel-400)]">R{Number((l as any).price_excl_vat_snapshot ?? l.price_excl_vat).toLocaleString('en-ZA')}</span>
+            <span className="text-white">{l.service_name_snapshot}</span>
+            <span className="font-mono text-[var(--color-steel-400)]">R{Number(l.price_excl_vat_snapshot).toLocaleString('en-ZA')}</span>
           </div>
         ))}
         <div className="flex justify-between pt-2 mt-2 border-t border-[var(--color-navy-line)]">

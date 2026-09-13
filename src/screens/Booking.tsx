@@ -5,224 +5,289 @@ import { Button, Card, Field, ScreenHeader } from '../components/ui'
 import type { BookingCategory, Service } from '../types'
 import { CATEGORY_LABEL } from '../types'
 
-export function Booking() {
-  const { category } = useParams<{ category: string }>()
-  const navigate = useNavigate()
-  const cat = (category || 'vehicle') as BookingCategory
+type Step = 'services' | 'details' | 'review'
 
-  const [step, setStep] = useState(0)
+interface FormState {
+  first_name: string
+  last_name: string
+  phone: string
+  email: string
+  suburb: string
+  city: string
+  seller_name: string
+  viewing_address: string
+  vehicle_make: string
+  vehicle_model: string
+  vehicle_year: string
+  vehicle_vin: string
+  preferred_date_1: string
+  preferred_date_2: string
+  preferred_date_3: string
+  message: string
+}
+
+const EMPTY_FORM: FormState = {
+  first_name: '', last_name: '', phone: '', email: '',
+  suburb: '', city: '', seller_name: '', viewing_address: '',
+  vehicle_make: '', vehicle_model: '', vehicle_year: '', vehicle_vin: '',
+  preferred_date_1: '', preferred_date_2: '', preferred_date_3: '', message: '',
+}
+
+export function Booking() {
+  const { category } = useParams<{ category: BookingCategory }>()
+  const navigate = useNavigate()
+  const [step, setStep] = useState<Step>('services')
   const [services, setServices] = useState<Service[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  // customer
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  // seller / vehicle
-  const [sellerName, setSellerName] = useState('')
-  const [sellerPhone, setSellerPhone] = useState('')
-  const [viewingAddress, setViewingAddress] = useState('')
-  const [vehicleMake, setVehicleMake] = useState('')
-  const [vehicleModel, setVehicleModel] = useState('')
-  const [vehicleYear, setVehicleYear] = useState('')
-  const [vehicleVin, setVehicleVin] = useState('')
-  const [preferredDate, setPreferredDate] = useState('')
-  const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!category) return
     supabase
       .from('services')
       .select('*')
-      .eq('category', cat)
+      .eq('category', category)
       .eq('active', true)
       .order('sort_order')
-      .then(({ data }) => {
-        setServices((data as Service[]) ?? [])
-        setLoading(false)
-      })
-  }, [cat])
+      .then(({ data }) => setServices((data as Service[]) ?? []))
+  }, [category])
 
-  const total = services
-    .filter((s) => selected.has(s.id))
-    .reduce((sum, s) => sum + Number(s.price_excl_vat), 0)
+  if (!category) return null
 
-  function toggle(id: string) {
+  const chosenServices = services.filter((s) => selected.has(s.id))
+  const total = chosenServices.reduce((sum, s) => sum + Number(s.price_excl_vat), 0)
+
+  function toggleService(id: string) {
     setSelected((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }
 
+  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((f) => ({ ...f, [key]: value }))
+  }
+
   async function submit() {
-    setError('')
     setSubmitting(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    setError(null)
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      const { data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .insert({
+          customer_id: userData.user?.id ?? null,
+          category,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          phone: form.phone,
+          email: form.email,
+          suburb: form.suburb,
+          city: form.city,
+          seller_name: form.seller_name || null,
+          viewing_address: form.viewing_address || null,
+          vehicle_make: category === 'vehicle' ? form.vehicle_make : null,
+          vehicle_model: category === 'vehicle' ? form.vehicle_model : null,
+          vehicle_year: category === 'vehicle' ? form.vehicle_year : null,
+          vehicle_vin: category === 'vehicle' ? form.vehicle_vin : null,
+          preferred_date_1: form.preferred_date_1 || null,
+          preferred_date_2: form.preferred_date_2 || null,
+          preferred_date_3: form.preferred_date_3 || null,
+          message: form.message || null,
+          total_excl_vat: total,
+        })
+        .select()
+        .single()
 
-    const { data: booking, error: bErr } = await supabase
-      .from('bookings')
-      .insert({
-        customer_id: user?.id ?? null,
-        category: cat,
-        status: 'pending',
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        email,
-        seller_name: sellerName || null,
-        seller_contact_number: sellerPhone || null,
-        viewing_address: viewingAddress || null,
-        vehicle_make: vehicleMake || null,
-        vehicle_model: vehicleModel || null,
-        vehicle_year: vehicleYear || null,
-        vehicle_vin: vehicleVin || null,
-        preferred_date_1: preferredDate || null,
-        message: message || null,
-        total_excl_vat: total,
-      })
-      .select()
-      .single()
+      if (bookingErr) throw bookingErr
 
-    if (bErr || !booking) {
-      setError(bErr?.message ?? 'Failed to create booking')
+      if (chosenServices.length > 0) {
+        const rows = chosenServices.map((s) => ({
+          booking_id: booking.id,
+          service_id: s.id,
+          service_name_snapshot: s.name,
+          price_excl_vat_snapshot: s.price_excl_vat,
+        }))
+        const { error: lineErr } = await supabase.from('booking_services').insert(rows)
+        if (lineErr) throw lineErr
+      }
+
+      navigate(`/bookings/${booking.id}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong submitting your booking.')
+    } finally {
       setSubmitting(false)
-      return
     }
-
-    const lines = services
-      .filter((s) => selected.has(s.id))
-      .map((s) => ({
-        booking_id: booking.id,
-        service_id: s.id,
-        price_excl_vat: s.price_excl_vat,
-        service_name_snapshot: s.name,
-        price_excl_vat_snapshot: s.price_excl_vat,
-      }))
-
-    if (lines.length) {
-      await supabase.from('booking_services').insert(lines)
-    }
-
-    setSubmitting(false)
-    navigate(`/bookings/${booking.id}`)
   }
 
   return (
-    <div className="px-5 pt-6 pb-28">
+    <div className="px-5 pt-6 pb-32">
       <ScreenHeader
-        title={`Book ${CATEGORY_LABEL[cat]}`}
-        subtitle={step === 0 ? 'Select services' : step === 1 ? 'Your details' : 'Review & submit'}
+        title={`Book ${CATEGORY_LABEL[category]} Inspection`}
+        subtitle={step === 'services' ? 'Choose the services you need' : step === 'details' ? 'Tell us where and when' : 'Review before you submit'}
       />
 
-      {step === 0 && (
-        <>
-          {loading && <p className="text-[var(--color-steel-400)] text-sm">Loading services…</p>}
-          <div className="grid gap-3">
+      <StepDots step={step} />
+
+      {step === 'services' && (
+        <div className="mt-6">
+          {services.length === 0 && (
+            <p className="text-[var(--color-steel-400)] text-[13px]">No services configured for this category yet.</p>
+          )}
+          <div className="flex flex-col gap-3">
             {services.map((s) => {
-              const on = selected.has(s.id)
+              const isSelected = selected.has(s.id)
               return (
                 <Card
                   key={s.id}
-                  onClick={() => toggle(s.id)}
-                  className={on ? 'border-[var(--color-blue-500)]' : ''}
+                  onClick={() => toggleService(s.id)}
+                  className={`flex items-center justify-between ${isSelected ? 'border-[var(--color-blue-500)]' : ''}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-display font-semibold text-[15px]">{s.name}</p>
-                      {s.description && (
-                        <p className="text-[12px] text-[var(--color-steel-400)] mt-1">{s.description}</p>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-mono text-[14px] text-[var(--color-blue-400)]">
-                        R{Number(s.price_excl_vat).toLocaleString('en-ZA')}
-                      </p>
-                      <div
-                        className={`mt-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          on ? 'border-[var(--color-blue-500)] bg-[var(--color-blue-500)]' : 'border-[var(--color-navy-line)]'
-                        }`}
-                      >
-                        {on && <span className="text-white text-[10px]">✓</span>}
-                      </div>
-                    </div>
+                  <div className="pr-3">
+                    <p className="font-display font-semibold text-[14px] text-white">{s.name}</p>
+                    {s.description && <p className="text-[12px] text-[var(--color-steel-400)] mt-0.5">{s.description}</p>}
+                    <p className="font-mono text-[12px] text-[var(--color-blue-400)] mt-1.5">
+                      From R{Number(s.price_excl_vat).toLocaleString('en-ZA')} excl. VAT
+                    </p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      isSelected ? 'bg-[var(--color-blue-500)] border-[var(--color-blue-500)]' : 'border-[var(--color-navy-line)]'
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </div>
                 </Card>
               )
             })}
           </div>
-          <div className="mt-6 flex items-center justify-between">
-            <p className="font-mono text-[14px] text-[var(--color-steel-400)]">
-              Total R{total.toLocaleString('en-ZA')} excl. VAT
-            </p>
-            <Button disabled={selected.size === 0} onClick={() => setStep(1)}>
-              Next
+
+          <div className="fixed bottom-0 left-0 right-0 bg-[var(--color-navy)]/95 backdrop-blur border-t border-[var(--color-navy-line)] px-5 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 12px) + 16px)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[13px] text-[var(--color-steel-400)]">Total (excl. VAT)</span>
+              <span className="font-mono font-semibold text-white">R{total.toLocaleString('en-ZA')}</span>
+            </div>
+            <Button full disabled={selected.size === 0} onClick={() => setStep('details')}>
+              Continue
             </Button>
           </div>
-        </>
+        </div>
       )}
 
-      {step === 1 && (
-        <>
-          <Field label="First name" value={firstName} onChange={setFirstName} required />
-          <Field label="Last name" value={lastName} onChange={setLastName} required />
-          <Field label="Phone" value={phone} onChange={setPhone} required />
-          <Field label="Email" value={email} onChange={setEmail} type="email" required />
-          <Field label="Seller / dealership name" value={sellerName} onChange={setSellerName} />
-          <Field label="Seller contact" value={sellerPhone} onChange={setSellerPhone} />
-          <Field label="Viewing address" value={viewingAddress} onChange={setViewingAddress} />
-          {cat === 'vehicle' && (
+      {step === 'details' && (
+        <div className="mt-6">
+          <SectionLabel>Your details</SectionLabel>
+          <Field label="First name" value={form.first_name} onChange={(v) => update('first_name', v)} required />
+          <Field label="Surname" value={form.last_name} onChange={(v) => update('last_name', v)} required />
+          <Field label="Phone number" value={form.phone} onChange={(v) => update('phone', v)} type="tel" required />
+          <Field label="Email" value={form.email} onChange={(v) => update('email', v)} type="email" required />
+          <Field label="Suburb" value={form.suburb} onChange={(v) => update('suburb', v)} />
+          <Field label="City" value={form.city} onChange={(v) => update('city', v)} />
+
+          <SectionLabel>Where it's being inspected</SectionLabel>
+          <Field label="Dealership / seller's name" value={form.seller_name} onChange={(v) => update('seller_name', v)} />
+          <Field label="Viewing address" value={form.viewing_address} onChange={(v) => update('viewing_address', v)} />
+
+          {category === 'vehicle' && (
             <>
-              <Field label="Vehicle make" value={vehicleMake} onChange={setVehicleMake} />
-              <Field label="Model" value={vehicleModel} onChange={setVehicleModel} />
-              <Field label="Year" value={vehicleYear} onChange={setVehicleYear} />
-              <Field label="VIN" value={vehicleVin} onChange={setVehicleVin} />
+              <SectionLabel>Vehicle</SectionLabel>
+              <Field label="Make" value={form.vehicle_make} onChange={(v) => update('vehicle_make', v)} />
+              <Field label="Model" value={form.vehicle_model} onChange={(v) => update('vehicle_model', v)} />
+              <Field label="Year" value={form.vehicle_year} onChange={(v) => update('vehicle_year', v)} />
+              <Field label="VIN number" value={form.vehicle_vin} onChange={(v) => update('vehicle_vin', v)} />
             </>
           )}
-          <Field label="Preferred date" value={preferredDate} onChange={setPreferredDate} type="date" />
-          <Field label="Message / notes" value={message} onChange={setMessage} />
+
+          <SectionLabel>Preferred dates</SectionLabel>
+          <Field label="Option 1" value={form.preferred_date_1} onChange={(v) => update('preferred_date_1', v)} type="date" required />
+          <Field label="Option 2" value={form.preferred_date_2} onChange={(v) => update('preferred_date_2', v)} type="date" />
+          <Field label="Option 3" value={form.preferred_date_3} onChange={(v) => update('preferred_date_3', v)} type="date" />
+
+          <SectionLabel>Anything else?</SectionLabel>
+          <Field label="Message / additional information" value={form.message} onChange={(v) => update('message', v)} />
+
           <div className="flex gap-3 mt-2">
-            <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
-            <Button full onClick={() => setStep(2)} disabled={!firstName || !lastName || !phone || !email}>
+            <Button variant="ghost" onClick={() => setStep('services')}>Back</Button>
+            <Button
+              full
+              disabled={!form.first_name || !form.last_name || !form.phone || !form.email || !form.preferred_date_1}
+              onClick={() => setStep('review')}
+            >
               Review
             </Button>
           </div>
-        </>
+        </div>
       )}
 
-      {step === 2 && (
-        <>
+      {step === 'review' && (
+        <div className="mt-6">
           <Card className="mb-4">
-            <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--color-blue-400)] mb-3">Summary</p>
-            <p className="text-[14px] text-white mb-1">{firstName} {lastName}</p>
-            <p className="text-[13px] text-[var(--color-steel-400)]">{email} · {phone}</p>
-            {sellerName && <p className="text-[13px] text-[var(--color-steel-400)] mt-2">Seller: {sellerName}</p>}
-            <div className="mt-4 pt-3 border-t border-[var(--color-navy-line)]">
-              {services.filter((s) => selected.has(s.id)).map((s) => (
-                <div key={s.id} className="flex justify-between text-[13px] py-1">
-                  <span>{s.name}</span>
-                  <span className="font-mono">R{Number(s.price_excl_vat).toLocaleString('en-ZA')}</span>
-                </div>
-              ))}
-              <div className="flex justify-between font-display font-semibold mt-2 pt-2 border-t border-[var(--color-navy-line)]">
-                <span>Total excl. VAT</span>
-                <span className="text-[var(--color-blue-400)]">R{total.toLocaleString('en-ZA')}</span>
+            <SectionLabel>Services</SectionLabel>
+            {chosenServices.map((s) => (
+              <div key={s.id} className="flex justify-between text-[13px] py-1.5">
+                <span className="text-white">{s.name}</span>
+                <span className="font-mono text-[var(--color-steel-400)]">R{Number(s.price_excl_vat).toLocaleString('en-ZA')}</span>
               </div>
+            ))}
+            <div className="flex justify-between pt-2 mt-2 border-t border-[var(--color-navy-line)]">
+              <span className="font-display font-semibold text-white">Total (excl. VAT)</span>
+              <span className="font-mono font-semibold text-[var(--color-blue-400)]">R{total.toLocaleString('en-ZA')}</span>
             </div>
           </Card>
-          {error && <p className="text-[var(--color-danger)] text-sm mb-3">{error}</p>}
+
+          <Card className="mb-4">
+            <SectionLabel>Contact</SectionLabel>
+            <ReviewRow label="Name" value={`${form.first_name} ${form.last_name}`} />
+            <ReviewRow label="Phone" value={form.phone} />
+            <ReviewRow label="Email" value={form.email} />
+            {form.seller_name && <ReviewRow label="Seller" value={form.seller_name} />}
+            <ReviewRow label="Preferred date" value={form.preferred_date_1} />
+          </Card>
+
+          {error && <p className="text-[var(--color-danger)] text-[13px] mb-3">{error}</p>}
+
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-            <Button full onClick={submit} disabled={submitting}>
-              {submitting ? 'Submitting…' : 'Submit booking'}
+            <Button variant="ghost" onClick={() => setStep('details')}>Back</Button>
+            <Button full disabled={submitting} onClick={submit}>
+              {submitting ? 'Submitting…' : 'Submit Booking'}
             </Button>
           </div>
-        </>
+        </div>
       )}
+    </div>
+  )
+}
+
+function StepDots({ step }: { step: Step }) {
+  const order: Step[] = ['services', 'details', 'review']
+  return (
+    <div className="flex gap-2">
+      {order.map((s) => (
+        <div
+          key={s}
+          className={`h-1 rounded-full flex-1 ${order.indexOf(s) <= order.indexOf(step) ? 'bg-[var(--color-blue-500)]' : 'bg-[var(--color-navy-line)]'}`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--color-blue-400)] mb-3 mt-1">{children}</p>
+}
+
+function ReviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-[13px] py-1.5">
+      <span className="text-[var(--color-steel-400)]">{label}</span>
+      <span className="text-white text-right">{value}</span>
     </div>
   )
 }

@@ -21,6 +21,11 @@ const VARIANT_STYLE: Record<StampVariant, { ring: string; text: string; glow: st
   },
 }
 
+/**
+ * The signature element: a circular inspection seal, echoing the
+ * magnifying-glass motif in the View4You logo. Used to mark verified
+ * reports and dealership index ratings — "We Inspect. You Decide."
+ */
 export function Stamp({
   variant = 'verified',
   size = 72,

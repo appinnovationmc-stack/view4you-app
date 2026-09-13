@@ -28,25 +28,25 @@ export function DealerIndex() {
       {!loading && dealerships.length === 0 && (
         <Card className="text-center py-8">
           <p className="text-white font-display font-semibold mb-1">Index is building</p>
-          <p className="text-[var(--color-steel-400)] text-[13px]">Ratings appear as inspections are completed.</p>
+          <p className="text-[var(--color-steel-400)] text-[13px]">
+            Ratings appear here as dealerships are inspected and reviewed.
+          </p>
         </Card>
       )}
 
-      <div className="grid gap-3 mt-2">
+      <div className="flex flex-col gap-3">
         {dealerships.map((d) => (
-          <Card key={d.id} className="p-4 flex items-center gap-4">
-            <Stamp variant={d.transparency_rating && d.transparency_rating >= 4 ? 'verified' : 'pending'} size={48} />
-            <div className="flex-1 min-w-0">
-              <p className="font-display font-semibold text-[15px] truncate">{d.name}</p>
-              {d.contact_person && (
-                <p className="text-[12px] text-[var(--color-steel-400)] mt-0.5">{d.contact_person}</p>
-              )}
-              {d.transparency_rating != null && (
-                <p className="text-[12px] text-[var(--color-blue-400)] mt-1">
-                  Transparency {d.transparency_rating.toFixed(1)} / 5
-                </p>
-              )}
+          <Card key={d.id} className="flex items-center justify-between">
+            <div>
+              <p className="font-display font-semibold text-white text-[15px]">{d.name}</p>
+              {d.index_notes && <p className="text-[12px] text-[var(--color-steel-400)] mt-1 max-w-[200px]">{d.index_notes}</p>}
             </div>
+            {d.transparency_rating != null && (
+              <Stamp
+                variant={d.transparency_rating >= 3.5 ? 'verified' : d.transparency_rating >= 2 ? 'pending' : 'flagged'}
+                size={52}
+              />
+            )}
           </Card>
         ))}
       </div>
