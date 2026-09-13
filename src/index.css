@@ -1,55 +1,53 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* Brand palette — drawn from the View4You logo (house + magnifier + car) */
+  --color-ink: #071422;           /* near-black navy, deepest bg */
+  --color-navy: #0B1F33;          /* primary dark background */
+  --color-navy-raised: #122A45;   /* card/raised surface */
+  --color-navy-line: #1E3A57;     /* hairline borders on dark */
 
-  --color-navy: #0B1F3A;
-  --color-navy-800: #0F2744;
-  --color-navy-700: #132E52;
-  --color-blue-400: #3B82F6;
-  --color-blue-500: #2563EB;
-  --color-steel-300: #CBD5E1;
-  --color-steel-400: #94A3B8;
-  --color-steel-500: #64748B;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  --color-blue-500: #4A90D9;      /* primary brand blue */
+  --color-blue-400: #6BAEE8;
+  --color-blue-600: #2E6FB8;
+  --color-blue-glow: #6BAEE855;
+
+  --color-steel-400: #9AA5B1;     /* magnifier handle grey */
+  --color-steel-600: #6B7684;
+
+  --color-verified: #34C77B;      /* pass / verified */
+  --color-verified-dim: #34C77B22;
+  --color-flagged: #E8A93A;       /* pending / flag */
+  --color-flagged-dim: #E8A93A22;
+  --color-danger: #E0526B;
+
+  --color-paper: #F5F7FA;         /* light surface for report/paper contexts */
+  --color-ink-on-paper: #0B1F33;
+
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+
+  --radius-stamp: 999px;
 }
 
-@layer base {
-  html {
-    font-family: var(--font-body);
-    -webkit-tap-highlight-color: transparent;
-  }
-  body {
-    @apply bg-[var(--color-navy)] text-white antialiased;
-    margin: 0;
-  }
-  * {
-    box-sizing: border-box;
-  }
+html, body, #root {
+  height: 100%;
+  background-color: var(--color-navy);
+  color: white;
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
-@font-face {
-  font-family: "Space Grotesk";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPBFk.woff2") format("woff2");
+* {
+  box-sizing: border-box;
 }
-@font-face {
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 400 600;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2") format("woff2");
-}
-@font-face {
-  font-family: "IBM Plex Mono";
-  font-style: normal;
-  font-weight: 400 500;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/ibmplexmono/v19/-F6qfjptAgt5U-Vjn4t-4K3s.woff2") format("woff2");
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
