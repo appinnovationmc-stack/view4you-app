@@ -416,7 +416,7 @@ function AuthScreen(props) {
   function submit() {
     setErr(''); setLoading(true);
     var p = mode === 'signup'
-      ? Data.signUp({ email: email, password: pw, role: pickedRole, name: name || email.split('@')[0] })
+      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0] })
       : Data.signIn(email, pw);
     p.then(function(profile){ setLoading(false); props.login(profile); })
      .catch(function(e){ setLoading(false); setErr((e && e.message) || 'Something went wrong.'); });
