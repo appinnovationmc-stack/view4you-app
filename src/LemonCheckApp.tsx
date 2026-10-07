@@ -1075,19 +1075,23 @@ function ReportScreen(props) {
 
   function pay(){
     setPl(true);
-    Data.purchaseReport(insp.id, props.user.id).then(function(){
-      setPaid(true);
-      haptic('success');
-      return Data.fetchDetailedReport(insp.id);
-    }).then(function(report){
-      if (report) setDetail(report);
-      setPl(false);
-      showToast('Report unlocked.');
+    Data.purchaseReport(insp.id, props.user.id).then(function(payment){
+      var form=document.createElement('form');
+      form.method='POST';
+      form.action=payment.action;
+      form.style.display='none';
+      Object.keys(payment.fields||{}).forEach(function(key){
+        var input=document.createElement('input');
+        input.type='hidden';
+        input.name=key;
+        input.value=payment.fields[key];
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
     }).catch(function(err){
       console.error(err); setPl(false);
-      if (String(err && err.message).toLowerCase().indexOf('already') !== -1) {
-        setPaid(true); loadDetailed(); showToast('Report already unlocked.');
-      } else showToast('Purchase failed. Try again.', true);
+      showToast(String(err && err.message || 'Payment could not be started.'), true);
     });
   }
 
