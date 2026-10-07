@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Data from './lib/data';
 import InspectionForm from './InspectionForm';
+import ReportView from './ReportView';
 
 var h = React.createElement;
 
@@ -1050,130 +1051,93 @@ function BookScreen(props) {
 function ReportScreen(props) {
   var nav=props.nav, car=props.car, showToast=props.showToast;
   var _paid=useState(false); var paid=_paid[0];var setPaid=_paid[1];
-  var _pl  =useState(false); var pl  =_pl[0];  var setPl  =_pl[1];
-  var _tab =useState('overview'); var tab=_tab[0]; var setTab=_tab[1];
+  var _pl=useState(false); var pl=_pl[0];var setPl=_pl[1];
+  var _tab=useState('overview'); var tab=_tab[0];var setTab=_tab[1];
+  var _detail=useState(null); var detail=_detail[0];var setDetail=_detail[1];
+  var _dl=useState(false); var dl=_dl[0];var setDl=_dl[1];
   if (!car) return null;
   var insp=car.inspections[0];
+  if (!insp) return null;
   var m=sm(insp.score);
-  var passC=insp.findings.filter(function(f){return f.s==='pass';}).length;
-  var warnC=insp.findings.filter(function(f){return f.s==='warn';}).length;
-  var failC=insp.findings.filter(function(f){return f.s==='fail';}).length;
+
+  function loadDetailed() {
+    if (!insp.id || !props.user) return;
+    setDl(true);
+    Data.fetchDetailedReport(insp.id).then(function(report){
+      if (report) setDetail(report);
+    }).catch(function(err){
+      // Unpurchased reports are intentionally denied by detailed-report RLS.
+      console.debug('Detailed report unavailable until unlocked', err);
+    }).finally(function(){ setDl(false); });
+  }
+
+  React.useEffect(function(){ loadDetailed(); }, [insp.id, props.user && props.user.id]);
 
   function pay(){
     setPl(true);
     Data.purchaseReport(insp.id, props.user.id).then(function(){
-      setPaid(true); setPl(false); haptic('success'); showToast('Report unlocked. PDF sent to your email.');
+      setPaid(true);
+      haptic('success');
+      return Data.fetchDetailedReport(insp.id);
+    }).then(function(report){
+      if (report) setDetail(report);
+      setPl(false);
+      showToast('Report unlocked.');
     }).catch(function(err){
       console.error(err); setPl(false);
-      if (String(err && err.message).indexOf('duplicate') !== -1) { setPaid(true); showToast('Report already unlocked.'); }
-      else showToast('Purchase failed. Try again.', true);
+      if (String(err && err.message).toLowerCase().indexOf('already') !== -1) {
+        setPaid(true); loadDetailed(); showToast('Report already unlocked.');
+      } else showToast('Purchase failed. Try again.', true);
     });
   }
+
+  if (detail) {
+    return h('div',{style:{minHeight:'100vh',background:'#fff'}},
+      h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'#111',display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid rgba(255,255,255,.2)',color:'#fff',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
+        h('span',{style:{color:'#fff',fontSize:12,fontWeight:700}},'LEMONCHECK REPORT')),
+      h(ReportView,detail));
+  }
+
+  var passC=(insp.findings||[]).filter(function(f){return f.s==='pass';}).length;
+  var warnC=(insp.findings||[]).filter(function(f){return f.s==='warn';}).length;
+  var failC=(insp.findings||[]).filter(function(f){return f.s==='fail';}).length;
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:130}},
     h('div',{style:{padding:'var(--safe-top) 20px 0'}},
       h(BackBtn,{onClick:function(){nav('search');}}),
-      /* Header */
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
         h('div',{style:{flex:1,marginRight:14}},
           h('p',{style:{fontSize:11,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:7}},m.lbl+' CONDITION'),
           h('p',{style:{fontSize:22,fontWeight:800,color:C.t,letterSpacing:'-.03em',lineHeight:1.15,marginBottom:5}},car.year+' '+car.make+' '+car.model),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}},car.vin+' · '+car.mileage.toLocaleString()+' km'),
-          h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-            h(Tag,{label:car.engine,      bg:C.s3,c:C.t2}),
-            h(Tag,{label:car.transmission,bg:C.s3,c:C.t2}))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}},car.vin+' · '+Number(car.mileage||0).toLocaleString()+' km')),
         h(Ring,{score:insp.score,size:74,showLabel:true})),
-
-      /* Inspector row */
       h(Card,{style:{marginBottom:12}},
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
-          h(Av,{label:'SN',size:42}),
+          h(Av,{label:'LC',size:42}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},insp.inspector),
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.location+' · '+insp.date)),
-          h(Tag,{label:'AA Certified',bg:C.greenDim,c:C.green}))),
-
-      /* Tab switcher */
-      h('div',{style:{display:'flex',background:C.s2,borderRadius:10,padding:3,marginBottom:14,border:'1px solid var(--b)'},role:'tablist'},
-        ['overview','findings','verdict'].map(function(t){
-          return h('button',{key:t,onClick:function(){setTab(t);},role:'tab','aria-selected':tab===t,
-            style:{flex:1,background:tab===t?C.s3:'none',border:tab===t?'1px solid var(--b2)':'1px solid transparent',borderRadius:8,padding:'9px 0',fontSize:'var(--fs-caption)',fontWeight:tab===t?700:500,color:tab===t?C.t:C.t3,textTransform:'capitalize',transition:'all .15s'}},t);
-        })),
-
-      /* Overview */
-      tab==='overview'&&h('div',{className:'fi',role:'tabpanel'},
-        h(Card,{style:{marginBottom:10}},
-          h('div',{style:{padding:'18px'}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'Score breakdown'),
-            h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}},
-              [{v:passC,l:'Passed',c:C.green,bg:C.greenDim},{v:warnC,l:'Advisory',c:C.amber,bg:C.amberDim},{v:failC,l:'Failed',c:C.red,bg:C.redDim}].map(function(s){
-                return h('div',{key:s.l,style:{background:s.bg,borderRadius:10,padding:'12px',textAlign:'center'}},
-                  h('p',{style:{fontSize:28,fontWeight:900,color:s.c,letterSpacing:'-.04em',lineHeight:1}},s.v),
-                  h('p',{style:{fontSize:10,fontWeight:700,color:s.c,marginTop:3,textTransform:'uppercase',letterSpacing:'.05em'}},s.l));
-              })),
-            /* Progress bar */
-            h('div',{style:{height:5,background:C.s3,borderRadius:99,overflow:'hidden'}},
-              h('div',{style:{height:'100%',width:insp.score+'%',background:m.col,borderRadius:99,transition:'width .8s cubic-bezier(.22,1,.36,1)'}})))),
-        h(Card,{style:{marginBottom:10}},
-          h('div',{style:{padding:'18px'}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'Vehicle details'),
-            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-              [{l:'Make',v:car.make},{l:'Model',v:car.model},{l:'Year',v:String(car.year)},{l:'Colour',v:car.colour},{l:'Mileage',v:car.mileage.toLocaleString()+' km'},{l:'Engine',v:car.engine},{l:'Gearbox',v:car.transmission}].map(function(x){
-                return h('div',{key:x.l,style:{background:C.s2,borderRadius:8,padding:'10px',border:'1px solid var(--b)'}},
-                  h('p',{style:{fontSize:10,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},x.l),
-                  h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t,letterSpacing:'-.01em'}},x.v));
-              }))))),
-
-      /* Findings */
-      tab==='findings'&&h('div',{className:'fi',role:'tabpanel'},
-        h(Card,{style:{overflow:'hidden'}},
-          insp.findings.map(function(f,i){
-            return h('div',{key:i,style:{padding:'14px 18px',borderBottom:i<insp.findings.length-1?'1px solid var(--b)':'none'}},
-              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:f.note?5:0}},
-                h('p',{style:{fontWeight:600,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},f.area),
-                h(SBadge,{s:f.s})),
-              f.note&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.5,marginTop:4}},f.note));
-          }))),
-
-      /* Verdict */
-      tab==='verdict'&&h('div',{className:'fi',role:'tabpanel'},
-        h(Card,{style:{overflow:'hidden'}},
-          h('div',{style:{padding:'18px'}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14}},
-              h('div',{style:{width:34,height:34,borderRadius:9,background:m.dim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}},insp.score>=80?'✅':'⚠️'),
-              h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},"Inspector's verdict")),
-            paid
-              ?h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.7}},insp.verdict)
-              :h('div',null,
-                  h('div',{style:{position:'relative',overflow:'hidden',borderRadius:8,marginBottom:8}},
-                    h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.7,filter:'blur(6px)',userSelect:'none',padding:'4px 0'}},insp.verdict),
-                    h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(20,20,20,0) 0%,rgba(20,20,20,.95) 55%)'}})),
-                  h('p',{id:'verdict-lock',style:{fontSize:'var(--fs-caption)',color:C.t3,textAlign:'center'}},'🔒 Purchase the report to unlock the full inspector verdict')))))),
-
-    /* Fixed bottom CTA — FIX: safe-bot padding */
-    h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
-      background:'rgba(10,10,10,.95)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
-      borderTop:'1px solid var(--b)',padding:'14px 20px',
-      paddingBottom:'max(20px, var(--safe-bot))',zIndex:100}},
-      paid
-        ?h('div',{style:{background:C.greenDim,border:'1px solid rgba(50,215,75,.2)',borderRadius:'var(--r)',padding:'14px 18px',display:'flex',alignItems:'center',gap:12},className:'fi'},
-            h('div',{style:{width:34,height:34,borderRadius:17,background:C.green,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-              h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#fff',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-                h('path',{d:'M20 6L9 17l-5-5'}))),
-            h('div',null,
-              h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.green,letterSpacing:'-.01em'}},'Report unlocked'),
-              h('p',{style:{fontSize:'var(--fs-caption)',color:C.green,opacity:.7,marginTop:1}},'PDF sent to your email')))
-        :h('div',null,
-            h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.08)',borderRadius:8,padding:'9px 12px',marginBottom:10,display:'flex',alignItems:'center',gap:8}},
-              h('span',{style:{fontSize:14}},'🍋'),
-              h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.45}},insp.payer+' earns '+R(insp.payerCut)+' when you buy this')),
-            h(PBtn,{label:'Unlock report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl}))));
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'LemonCheck Inspector'),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
+          h(Tag,{label:'Inspection complete',bg:C.greenDim,c:C.green}))),
+      h(Card,{style:{marginBottom:10}},
+        h('div',{style:{padding:'18px'}},
+          h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,marginBottom:12}},'Inspection summary'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
+            [{v:passC,l:'Passed',c:C.green,bg:C.greenDim},{v:warnC,l:'Advisory',c:C.amber,bg:C.amberDim},{v:failC,l:'Failed',c:C.red,bg:C.redDim}].map(function(x){
+              return h('div',{key:x.l,style:{background:x.bg,borderRadius:10,padding:'12px',textAlign:'center'}},
+                h('p',{style:{fontSize:26,fontWeight:900,color:x.c}},x.v),
+                h('p',{style:{fontSize:10,fontWeight:700,color:x.c,textTransform:'uppercase'}},x.l));
+            })))),
+      h(Card,{style:{marginBottom:10}},
+        h('div',{style:{padding:'18px'}},
+          h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
+          h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
+            'The full LemonCheck report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
+          dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
+      h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'rgba(10,10,10,.96)',backdropFilter:'blur(24px)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
+        h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ALERTS SCREEN
-   FIX: safe-top, aria-live on mark-read, caption font sizes
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function AlertsScreen(props) {
   var nav=props.nav, notifs=props.notifs, onRead=props.onRead;
   var unread=notifs.filter(function(n){return !n.read;}).length;
