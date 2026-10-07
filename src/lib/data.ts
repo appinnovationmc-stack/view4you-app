@@ -23,17 +23,27 @@ export async function signUp(params: {
   const first_name = name.trim().split(/\s+/)[0] || name
   const init = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { role, name, first_name, init } },
+  })
   if (error) throw error
   const user = data.user
-  if (!user) throw new Error('Sign up did not return a user — check your email to confirm, then sign in.')
+  if (!user) throw new Error('Sign up did not return a user.')
 
-  const { error: profileErr } = await supabase.from('profiles').insert({
-    id: user.id, role, name, first_name, init, email,
-  })
-  if (profileErr) throw profileErr
+  // The database trigger creates the profile even when email confirmation is enabled
+  // and Supabase returns no session. If a session exists, upsert keeps the profile
+  // synchronized without relying on client-side INSERT permission.
+  if (data.session) {
+    const { error: profileErr } = await supabase.from('profiles').upsert({
+      id: user.id, role, name, first_name, init, email,
+    }, { onConflict: 'id' })
+    if (profileErr) throw profileErr
+    return fetchProfile(user.id)
+  }
 
-  return fetchProfile(user.id)
+  throw new Error('Account created. Check your email to confirm the account, then sign in.')
 }
 
 export async function signIn(email: string, password: string) {
@@ -392,18 +402,16 @@ function buildVerdict(score: number, findings: Record<string, FindingStatus>): s
 // ---------------------------------------------------------------------------
 
 export async function purchaseReport(inspectionId: string, buyerId: string): Promise<ReportPurchase> {
-  const { data: inspection, error: insErr } = await supabase
-    .from('inspections').select('*').eq('id', inspectionId).single()
-  if (insErr) throw insErr
-
-  const { data, error } = await supabase.from('report_purchases').insert({
-    inspection_id: inspectionId, buyer_id: buyerId,
-    amount_paid: inspection.report_price,
-    payer_earning: inspection.payer_cut,
-    inspector_earning: inspection.inspector_cut,
-  }).select().single()
+  // Never accept price or payout amounts from the browser. The database RPC
+  // derives them from the immutable inspection record and the authenticated user.
+  const { data, error } = await supabase.rpc('purchase_report', {
+    p_inspection_id: inspectionId,
+  })
   if (error) throw error
-  return data as ReportPurchase
+  const row = (Array.isArray(data) ? data[0] : data) as ReportPurchase | undefined
+  if (!row) throw new Error('Purchase was not recorded')
+  if (row.buyer_id !== buyerId) throw new Error('Purchase identity mismatch')
+  return row
 }
 
 export async function fetchBuyerEarnings(buyerId: string) {
