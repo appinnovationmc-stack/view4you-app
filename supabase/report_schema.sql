@@ -54,14 +54,29 @@ create table if not exists report_photos (
 create index if not exists report_items_insp on report_items(inspection_id);
 create index if not exists report_photos_insp on report_photos(inspection_id);
 
--- RLS: read follows whatever the user can already see on the inspection; write = owning inspector only.
+-- Full report access: the inspector, the commissioning buyer, or a buyer who purchased the report.
+-- ASSUMES report_purchases(inspection_id, buyer_id). Verify before running.
+create or replace function can_read_report(p_inspection uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from inspections i
+    left join bookings b on b.id = i.booking_id
+    where i.id = p_inspection and (
+      i.inspector_id = auth.uid()
+      or b.buyer_id = auth.uid()
+      or exists (select 1 from report_purchases rp where rp.inspection_id = i.id and rp.buyer_id = auth.uid())
+    )
+  );
+$$;
+
+-- RLS: read = can_read_report; write = owning inspector only.
 do $$
 declare t text;
 begin
   foreach t in array array['report_items','report_measurements','report_tyres','report_photos'] loop
     execute format('alter table %I enable row level security', t);
     execute format($p$create policy "%1$s_select" on %1$I for select to authenticated
-      using (exists (select 1 from inspections i where i.id = %1$I.inspection_id))$p$, t);
+      using (can_read_report(inspection_id))$p$, t);
     execute format($p$create policy "%1$s_write" on %1$I for all to authenticated
       using (exists (select 1 from inspections i where i.id = %1$I.inspection_id and i.inspector_id = auth.uid()))
       with check (exists (select 1 from inspections i where i.id = %1$I.inspection_id and i.inspector_id = auth.uid()))$p$, t);
@@ -73,6 +88,6 @@ insert into storage.buckets (id, name, public) values ('report-photos', 'report-
 on conflict (id) do nothing;
 
 create policy "report photos read" on storage.objects for select to authenticated
-  using (bucket_id = 'report-photos' and exists (select 1 from inspections i where i.id::text = (storage.foldername(name))[1]));
+  using (bucket_id = 'report-photos' and can_read_report(((storage.foldername(name))[1])::uuid));
 create policy "report photos upload" on storage.objects for insert to authenticated
   with check (bucket_id = 'report-photos' and exists (select 1 from inspections i where i.id::text = (storage.foldername(name))[1] and i.inspector_id = auth.uid()));
