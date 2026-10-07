@@ -1,113 +1,146 @@
-export type BookingCategory =
-  | 'vehicle'
-  | 'property'
-  | 'accommodation'
-  | 'high_value_item'
-  | 'consultation'
+// LemonCheck domain types — mirror supabase/schema.sql exactly.
 
-export type BookingStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'assigned'
-  | 'in_progress'
-  | 'report_ready'
-  | 'completed'
-  | 'cancelled'
+export type UserRole = 'buyer' | 'inspector'
 
-export type PaymentMethod = 'payshap' | 'card' | 'manual'
-export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'refunded' | 'failed'
-
-export interface Service {
+export interface Profile {
   id: string
-  category: BookingCategory
+  role: UserRole
   name: string
-  description: string | null
-  price_excl_vat: number
-  active: boolean
-  sort_order: number
-}
-
-export interface Dealership {
-  id: string
-  name: string
-  contact_person: string | null
-  contact_number: string | null
-  is_private_seller: boolean
-  transparency_rating: number | null
-  index_notes: string | null
-}
-
-export interface Booking {
-  id: string
-  customer_id: string | null
-  category: BookingCategory
-  status: BookingStatus
-
   first_name: string
-  last_name: string
-  phone: string
+  init: string
   email: string
-  physical_address: string | null
-  suburb: string | null
-  city: string | null
-  postal_code: string | null
-
-  dealership_id: string | null
-  seller_name: string | null
-  seller_contact_person: string | null
-  seller_contact_number: string | null
-  viewing_address: string | null
-  viewing_suburb: string | null
-  viewing_city: string | null
-  viewing_postal_code: string | null
-
-  vehicle_make: string | null
-  vehicle_model: string | null
-  vehicle_year: string | null
-  vehicle_colour: string | null
-  vehicle_vin: string | null
-
-  preferred_date_1: string | null
-  preferred_date_2: string | null
-  preferred_date_3: string | null
-  scheduled_date: string | null
-
-  message: string | null
-  total_excl_vat: number
-  assigned_inspector_id: string | null
+  phone: string | null
+  cert: string | null
+  licence: string | null
+  experience: string | null
+  region: string | null
+  specialty: string | null
+  bio: string | null
+  rating: number
+  jobs_completed: number
+  price: number | null
+  eta_minutes: number | null
+  online: boolean
+  top_rated: boolean
   created_at: string
 }
 
-export interface BookingServiceLine {
+export interface Vehicle {
+  vin: string
+  make: string
+  model: string
+  year: number
+  colour: string | null
+  mileage: number | null
+  engine: string | null
+  transmission: string | null
+  first_tracked_by: string | null
+  created_at: string
+}
+
+export interface VehicleHistory {
+  vin: string
+  found: boolean
+  source: string
+  owners: number | null
+  first_registered: string | null
+  province: string | null
+  stolen: boolean
+  taxi_history: boolean
+  colour_changes: number
+  outstanding_finance: boolean
+  finance_house: string | null
+  fetched_at: string
+}
+
+export interface VehicleAccident {
+  id: string
+  vin: string
+  date: string
+  severity: 'Minor' | 'Major'
+  description: string | null
+}
+
+export interface OdometerReading {
+  id: string
+  vin: string
+  date: string
+  km: number
+}
+
+export type BookingStatus = 'pending' | 'accepted' | 'en_route' | 'in_progress' | 'done' | 'cancelled'
+
+export interface Booking {
+  id: string
+  buyer_id: string
+  inspector_id: string | null
+  vin: string
+  location: string
+  notes: string | null
+  status: BookingStatus
+  inspection_fee: number
+  travel_fee: number
+  platform_fee: number
+  paid: boolean
+  created_at: string
+  accepted_at: string | null
+  completed_at: string | null
+}
+
+export type FindingStatus = 'pass' | 'warn' | 'fail'
+
+export interface InspectionFinding {
+  id: string
+  inspection_id: string
+  area: string
+  status: FindingStatus
+  note: string | null
+}
+
+export interface Inspection {
   id: string
   booking_id: string
-  service_id: string | null
-  service_name_snapshot: string
-  price_excl_vat_snapshot: number
+  vin: string
+  inspector_id: string
+  score: number
+  verdict: string | null
+  full_price: number
+  report_price: number
+  payer_cut: number
+  inspector_cut: number
+  created_at: string
+  findings?: InspectionFinding[]
 }
 
-export interface Report {
+export interface ReportPurchase {
   id: string
-  booking_id: string
-  file_url: string | null
-  summary: string | null
-  published_at: string | null
+  inspection_id: string
+  buyer_id: string
+  amount_paid: number
+  payer_earning: number
+  inspector_earning: number
+  purchased_at: string
 }
 
-export const CATEGORY_LABEL: Record<BookingCategory, string> = {
-  vehicle: 'Vehicle',
-  property: 'Property',
-  accommodation: 'Accommodation',
-  high_value_item: 'High-Value Item',
-  consultation: 'Consultation',
+export type NotificationType = 'earn' | 'track' | 'sys'
+
+export interface AppNotification {
+  id: string
+  user_id: string
+  type: NotificationType
+  icon: string
+  title: string
+  body: string
+  read: boolean
+  created_at: string
 }
 
-export const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  assigned: 'Inspector Assigned',
-  in_progress: 'Inspection In Progress',
-  report_ready: 'Report Ready',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-}
+export const INSPECTION_AREAS = [
+  'Engine', 'Transmission', 'Brakes', 'Tyres', 'Suspension', 'Electricals',
+  'Body & Paint', 'Interior', 'Lights', 'Exhaust', 'Battery', 'Charging System',
+] as const
+
+export const VEHICLE_MAKES = [
+  'BMW', 'Ford', 'Honda', 'Hyundai', 'Kia', 'Mazda', 'Mercedes-Benz',
+  'Nissan', 'Toyota', 'Volkswagen',
+] as const

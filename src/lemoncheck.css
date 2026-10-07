@@ -1,0 +1,137 @@
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DESIGN TOKENS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root {
+  /* Palette */
+  --bg:#0A0A0A; --s1:#141414; --s2:#1C1C1C; --s3:#242424;
+  --b:rgba(255,255,255,.08); --b2:rgba(255,255,255,.14);
+  --t:#FFFFFF; --t2:rgba(255,255,255,.6); --t3:rgba(255,255,255,.32);
+
+  /* FIX: Color roles — lime for CTAs/money ONLY. Green for pass status. */
+  --lime:#D4F72A;
+  --lime-dim:rgba(212,247,42,.12);
+  --lime-dim2:rgba(212,247,42,.06);
+  --green:#32D74B; --green-dim:rgba(50,215,75,.14);  /* pass / positive */
+  --red:#FF453A;   --red-dim:rgba(255,69,58,.14);
+  --amber:#FF9F0A; --amber-dim:rgba(255,159,10,.14);
+  --blue:#0A84FF;  --blue-dim:rgba(10,132,255,.14);
+
+  /* FIX: 5-level type scale (was 18 arbitrary sizes) */
+  --fs-display: 40px;
+  --fs-title:   22px;
+  --fs-headline:17px;
+  --fs-body:    15px;
+  --fs-caption: 12px;
+
+  /* FIX: 8pt spacing grid */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 40px; --sp-8: 48px; --sp-9: 64px;
+
+  /* Radii */
+  --r: 14px; --rl: 22px; --rx: 30px;
+
+  /* Nav: 80px (8pt grid, was 76px) */
+  --nav: 80px;
+
+  /* FIX: Safe area with proper max() for Dynamic Island / notch */
+  --safe-top: max(56px, calc(44px + env(safe-area-inset-top)));
+  --safe-bot: max(26px, env(safe-area-inset-bottom));
+
+  --f: 'Inter', -apple-system, sans-serif;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESET
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overscroll-behavior:none; background:var(--bg); }
+body { font-family:var(--f); color:var(--t); -webkit-font-smoothing:antialiased; }
+#root { max-width:430px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; overflow:hidden; }
+/* Momentum scrolling on iOS for all scroll containers */
+.scroll-view { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+::-webkit-scrollbar { display:none; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FORM ELEMENTS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+input, textarea, select {
+  font-family:var(--f); font-size:var(--fs-body); width:100%; outline:none;
+  background:var(--s2); border:1.5px solid var(--b); color:var(--t);
+  border-radius:var(--r); padding:14px 16px;
+  transition:border-color .15s; -webkit-appearance:none; caret-color:var(--lime);
+}
+input::placeholder, textarea::placeholder { color:var(--t3); }
+input:focus, textarea:focus, select:focus { border-color:var(--b2); }
+textarea { resize:none; }
+select option { background:var(--s2); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FIX: GLOBAL PRESS STATES
+   Every tappable surface gets physical feedback.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+button {
+  cursor:pointer; font-family:var(--f); border:none; background:none;
+  -webkit-user-select:none; user-select:none;
+  transition:transform .1s ease, opacity .1s ease;
+}
+button:active { transform:scale(0.96); opacity:0.75; }
+button:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; border-radius: 8px; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; /* border-color handles it */ }
+
+/* Cards that are clickable */
+.pressable { transition:transform .1s ease, opacity .1s ease; cursor:pointer; }
+.pressable:active { transform:scale(0.985); opacity:0.82; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ANIMATIONS
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@keyframes fu     { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+@keyframes fi     { from{opacity:0} to{opacity:1} }
+@keyframes su     { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes sp     { to{transform:rotate(360deg)} }
+@keyframes pg     { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes rp     { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(2.2);opacity:0} }
+@keyframes onb    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+
+/* FIX: Ring draw animation */
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-cir, 1000); }
+  to   { stroke-dashoffset: var(--ring-gap, 0); }
+}
+
+/* FIX: Skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.fu  { animation:fu  .28s cubic-bezier(.22,1,.36,1) both; }
+.fi  { animation:fi  .20s ease both; }
+.su  { animation:su  .30s cubic-bezier(.22,1,.36,1) both; }
+.d1  { animation-delay:.05s; }
+.d2  { animation-delay:.10s; }
+.d3  { animation-delay:.15s; }
+
+/* Screen push transition */
+@keyframes screen-push  { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:none} }
+@keyframes screen-pop   { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:none} }
+@keyframes sheet-up     { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:none} }
+.screen-push  { animation: screen-push  .24s cubic-bezier(.22,1,.36,1) both; }
+.screen-pop   { animation: screen-pop   .22s cubic-bezier(.22,1,.36,1) both; }
+.sheet-up     { animation: sheet-up     .28s cubic-bezier(.22,1,.36,1) both; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* FIX: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+/* FIX: Nav tap targets min 44px */
+nav button { min-height: 44px; }
