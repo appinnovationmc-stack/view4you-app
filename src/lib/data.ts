@@ -424,7 +424,7 @@ function buildVerdict(score: number, findings: Record<string, FindingStatus>): s
 // Report purchases (resale / passive income)
 // ---------------------------------------------------------------------------
 
-export async function purchaseReport(inspectionId: string, buyerId: string): Promise<{ order_id: string; amount: number; action: string; fields: Record<string,string> }> {
+export async function purchaseReport(inspectionId: string, _buyerId?: string): Promise<{ order_id: string; amount: number; action: string; fields: Record<string,string> }> {
   const { data: session } = await supabase.auth.getSession()
   if (!session.session?.access_token) throw new Error('Please sign in again.')
 
