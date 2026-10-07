@@ -56,18 +56,25 @@ create index if not exists report_photos_insp on report_photos(inspection_id);
 
 -- Full report access: the inspector, the commissioning buyer, or a buyer who purchased the report.
 -- ASSUMES report_purchases(inspection_id, buyer_id). Verify before running.
-create or replace function can_read_report(p_inspection uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+create or replace function public.can_read_report(p_inspection uuid) returns boolean
+language sql stable security definer set search_path = '' as $
   select exists (
-    select 1 from inspections i
-    left join bookings b on b.id = i.booking_id
+    select 1
+    from public.inspections i
+    left join public.bookings b on b.id = i.booking_id
     where i.id = p_inspection and (
-      i.inspector_id = auth.uid()
-      or b.buyer_id = auth.uid()
-      or exists (select 1 from report_purchases rp where rp.inspection_id = i.id and rp.buyer_id = auth.uid())
+      i.inspector_id = (select auth.uid())
+      or b.buyer_id = (select auth.uid())
+      or exists (
+        select 1 from public.report_purchases rp
+        where rp.inspection_id = i.id and rp.buyer_id = (select auth.uid())
+      )
     )
   );
-$$;
+$;
+
+revoke all on function public.can_read_report(uuid) from public, anon;
+grant execute on function public.can_read_report(uuid) to authenticated;
 
 -- RLS: read = can_read_report; write = owning inspector only.
 do $$
