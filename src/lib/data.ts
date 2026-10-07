@@ -401,17 +401,16 @@ function buildVerdict(score: number, findings: Record<string, FindingStatus>): s
 // Report purchases (resale / passive income)
 // ---------------------------------------------------------------------------
 
-export async function purchaseReport(inspectionId: string, buyerId: string): Promise<ReportPurchase> {
-  // Never accept price or payout amounts from the browser. The database RPC
-  // derives them from the immutable inspection record and the authenticated user.
-  const { data, error } = await supabase.rpc('purchase_report', {
-    p_inspection_id: inspectionId,
+export async function purchaseReport(inspectionId: string, buyerId: string): Promise<{ order_id: string; amount: number; action: string; fields: Record<string,string> }> {
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session?.access_token) throw new Error('Please sign in again.')
+
+  const { data, error } = await supabase.functions.invoke('create-report-payment', {
+    body: { inspection_id: inspectionId },
   })
   if (error) throw error
-  const row = (Array.isArray(data) ? data[0] : data) as ReportPurchase | undefined
-  if (!row) throw new Error('Purchase was not recorded')
-  if (row.buyer_id !== buyerId) throw new Error('Purchase identity mismatch')
-  return row
+  if (!data?.order_id || !data?.action || !data?.fields) throw new Error(data?.error ?? 'Payment could not be started')
+  return data
 }
 
 export async function fetchBuyerEarnings(buyerId: string) {
