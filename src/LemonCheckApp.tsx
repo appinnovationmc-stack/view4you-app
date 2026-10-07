@@ -1310,8 +1310,17 @@ function InspHomeScreen(props) {
                   /* Lime = money */
                   h('p',{style:{fontSize:22,fontWeight:900,color:C.lime,letterSpacing:'-.04em',flexShrink:0}},R(job.pay))),
                 h('div',{style:{display:'flex',gap:8}},
-                  h('button',{onClick:function(){haptic('error');},style:{flex:'0 0 82px',background:C.redDim,color:C.red,border:'1px solid rgba(255,69,58,.18)',borderRadius:'var(--r)',padding:'13px',fontSize:'var(--fs-caption)',fontWeight:700}},'Decline'),
-                  h(PBtn,{label:'Accept',onClick:function(){setJob(job);nav('ijob');},style:{flex:1,padding:'13px'}}))));
+                  h('button',{onClick:function(){
+                    haptic('error');
+                    Data.declineBooking(job.id,user.id).then(function(){ showToast('Request declined.'); return Data.fetchInspectorJobs(user.id); }).then(function(rows){
+                      JOBS=rows.map(function(j){ return {id:j.id,vin:j.vin,make:j.vehicle.make,model:j.vehicle.model,year:j.vehicle.year,colour:j.vehicle.colour,customer:j.buyer_name,location:j.location,date:new Date(j.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}),status:j.status==='done'?'done':'pending',pay:j.inspection_fee,notes:j.notes||''}; });
+                      setDataVersion(function(x){return x+1;});
+                    }).catch(function(e){console.error(e);showToast('Could not decline request.',true);});
+                  },style:{flex:'0 0 82px',background:C.redDim,color:C.red,border:'1px solid rgba(255,69,58,.18)',borderRadius:'var(--r)',padding:'13px',fontSize:'var(--fs-caption)',fontWeight:700}},'Decline'),
+                  h(PBtn,{label:'Accept',onClick:function(){
+                    setJob(job);
+                    Data.acceptBooking(job.id,user.id).then(function(){ nav('ijob'); }).catch(function(e){ console.error(e); showToast(e.message||'Could not accept request.',true); });
+                  },style:{flex:1,padding:'13px'}}))));
           }),
 
       h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em',marginBottom:8}},'Completed'),
