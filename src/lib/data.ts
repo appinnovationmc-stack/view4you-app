@@ -8,6 +8,9 @@ import type {
   Booking, Inspection, InspectionFinding, ReportPurchase, AppNotification,
   UserRole, FindingStatus,
 } from '../types'
+import { evaluate, type Measurement, type ReportItem, type ReportPhoto, type Tyre } from './reportTemplate'
+import { deriveFindings, scoreFromFindings, buildVerdictText } from './reportMapping'
+import type { ReportViewProps } from '../ReportView'
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -234,6 +237,146 @@ export async function submitInspection(params: {
   await supabase.rpc('increment_jobs_completed', { p_inspector_id: inspectorId })
 
   return inspection as Inspection
+}
+
+// ---------------------------------------------------------------------------
+// Detailed report (checklist, measured tests, tyres, photos)
+// ---------------------------------------------------------------------------
+
+export interface DetailedSubmission {
+  bookingId: string
+  odometerKm: number
+  items: ReportItem[]
+  measurements: Measurement[]
+  tyres: Tyre[]
+}
+
+export interface SubmittedReport {
+  inspectionId: string
+  reportNumber: string
+  score: number
+  roadworthy: 'pass' | 'fail'
+}
+
+/**
+ * Saves the whole report in one database transaction (submit_detailed_report).
+ * Score, area findings, verdict and roadworthy pass/fail are all derived here from the
+ * raw data, so the stored summary can never disagree with the stored checklist.
+ */
+export async function submitDetailedReport(p: DetailedSubmission): Promise<SubmittedReport> {
+  const verdict = evaluate(p.items, p.measurements, p.tyres)
+  const findings = deriveFindings(p.items, p.measurements, p.tyres)
+  const score = scoreFromFindings(findings)
+
+  const { data, error } = await supabase.rpc('submit_detailed_report', {
+    p_booking_id: p.bookingId,
+    p_score: score,
+    p_verdict: buildVerdictText(score, findings, verdict.roadworthy),
+    p_odometer_km: Math.round(p.odometerKm),
+    p_roadworthy: verdict.roadworthy,
+    p_faults: verdict.faults,
+    p_warnings: verdict.warnings,
+    p_findings: findings,
+    p_items: p.items.map(i => ({
+      section: i.section, component: i.component, condition: i.condition,
+      explanation: i.explanation?.trim() || null, roadworthy_relevant: !!i.roadworthy_relevant,
+    })),
+    p_measurements: p.measurements,
+    p_tyres: p.tyres,
+  })
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as { inspection_id: string; report_number: string } | undefined
+  if (!row) throw new Error('Report was not saved (no row returned)')
+  return { inspectionId: row.inspection_id, reportNumber: row.report_number, score, roadworthy: verdict.roadworthy }
+}
+
+export interface PhotoUpload { section: string; blob: Blob; caption?: string }
+
+/**
+ * Uploads photos to the private report-photos bucket (<inspection_id>/<file>) and records them.
+ * Runs after the report is saved; a failure here never loses the report. Returns what failed
+ * so the caller can offer a retry.
+ */
+export async function uploadReportPhotos(inspectionId: string, photos: PhotoUpload[]): Promise<{ uploaded: number; failed: PhotoUpload[] }> {
+  const failed: PhotoUpload[] = []
+  const stored: { photo: PhotoUpload; path: string }[] = []
+  const stamp = Date.now()
+
+  let next = 0
+  const worker = async () => {
+    while (next < photos.length) {
+      const idx = next++
+      const ph = photos[idx]
+      const path = `${inspectionId}/${ph.section}-${stamp}-${idx}.jpg`
+      const { error } = await supabase.storage.from('report-photos').upload(path, ph.blob, { contentType: 'image/jpeg', upsert: false })
+      if (error) failed.push(ph)
+      else stored.push({ photo: ph, path })
+    }
+  }
+  await Promise.all([worker(), worker(), worker()])
+
+  if (!stored.length) return { uploaded: 0, failed }
+
+  // Keep the on-screen order within each section.
+  const order = (s: { photo: PhotoUpload }) => photos.indexOf(s.photo)
+  stored.sort((a, b) => order(a) - order(b))
+  const perSection = new Map<string, number>()
+  const rows = stored.map(s => {
+    const sort = perSection.get(s.photo.section) ?? 0
+    perSection.set(s.photo.section, sort + 1)
+    return { inspection_id: inspectionId, section: s.photo.section, storage_path: s.path, caption: s.photo.caption ?? null, sort }
+  })
+  const { error } = await supabase.from('report_photos').insert(rows)
+  if (error) {
+    // Files are in storage but not recorded against the report. Hand them all back as failed so a retry
+    // re-uploads and records them (the orphaned files are small and sit in the private bucket).
+    return { uploaded: 0, failed: [...failed, ...stored.map(s => s.photo)] }
+  }
+  return { uploaded: rows.length, failed }
+}
+
+/** Loads a full detailed report for ReportView. Photos come back as short-lived signed URLs. */
+export async function fetchDetailedReport(inspectionId: string): Promise<ReportViewProps | null> {
+  const { data: insp, error } = await supabase
+    .from('inspections')
+    .select('*, profiles!inspections_inspector_id_fkey(name), vehicles(*)')
+    .eq('id', inspectionId).maybeSingle()
+  if (error) throw error
+  if (!insp) return null
+
+  const [items, meas, tyres, photos] = await Promise.all([
+    supabase.from('report_items').select('*').eq('inspection_id', inspectionId),
+    supabase.from('report_measurements').select('*').eq('inspection_id', inspectionId),
+    supabase.from('report_tyres').select('*').eq('inspection_id', inspectionId),
+    supabase.from('report_photos').select('*').eq('inspection_id', inspectionId).order('sort'),
+  ])
+  for (const r of [items, meas, tyres, photos]) if (r.error) throw r.error
+
+  const photoRows = (photos.data ?? []) as { section: string; storage_path: string; caption: string | null }[]
+  const signed = photoRows.length
+    ? await supabase.storage.from('report-photos').createSignedUrls(photoRows.map(p => p.storage_path), 3600)
+    : { data: [], error: null }
+  const urlFor = new Map((signed.data ?? []).map(s => [s.path, s.signedUrl] as const))
+  const reportPhotos: ReportPhoto[] = photoRows
+    .filter(p => urlFor.get(p.storage_path))
+    .map(p => ({ section: p.section, url: urlFor.get(p.storage_path)!, caption: p.caption ?? undefined }))
+
+  const v = (insp as { vehicles: Vehicle | null }).vehicles
+  const inspector = (insp as { profiles: { name: string } | null }).profiles
+  return {
+    reportNumber: insp.report_number ?? insp.id.slice(0, 8).toUpperCase(),
+    vehicle: {
+      make: v?.make, model: v?.model, year: v?.year, vin: insp.vin,
+      odometer_km: insp.odometer_km ?? undefined,
+      colour: v?.colour ?? undefined, transmission: v?.transmission ?? undefined,
+    },
+    items: (items.data ?? []) as ReportItem[],
+    measurements: (meas.data ?? []) as Measurement[],
+    tyres: (tyres.data ?? []) as Tyre[],
+    photos: reportPhotos,
+    inspectorName: inspector?.name,
+    inspectedAt: new Date(insp.submitted_at ?? insp.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }),
+  }
 }
 
 function buildVerdict(score: number, findings: Record<string, FindingStatus>): string {

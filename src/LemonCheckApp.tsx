@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import * as Data from './lib/data';
+import InspectionForm from './InspectionForm';
 
 var h = React.createElement;
 
@@ -57,7 +58,7 @@ var ONBOARD = {
   ],
   insp:[
     {icon:'📋',title:'Accept nearby jobs',   body:'Inspection requests appear in real time. Accept the ones that fit your location and schedule — no commitment required.'},
-    {icon:'🔧',title:'Complete the checklist',body:'Work through 12 inspection areas on your phone. Add notes and a verdict. Submit on-site when done.'},
+    {icon:'🔧',title:'Complete the checklist',body:'Work through the full checklist on your phone: condition buttons, brake and tyre readings, photos. Submit on-site when done.'},
     {icon:'🍋',title:'Earn twice per job',   body:'Collect R1,800–R2,100 per inspection, plus R70 every time your report is resold. Passive income that compounds over time.'},
   ],
 };
@@ -1673,7 +1674,8 @@ function App() {
     alerts:    function(){ return h(AlertsScreen,  Object.assign({},sh,{notifs:notifs,onRead:markRead})); },
     earn:      function(){ return h(EarnScreen,    sh); },
     ijobs:     function(){ return h(InspHomeScreen,Object.assign({},sh,{setJob:setJob})); },
-    ijob:      function(){ return h(JobScreen,     Object.assign({},sh,{job:job||JOBS[0]})); },
+    /* Detailed checklist report (InspectionForm). The legacy 12-area JobScreen above is kept for rollback. */
+    ijob:      function(){ return h(InspectionForm, {job:job||JOBS[0], nav:nav, showToast:showToast, onSubmitted:function(){ if (user) loadInspectorData(user); }}); },
     iearnings: function(){ return h(InspEarnScreen,sh); },
     iprofile:  function(){ return h(InspProfileScreen,sh); },
   };

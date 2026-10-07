@@ -109,6 +109,13 @@ export interface Inspection {
   payer_cut: number
   inspector_cut: number
   created_at: string
+  // Detailed-report columns (supabase/report_schema.sql); null on legacy 12-area inspections.
+  report_number?: string | null
+  odometer_km?: number | null
+  roadworthy_status?: 'pass' | 'fail' | null
+  faults?: string[]
+  warnings?: string[]
+  submitted_at?: string | null
   findings?: InspectionFinding[]
 }
 

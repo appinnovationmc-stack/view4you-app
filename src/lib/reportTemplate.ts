@@ -73,6 +73,20 @@ export const CHECKLIST: Section[] = [
 
 export const TYRE_POSITIONS = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right', 'Spare']
 
+// Measured tests: which positions exist, and the result strings ReportView colours by.
+export const TEST_POSITIONS: Record<'brake' | 'shock' | 'slip', string[]> = {
+  brake: ['Front Axle', 'Rear Axle', 'Parking Brake'],
+  shock: ['Front Axle', 'Rear Axle'],
+  slip: ['Front Axle', 'Rear Axle'],
+}
+
+export function testResult(test: 'brake' | 'shock' | 'slip', right: number, left: number): { diff_pct: number | null; result: string } {
+  if (test === 'slip') return { diff_pct: null, result: Math.abs(right) > LIMITS.slipMaxMPerKm ? 'Out of range' : 'Ok' }
+  const d = diffPct(right, left)
+  if (test === 'brake') return { diff_pct: d, result: d > LIMITS.brakeImbalancePct ? 'Failed' : 'Passed' }
+  return { diff_pct: d, result: d > LIMITS.shockImbalancePct ? 'Imbalance' : 'Normal' }
+}
+
 // ---- data shapes (match supabase/report_schema.sql) ----
 export interface ReportItem { section: string; component: string; condition: Condition; explanation?: string | null; roadworthy_relevant?: boolean }
 export interface Measurement { test: 'brake' | 'shock' | 'slip'; position: string; right_value: number | null; left_value: number | null; diff_pct: number | null; result: string | null }
@@ -105,6 +119,7 @@ export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[
   for (const t of tests) {
     const d = t.diff_pct ?? 0
     if (t.test === 'brake' && t.position !== 'Parking Brake' && d > LIMITS.brakeImbalancePct) faults.push(`Brake imbalance on ${t.position} (${d}%)`)
+    if (t.test === 'brake' && t.position === 'Parking Brake' && d > LIMITS.brakeImbalancePct) warnings.push(`Parking brake imbalance (${d}%)`)
     if (t.test === 'shock' && d > LIMITS.shockImbalancePct) warnings.push(`Shock damping imbalance on ${t.position} (${d}%)`)
     if (t.test === 'slip' && Math.abs(t.right_value ?? 0) > LIMITS.slipMaxMPerKm) warnings.push(`Wheel alignment out of range on ${t.position}`)
   }
