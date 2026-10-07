@@ -179,11 +179,34 @@ export async function createBooking(params: {
 
   const { data, error } = await supabase.from('bookings').insert({
     buyer_id: buyerId, vin, location, notes,
-    inspector_id: inspectorId, status: 'accepted',
-    inspection_fee: inspectionFee, accepted_at: new Date().toISOString(),
+    inspector_id: inspectorId, status: 'pending',
+    inspection_fee: inspectionFee,
   }).select().single()
   if (error) throw error
   return data as Booking
+}
+
+export async function acceptBooking(bookingId: string, inspectorId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+    .eq('id', bookingId)
+    .eq('inspector_id', inspectorId)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('This inspection request is no longer available.')
+}
+
+export async function declineBooking(bookingId: string, inspectorId: string): Promise<void> {
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status: 'declined' })
+    .eq('id', bookingId)
+    .eq('inspector_id', inspectorId)
+    .eq('status', 'pending')
+  if (error) throw error
 }
 
 export async function markBookingPaid(bookingId: string) {
