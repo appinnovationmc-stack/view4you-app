@@ -510,7 +510,7 @@ function HomeScreen(props) {
             h('p',{style:{fontSize:18,marginBottom:2}}, '💰'),
             h('p',{style:{fontSize:11,color:C.lime,fontWeight:700}}, 'View'))),
         h('div',{style:{display:'flex',gap:8}},
-          [{v:'3',l:'Resales'},{v:'1',l:'Car tracked'},{v:'+R180',l:'This month'}].map(function(s){
+          [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'},{v:total>0?('+R'+total):'R0',l:'Total earned'}].map(function(s){
             return h('div',{key:s.l,style:{flex:1,background:'rgba(255,255,255,.04)',borderRadius:10,padding:12,border:'1px solid var(--b)'}},
               h('p',{style:{fontSize:16,fontWeight:800,color:C.lime,letterSpacing:'-.03em'}}, s.v),
               h('p',{style:{fontSize:11,color:C.t3,marginTop:3}}, s.l));
@@ -1196,9 +1196,9 @@ function EarnScreen(props) {
     h('div',{style:{padding:'var(--safe-top) 20px 24px',background:'linear-gradient(180deg,#0C180C 0%,'+C.bg+' 100%)'}},
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income 2025'),
       h('p',{style:{fontSize:'var(--fs-display)',fontWeight:900,color:C.lime,letterSpacing:'-.06em',lineHeight:1,marginBottom:6}},R(total)),
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:18}},'From 3 report resales · R540 total'),
+      h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:18}},'From '+TXNS.length+' report resale'+(TXNS.length===1?'':'s')+' · '+R(total)+' total'),
       h('div',{style:{display:'flex',gap:8}},
-        [{v:'3',l:'Resales'},{v:'1',l:'Car tracked'},{v:'+R180',l:'This month'}].map(function(s){
+        [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'},{v:total>0?('+'+R(total)):'R0',l:'Total earned'}].map(function(s){
           return h('div',{key:s.l,style:{flex:1,background:C.limeDim2,borderRadius:10,padding:'12px 10px',border:'1px solid rgba(212,247,42,.1)'}},
             h('p',{style:{fontSize:18,fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},s.v),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},s.l));
@@ -1259,7 +1259,7 @@ function EarnScreen(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function InspHomeScreen(props) {
   var nav=props.nav, user=props.user, setJob=props.setJob;
-  var _on=useState(true); var online=_on[0]; var setOnline=_on[1];
+  var _on=useState(!!(user && user.online)); var online=_on[0]; var setOnline=_on[1];
   var pending=JOBS.filter(function(j){return j.status==='pending';});
   var done   =JOBS.filter(function(j){return j.status==='done';});
 
@@ -1544,7 +1544,7 @@ function InspProfileScreen(props) {
    APP SHELL — fully wired
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function App() {
-  var _sc    = useState('auth');       var screen  = _sc[0];    var setScreen  = _sc[1];
+  var _sc    = useState('boot');       var screen  = _sc[0];    var setScreen  = _sc[1];
   var _role  = useState(null);         var role    = _role[0];  var setRole    = _role[1];
   var _user  = useState(null);         var user    = _user[0];  var setUser    = _user[1];
   var _onb   = useState(false);        var showOnb = _onb[0];   var setShowOnb = _onb[1];
@@ -1553,6 +1553,7 @@ function App() {
   var _notifs= useState(NOTIFS_INIT);  var notifs  = _notifs[0];var setNotifs  = _notifs[1];
   var _toast = useState(null);         var toast   = _toast[0]; var setToast   = _toast[1];
   var _dv    = useState(0);            var setDataVersion = _dv[1]; /* bump to force re-render after Data.* loads */
+  var _boot  = useState(true);         var booting  = _boot[0];  var setBooting  = _boot[1];
 
   function showToast(msg,err){ setToast({msg:msg,err:!!err}); setTimeout(function(){setToast(null);},3200); }
   var _hist = React.useRef([]);
@@ -1566,6 +1567,41 @@ function App() {
     setScreen(s);
     window.scrollTo(0,0);
   }
+
+  // Restore Supabase session + role on every cold start / refresh
+  useEffect(function(){
+    var cancelled = false;
+    Data.getCurrentProfile().then(function(profile){
+      if (cancelled) return;
+      if (profile) {
+        var r = profile.role === 'inspector' ? 'insp' : 'buyer';
+        var adapted = Object.assign({}, profile, {
+          first: profile.first_name, exp: profile.experience,
+          jobs: profile.jobs_completed, earned: 0, rating: Number(profile.rating || 5),
+        });
+        setRole(r);
+        setUser(adapted);
+        setShowOnb(false); // skip onboarding on restore
+        if (r === 'buyer') {
+          loadBuyerData(profile);
+          setScreen('home');
+        } else {
+          loadInspectorData(profile);
+          setScreen('ijobs');
+        }
+      } else {
+        setScreen('auth');
+      }
+      setBooting(false);
+    }).catch(function(err){
+      console.error('Session restore failed', err);
+      if (!cancelled) {
+        setScreen('auth');
+        setBooting(false);
+      }
+    });
+    return function(){ cancelled = true; };
+  }, []);
 
   function timeAgo(iso){
     var mins = Math.round((Date.now()-new Date(iso).getTime())/60000);
@@ -1640,6 +1676,11 @@ function App() {
   var nc = notifs.filter(function(n){ return !n.read; }).length;
   var sh = {nav:nav, navBack:navBack, showToast:showToast, user:user, logout:logout};
 
+  if (booting || screen === 'boot') {
+    return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
+      h(Spin, {size:28}),
+      h('p', {style:{color:C.t3,fontSize:13,fontWeight:600,letterSpacing:'.04em'}}, 'LEMONCHECK'));
+  }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));
 
@@ -1647,7 +1688,7 @@ function App() {
     home:      function(){ return h(HomeScreen,    Object.assign({},sh,{notifs:notifs})); },
     search:    function(){ return h(SearchScreen,  Object.assign({},sh,{setCarData:setCarData})); },
     book:      function(){ return h(BookScreen,    sh); },
-    report:    function(){ return h(ReportScreen,  Object.assign({},sh,{car:carData||VEHICLES['ABC123GP']})); },
+    report:    function(){ return h(ReportScreen,  Object.assign({},sh,{car:carData || Object.values(VEHICLES)[0] || null})); },
     alerts:    function(){ return h(AlertsScreen,  Object.assign({},sh,{notifs:notifs,onRead:markRead})); },
     earn:      function(){ return h(EarnScreen,    sh); },
     ijobs:     function(){ return h(InspHomeScreen,Object.assign({},sh,{setJob:setJob})); },
