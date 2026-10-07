@@ -1,0 +1,22 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type"};
+const enc=(v:string)=>encodeURIComponent(v.trim()).replace(/%20/g,"+");
+const md5=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest("MD5",new TextEncoder().encode(s)))).map(b=>b.toString(16).padStart(2,"0")).join("");
+Deno.serve(async(req)=>{
+ if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
+ if(req.method!=="POST")return new Response(JSON.stringify({error:"POST required"}),{status:405,headers:{...cors,"Content-Type":"application/json"}});
+ const auth=req.headers.get("Authorization"); if(!auth)return new Response(JSON.stringify({error:"Authentication required"}),{status:401,headers:{...cors,"Content-Type":"application/json"}});
+ const url=Deno.env.get("SUPABASE_URL")!, key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+ const admin=createClient(url,key), user=createClient(url,key,{global:{headers:{Authorization:auth}}});
+ const {data:ud,error:ue}=await user.auth.getUser(); if(ue||!ud.user)return new Response(JSON.stringify({error:"Invalid authentication"}),{status:401,headers:{...cors,"Content-Type":"application/json"}});
+ const {inspection_id}=await req.json(); if(typeof inspection_id!=="string")return new Response(JSON.stringify({error:"inspection_id is required"}),{status:400,headers:{...cors,"Content-Type":"application/json"}});
+ const {data:order,error:oe}=await user.rpc("create_report_order",{p_inspection_id:inspection_id}); if(oe)return new Response(JSON.stringify({error:oe.message}),{status:400,headers:{...cors,"Content-Type":"application/json"}});
+ const o=Array.isArray(order)?order[0]:order;
+ const merchantId=Deno.env.get("PAYFAST_MERCHANT_ID"),merchantKey=Deno.env.get("PAYFAST_MERCHANT_KEY"),returnUrl=Deno.env.get("PAYFAST_RETURN_URL"),cancelUrl=Deno.env.get("PAYFAST_CANCEL_URL"),notifyUrl=Deno.env.get("PAYFAST_NOTIFY_URL");
+ if(!merchantId||!merchantKey||!returnUrl||!cancelUrl||!notifyUrl)return new Response(JSON.stringify({error:"PayFast is not configured"}),{status:503,headers:{...cors,"Content-Type":"application/json"}});
+ const fields:Record<string,string>={merchant_id:merchantId,merchant_key:merchantKey,return_url:returnUrl,cancel_url:cancelUrl,notify_url:notifyUrl,name_first:ud.user.user_metadata?.first_name??"",email_address:ud.user.email??"",m_payment_id:String(o.id),amount:Number(o.amount).toFixed(2),item_name:"LemonCheck vehicle report",item_description:"LemonCheck report"};
+ const raw=Object.entries(fields).filter(([_,v])=>v!=="").map(([k,v])=>k+"="+enc(v)).join("&")+(Deno.env.get("PAYFAST_PASSPHRASE")?"&passphrase="+enc(Deno.env.get("PAYFAST_PASSPHRASE")!):"");
+ fields.signature=await md5(raw);
+ return new Response(JSON.stringify({order_id:o.id,amount:o.amount,action:Deno.env.get("PAYFAST_SANDBOX")==="true"?"https://sandbox.payfast.co.za/eng/process":"https://www.payfast.co.za/eng/process",fields}),{headers:{...cors,"Content-Type":"application/json"}});
+});
