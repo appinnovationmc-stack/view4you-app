@@ -9,31 +9,33 @@ button { background: none; border: none; color: inherit; font-family: inherit; }
 .dot { display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: var(--ink); color: var(--on-ink); }
 
 /* ---------- Auth + onboarding canvas (always the soft grey mesh) ---------- */
-.lc-auth { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; color: #fff; background: #7c7d80; }
+.lc-auth { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; color: #fff; background: #86878b; }
 .lc-auth::before {
   content: ""; position: absolute; inset: -25%; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(34% 22% at 88% 6%,  color-mix(in srgb, var(--accent-2) 65%, #fff) 0, transparent 70%),
-    radial-gradient(40% 22% at 30% 30%, rgba(255,255,255,.34) 0, transparent 70%),
-    radial-gradient(30% 22% at 6% 62%,  color-mix(in srgb, var(--accent) 38%, #e8dccd) 0, transparent 70%),
-    radial-gradient(40% 20% at 85% 68%, rgba(255,255,255,.5) 0, transparent 70%),
-    radial-gradient(60% 22% at 50% 102%, #f4f4f4 0, transparent 70%),
-    radial-gradient(35% 18% at 4% 98%,  color-mix(in srgb, var(--accent-2) 30%, #fff) 0, transparent 70%);
-  filter: blur(26px);
+    radial-gradient(40% 20% at 88% 12%,  color-mix(in srgb, var(--accent-2) 55%, #fff) 0, transparent 72%),
+    radial-gradient(44% 22% at 62% 24%, rgba(255,255,255,.72) 0, transparent 72%),
+    radial-gradient(34% 20% at 4% 40%,  color-mix(in srgb, var(--accent) 30%, #efe3d3) 0, transparent 72%),
+    radial-gradient(42% 20% at 92% 62%, rgba(255,255,255,.7) 0, transparent 72%),
+    radial-gradient(40% 16% at 6% 72%,  color-mix(in srgb, var(--accent-2) 26%, #f3ebe2) 0, transparent 72%),
+    radial-gradient(80% 20% at 46% 90%, #ffffff 0, transparent 72%),
+    radial-gradient(44% 16% at 92% 84%, rgba(255,255,255,.95) 0, transparent 72%);
+  filter: blur(22px);
   animation: lc-drift 30s ease-in-out infinite alternate;
 }
 .lc-auth-in { position: relative; display: flex; flex-direction: column; min-height: 100vh; padding: var(--safe-top) 28px max(36px, env(safe-area-inset-bottom)); }
-.lc-title { font-size: 32px; font-weight: 500; line-height: 1.18; letter-spacing: -0.02em; color: #fff; }
+.lc-title { font-size: 27px; font-weight: 500; line-height: 1.22; letter-spacing: -0.02em; color: #fff; }
 .lc-sub   { font-size: 14px; line-height: 1.55; color: rgba(255,255,255,.9); margin-top: 12px; max-width: 310px; }
 .lc-brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
 
 /* underline fields */
 input.lc-line {
   display: block; width: 100%; background: transparent; border: none; border-radius: 0;
-  border-bottom: 1.5px solid rgba(255,255,255,.92); padding: 16px 2px 11px; margin-bottom: 14px;
+  border-bottom: 1.5px solid rgba(255,255,255,.92); padding: 18px 2px 12px; margin-bottom: 22px;
   color: #fff; font-size: 16px; caret-color: #fff; box-shadow: none;
 }
 input.lc-line:focus { background: transparent; border-bottom-color: #fff; box-shadow: 0 10px 14px -12px rgba(255,255,255,.95); }
+input.lc-line:focus-visible { outline: none; }
 input.lc-line::placeholder { color: rgba(255,255,255,.92); }
 input.lc-line:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 99999s; }
 
@@ -108,6 +110,7 @@ input.lc-line:-webkit-autofill { -webkit-text-fill-color: #fff; transition: back
    GLOBAL SKIN — restyles every screen (including files the
    redesign doesn't rewrite) by matching the shared inline tokens.
    ============================================================ */
+[style*="font-weight: 900"] { font-weight: 600 !important; }
 h1[style], h2[style], h1, h2 { font-weight: 500 !important; letter-spacing: -0.03em !important; }
 label[style] { font-size: 13px !important; font-weight: 500 !important; }
 h1[style*="--fs-title"] { font-size: 30px !important; line-height: 1.12; }
@@ -119,7 +122,7 @@ h1[style*="--fs-title"] { font-size: 30px !important; line-height: 1.12; }
 button[style*="border-radius: var(--r)"] { border-radius: 999px !important; }
 [role="alert"]:not(.lc-err) { background: var(--canvas) !important; border: 1px solid var(--b2) !important; border-radius: 999px !important; box-shadow: var(--shadow-soft) !important; }
 /* fixed bottom action bars: fade into the page instead of a solid slab */
-[style*="position: fixed"][style*="bottom: 0px"][style*="max-width: 430px"] { background: linear-gradient(to top, var(--canvas) 62%, transparent) !important; border: none !important; }
+[style*="position: fixed"][style*="bottom: 0px"][style*="max-width: 430px"] { background: linear-gradient(to top, var(--canvas) 82%, transparent) !important; border: none !important; }
 
 /* ---------- Search field ---------- */
 .lc-search { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 18px; border-radius: 999px; background: var(--s1); border: 1px solid var(--b2); box-shadow: var(--glass-shadow); }
@@ -130,3 +133,55 @@ button[style*="border-radius: var(--r)"] { border-radius: 999px !important; }
 .lc-search .lc-x { background: none; border: none; padding: 6px; display: flex; line-height: 0; cursor: pointer; }
 .lc-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .lc-chip { border: 1px solid var(--b); background: var(--s1); color: var(--t2); padding: 7px 14px; border-radius: 999px; font-size: var(--fs-caption); font-weight: 500; cursor: pointer; }
+
+/* Report 'paper': always the light palette, whatever the app theme */
+.lc-paper {
+  color-scheme: light;
+  --bg: #f6f6f4; --s1: #ffffff; --s2: #eeeeeb; --s3: #e1e1dd;
+  --b: rgba(0,0,0,0.08); --b2: rgba(0,0,0,0.15);
+  --t: #0b0b0c; --t2: #4d4d53; --t3: #6c6c73;
+  --ink: #0b0b0c; --ink-dim: rgba(0,0,0,0.08); --ink-dim2: rgba(0,0,0,0.04);
+  --on-ink: #ffffff; --on-ink-dim: rgba(255,255,255,0.16); --on-ink-2: rgba(255,255,255,0.72); --on-ink-3: rgba(255,255,255,0.5);
+  --green: #058547; --green-dim: rgba(5,133,71,0.11);
+  --red: #d92d20; --red-dim: rgba(217,45,32,0.09);
+  --amber: #9a5b00; --amber-dim: rgba(255,185,40,0.26);
+  --blue: #276ef1; --blue-dim: rgba(39,110,241,0.1);
+  --on-status: #ffffff;
+  --hero: linear-gradient(180deg,#ebebe6 0%,#f6f6f4 100%);
+  --map-bg: #e6e6e2;
+  --shadow-soft: 0 2px 14px rgba(0,0,0,0.12);
+  --shadow-sheet: 0 -6px 30px rgba(0,0,0,0.14);
+  --w04: rgba(0,0,0,.04);
+  --w06: rgba(0,0,0,.06);
+  --w07: rgba(0,0,0,.07);
+  --w08: rgba(0,0,0,.08);
+  --w1: rgba(0,0,0,.1);
+  --w2: rgba(0,0,0,.2);
+  --brand: #ffd60a;
+  --fs-display: 32px; --fs-title: 24px; --fs-headline: 17px; --fs-body: 15px; --fs-caption: 13px; --fs-micro: 11px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 28px; --sp-7: 36px; --sp-8: 48px;
+  --r: 14px; --rl: 18px; --rx: 24px; --pill: 999px;
+  --nav: 78px;
+  --safe-top: max(52px, calc(env(safe-area-inset-top) + 12px));
+  --safe-bot: max(16px, env(safe-area-inset-bottom));
+  --f: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --accent: #FF7A59; --accent-2: #FFC857;
+  --canvas: #eee8df;
+  --bg: #eee8df;
+  --s1: rgba(255,255,255,.62); --s2: rgba(255,255,255,.5); --s3: rgba(24,18,8,.09);
+  --b: rgba(24,18,8,.07); --b2: rgba(24,18,8,.15);
+  --t: #17140f; --t2: #5a544b; --t3: #766f64;
+  --ink: #17140f; --on-ink: #ffffff;
+  --ink-dim: rgba(24,18,8,.08); --ink-dim2: rgba(24,18,8,.04);
+  --hero: linear-gradient(transparent, transparent);
+  --map-bg: #e7e0d5;
+  --r: 18px; --rl: 24px; --rx: 32px;
+  --f: "Poppins", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --glass-shadow: 0 10px 34px rgba(70,45,10,.09), inset 0 1px 0 rgba(255,255,255,.75);
+  --shadow-soft: 0 6px 24px rgba(70,45,10,.12);
+  --shadow-sheet: 0 -10px 40px rgba(70,45,10,.14);
+  --glow-1: color-mix(in srgb, var(--accent) 62%, transparent);
+  --glow-2: color-mix(in srgb, var(--accent-2) 42%, transparent);
+  --glow-3: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: #fff !important; color: var(--t);
+}

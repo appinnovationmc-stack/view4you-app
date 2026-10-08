@@ -14,15 +14,20 @@ export interface ReportViewProps {
   inspectedAt?: string
 }
 
-const css = `
-.rv{font-family:Inter,system-ui,sans-serif;color:#111;max-width:820px;margin:0 auto;padding:16px;font-size:13px;line-height:1.45}
-.rv h1{font-size:20px;margin:0}.rv h2{font-size:16px;margin:24px 0 6px;color:#0a7f6f;border-bottom:1px solid #ddd;padding-bottom:4px}
-.rv table{width:100%;border-collapse:collapse;margin:8px 0}.rv th{background:#eee;text-align:left}
-.rv th,.rv td{padding:5px 8px;border:1px solid #ddd;vertical-align:top}
-.rv .pass{color:#0a7f3f;font-weight:700}.rv .fail{color:#c62828;font-weight:700}.rv .warn{color:#b26a00;font-weight:600}
-.rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.rv .grid img{width:100%;border-radius:6px;aspect-ratio:4/3;object-fit:cover}
-.rv .box{background:#f6f8f8;border-radius:8px;padding:12px;margin:12px 0}
+const css = `\n/* rv-modern */
+.rv{font-family:Poppins,Inter,system-ui,sans-serif;color:#17140f;max-width:820px;margin:0 auto;padding:20px 18px 44px;font-size:13px;line-height:1.55}
+.rv h1{font-size:27px;font-weight:500;letter-spacing:-.03em;margin:8px 0 6px;line-height:1.15}
+.rv h2{font-size:17px;font-weight:500;letter-spacing:-.02em;margin:30px 0 10px;color:#17140f;display:flex;align-items:center;gap:10px;border:none;padding:0}
+.rv h2::before{content:"";width:11px;height:11px;border-radius:50%;flex-shrink:0;background:linear-gradient(145deg,var(--accent-2,#ffe066),var(--accent,#ffb400))}
+.rv table{width:100%;border-collapse:separate;border-spacing:0;margin:8px 0;border:1px solid #e8e3da;border-radius:18px;overflow:hidden;background:#fff}
+.rv th{background:#f4f1ec;text-align:left;font-weight:500;color:#5a544b}
+.rv th,.rv td{padding:10px 13px;border:none;border-bottom:1px solid #eee9e1;vertical-align:top}
+.rv tr:last-child th,.rv tr:last-child td{border-bottom:none}
+.rv .pass{color:#058547;font-weight:600}.rv .fail{color:#d92d20;font-weight:600}.rv .warn{color:#9a5b00;font-weight:600}
+.rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0}.rv .grid img{width:100%;border-radius:16px;aspect-ratio:4/3;object-fit:cover}
+.rv .box{background:#f4f1ec;border-radius:22px;padding:16px 18px;margin:16px 0}
 .rv .rw{text-align:center}
+.rv button.noprint{background:#17140f;color:#fff;border:none;border-radius:999px;padding:11px 20px;font:500 13px Poppins,Inter,system-ui,sans-serif;cursor:pointer;margin-bottom:6px}
 @media print{.rv{max-width:none;padding:0}.rv h2{break-after:avoid}.rv table,.rv .grid{break-inside:avoid}.rv .noprint{display:none}}
 `
 

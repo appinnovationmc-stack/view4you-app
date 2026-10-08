@@ -13,10 +13,10 @@ import { deriveFindings, scoreFromFindings } from './lib/reportMapping'
 
 // ---- palette: mirrors C in LemonCheckApp.tsx ----
 const C = {
-  bg: '#0A0A0A', s1: '#141414', s2: '#1C1C1C', s3: '#242424',
-  t: '#FFFFFF', t2: 'var(--w6)', t3: 'var(--w32)',
+  bg: 'var(--bg)', s1: 'var(--s1)', s2: 'var(--s2)', s3: 'var(--s3)',
+  t: 'var(--t)', t2: 'var(--t2)', t3: 'var(--t3)',
   lime: 'var(--ink)', limeDim2: 'var(--ink-dim2)',
-  green: 'var(--green)', greenDim: 'rgba(50,215,75,.14)',
+  green: 'var(--green)', greenDim: 'var(--green-dim)',
   red: 'var(--red)', redDim: 'var(--red-dim)',
   amber: 'var(--amber)', amberDim: 'var(--amber-dim)',
 }
@@ -372,7 +372,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
   // ---- report viewer ----
   if (view) {
     return (
-      <div style={{ position: 'fixed', inset: 0, background: '#fff', overflowY: 'auto', zIndex: 300 }}>
+      <div className="lc-paper" style={{ position: 'fixed', inset: 0, background: '#fff', overflowY: 'auto', zIndex: 300 }}>
         <div className="noprint" style={{ padding: '12px 16px' }}>
           <button type="button" onClick={() => setView(null)} style={{ background: '#eee', color: '#111', borderRadius: 8, padding: '8px 14px', fontWeight: 700 }}>← Close report</button>
         </div>
@@ -408,11 +408,11 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
             {loadingView ? 'Loading…' : 'View full report'}
           </button>
           <button type="button" onClick={() => nav('ijobs')} disabled={photoStatus === 'uploading'}
-            style={{ background: C.lime, color: '#0A0A0A', borderRadius: 'var(--r)', padding: '15px', fontWeight: 700, fontSize: 'var(--fs-body)', opacity: photoStatus === 'uploading' ? .5 : 1 }}>
+            style={{ background: C.lime, color: 'var(--on-ink)', borderRadius: 'var(--r)', padding: '15px', fontWeight: 700, fontSize: 'var(--fs-body)', opacity: photoStatus === 'uploading' ? .5 : 1 }}>
             Back to jobs
           </button>
         </div>
-        <p style={{ ...caption, marginTop: 18 }}>🍋 You earn R70 every time this report is resold.</p>
+        <p style={{ ...caption, marginTop: 18 }}>You earn R70 every time this report is resold.</p>
       </div>
     )
   }
@@ -451,7 +451,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
               <span style={{ ...caption, color: C.t2, fontWeight: 700 }}>{items.length} / {TOTAL_ITEMS}</span>
             </div>
             <div style={{ height: 5, borderRadius: 3, background: C.s3 }}>
-              <div style={{ height: 5, borderRadius: 3, width: `${progressPct}%`, background: C.lime, transition: 'width .2s' }} />
+              <div style={{ height: 5, borderRadius: 3, width: `${progressPct}%`, background: 'linear-gradient(90deg,var(--accent-2),var(--accent))', transition: 'width .2s' }} />
             </div>
           </div>
         </div>
@@ -571,7 +571,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
         </Accordion>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 430, margin: '0 auto', background: 'rgba(10,10,10,.95)', backdropFilter: 'blur(24px)',
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 430, margin: '0 auto', background: 'transparent', backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)', borderTop: '1px solid var(--b)', padding: '10px 20px', paddingBottom: 'max(18px, var(--safe-bot))', zIndex: 100 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: issues.length ? 4 : 8 }}>
           <span style={caption}>Score</span>
@@ -585,7 +585,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           </p>
         )}
         <button type="button" onClick={submit} disabled={issues.length > 0 || saving}
-          style={{ width: '100%', background: issues.length || saving ? 'var(--ink-dim2)' : C.lime, color: issues.length || saving ? C.t3 : '#0A0A0A',
+          style={{ width: '100%', background: issues.length || saving ? 'var(--ink-dim2)' : C.lime, color: issues.length || saving ? C.t3 : 'var(--on-ink)',
             borderRadius: 'var(--r)', padding: '15px 22px', fontSize: 'var(--fs-body)', fontWeight: 700, opacity: issues.length || saving ? .6 : 1 }}>
           {saving ? 'Saving report…' : `Submit report · Earn R ${job.pay.toLocaleString()}`}
         </button>

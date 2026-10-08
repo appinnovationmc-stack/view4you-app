@@ -684,7 +684,7 @@ function AuthScreen(props) {
     h('div',{className:'lc-auth-in fu'},
       h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
       h('div',{style:{flex:1}}),
-      h('h1',{className:'lc-title',style:{fontSize:36}}, 'Car inspections,', h('br'), 'on demand.'),
+      h('h1',{className:'lc-title',style:{fontSize:30}}, 'Car inspections,', h('br'), 'on demand.'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
       h('button',{className:'lc-role dark',onClick:function(){haptic('selection');setPickedRole('buyer');},'aria-label':'Continue as buyer'},
         h('span',null, h('b',null,'I need an inspection'), h('small',null,'Book in 60 seconds. Pay securely.')),
@@ -702,8 +702,8 @@ function AuthScreen(props) {
       h('button',{className:'lc-back',onClick:back,'aria-label':'Go back'},
         h('svg',{width:16,height:16,viewBox:'0 0 16 16',fill:'none','aria-hidden':'true'},
           h('path',{d:'M10 3L5 8L10 13',stroke:'#fff',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}))),
-      h('h1',{className:'lc-title',style:{marginTop:64}}, signup?'Create':'Log into', h('br'), 'your account'),
-      h('p',{className:'lc-sub',style:{marginBottom:34}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
+      h('h1',{className:'lc-title',style:{marginTop:72}}, signup?'Create':'Log into', h('br'), 'your account'),
+      h('p',{className:'lc-sub',style:{marginBottom:40}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
       signup && h('input',{className:'lc-line',value:name,onChange:function(e){setName(e.target.value);},placeholder:'Full name','aria-label':'Full name',autoComplete:'name'}),
       h('input',{className:'lc-line',value:email,onChange:function(e){setEmail(e.target.value);},type:'email',placeholder:'Email','aria-label':'Email',autoCapitalize:'none',autoComplete:'email'}),
       h('input',{className:'lc-line',value:pw,onChange:function(e){setPw(e.target.value);},type:'password',placeholder:'Password','aria-label':'Password',autoComplete:signup?'new-password':'current-password',onKeyDown:function(e){if(e.key==='Enter')submit();}}),
@@ -1411,7 +1411,7 @@ function ReportScreen(props) {
       h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'var(--bg)',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid var(--w2)',color:'var(--t)',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
         h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'YOUR REAL NAME REPORT')),
-      h(ReportView,detail));
+      h('div',{className:'lc-paper',style:{borderRadius:'var(--rx) var(--rx) 0 0',overflow:'hidden'}},h(ReportView,detail)));
   }
 
   var passC=(insp.findings||[]).filter(function(f){return f.s==='pass';}).length;
