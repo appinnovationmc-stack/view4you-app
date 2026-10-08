@@ -1116,7 +1116,7 @@ function BookScreen(props) {
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Your area')))),
 
-    h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32},
+    h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
       h('div',{style:{padding:'14px 18px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,
@@ -1274,7 +1274,7 @@ function BookScreen(props) {
           )
         )
       ),
-      h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16},
+      h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16}},
         h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
         arrived
           ? h('div',{style:{padding:'24px 20px 40px',textAlign:'center'}},
