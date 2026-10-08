@@ -135,3 +135,89 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 
 /* FIX: Nav tap targets min 44px */
 nav button { min-height: 44px; }
+
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LEAFLET MAP OVERRIDES
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.leaflet-container {
+  background: #0C1B0B !important;
+  font-family: var(--f) !important;
+  width: 100%;
+  height: 100%;
+}
+.leaflet-control-attribution {
+  background: rgba(10,10,10,.65) !important;
+  color: rgba(255,255,255,.35) !important;
+  font-size: 9px !important;
+  border-radius: 4px 0 0 0;
+  padding: 2px 6px !important;
+}
+.leaflet-control-attribution a { color: rgba(255,255,255,.4) !important; }
+.leaflet-popup-content-wrapper {
+  background: #1C1C1C !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5) !important;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.leaflet-popup-tip { background: #1C1C1C !important; }
+.leaflet-popup-content { margin: 10px 14px !important; font-size: 13px !important; font-weight: 600; }
+.leaflet-container a.leaflet-popup-close-button { color: rgba(255,255,255,.5) !important; }
+
+.map-overlay > * { pointer-events: auto; }
+
+
+/* Zoom controls */
+.lc-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 12px 12px 0 0 !important;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.lc-zoom-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(20,20,20,.92);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.lc-zoom-btn:first-child { border-bottom: 1px solid rgba(255,255,255,.1); }
+.lc-zoom-btn:active { background: rgba(40,40,40,.95); color: #D4F72A; }
+
+/* User / car location pulse */
+.lc-user-dot {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+.lc-user-core {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 14px; height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #0A84FF;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 3px rgba(10,132,255,.35);
+}
+.lc-user-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(10,132,255,.35);
+  animation: lc-pulse 2s ease-out infinite;
+}
+@keyframes lc-pulse {
+  0% { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
