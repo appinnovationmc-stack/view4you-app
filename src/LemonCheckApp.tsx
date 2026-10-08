@@ -19,14 +19,14 @@ function haptic(type) {
    PALETTE (shorthand object)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 var C = {
-  bg:'#0A0A0A', s1:'#141414', s2:'#1C1C1C', s3:'#242424',
+  bg:'#060606', s1:'rgba(255,255,255,.045)', s2:'rgba(255,255,255,.07)', s3:'rgba(255,255,255,.1)',
   b:'rgba(255,255,255,.08)', b2:'rgba(255,255,255,.14)',
-  t:'#FFFFFF', t2:'rgba(255,255,255,.6)', t3:'rgba(255,255,255,.32)',
-  lime:'#D4F72A', limeDim:'rgba(212,247,42,.12)', limeDim2:'rgba(212,247,42,.06)',
-  green:'#32D74B', greenDim:'rgba(50,215,75,.14)',
+  t:'#F5F5F7', t2:'rgba(245,245,247,.62)', t3:'rgba(245,245,247,.34)',
+  lime:'#C8F031', limeDim:'rgba(200,240,49,.14)', limeDim2:'rgba(200,240,49,.07)',
+  green:'#30D158', greenDim:'rgba(48,209,88,.16)',
   red:'#FF453A', redDim:'rgba(255,69,58,.14)',
   amber:'#FF9F0A', amberDim:'rgba(255,159,10,.14)',
-  blue:'#0A84FF', blueDim:'rgba(10,132,255,.14)',
+  blue:'#0A84FF', blueDim:'rgba(10,132,255,.16)',
 };
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -428,10 +428,13 @@ function Tag(props) {
 function Card(props) {
   return h('div', {
     onClick: props.onClick && function(e){ haptic('light'); props.onClick(e); },
-    className: (props.className||'') + (props.onClick?' pressable':''),
-    style: Object.assign({background:C.s1,borderRadius:'var(--rl)',border:'1px solid var(--b)',overflow:'hidden',
-      cursor:props.onClick?'pointer':'default'}, props.style||{})},
-    props.children);
+    className: 'glass ' + (props.className||'') + (props.onClick?' pressable':''),
+    style: Object.assign({
+      borderRadius:'var(--rl)',
+      overflow:'hidden',
+      cursor:props.onClick?'pointer':'default',
+    }, props.style||{})
+  }, props.children);
 }
 
 /* FIX: lime ONLY on primary CTA */
@@ -441,27 +444,51 @@ function PBtn(props) {
     disabled: dis,
     'aria-label': props.ariaLabel || props.label,
     onClick: props.onClick && function(e){ haptic(props.danger?'error':'medium'); props.onClick(e); },
+    className: props.dark ? 'btn-ghost' : 'btn-primary',
     style: Object.assign({
       width:'100%',
-      background: dis ? (props.dark?C.s3:'rgba(212,247,42,.28)') : (props.dark?C.s2:C.lime),
-      color: dis ? C.t3 : (props.dark?C.t:'#0A0A0A'),
-      border: props.dark ? '1px solid var(--b)' : 'none',
-      borderRadius:'var(--r)', padding:'16px 22px',
-      fontSize:'var(--fs-body)', fontWeight:700,
-      display:'flex',alignItems:'center',justifyContent:'center',gap:8,
-      letterSpacing:'-.01em', opacity:dis?.45:1,
-    }, props.style||{})},
-    props.loading && h(Spin), props.label);
+      background: dis
+        ? (props.dark ? 'rgba(255,255,255,.04)' : 'rgba(200,240,49,.28)')
+        : (props.dark ? 'rgba(255,255,255,.07)' : C.lime),
+      color: props.dark ? C.t : '#0A0A0A',
+      border: props.dark ? '1px solid rgba(255,255,255,.1)' : 'none',
+      borderRadius:'var(--r)',
+      padding:'16px 20px',
+      fontSize:'var(--fs-body)',
+      fontWeight:700,
+      letterSpacing:'-.02em',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      gap:10,
+      opacity: dis ? 0.55 : 1,
+      cursor: dis ? 'default' : 'pointer',
+      boxShadow: (!dis && !props.dark) ? '0 1px 0 rgba(255,255,255,.25) inset, 0 8px 24px rgba(200,240,49,.18)' : 'none',
+    }, props.style||{})
+  },
+    props.loading ? h(Spin,{size:18}) : null,
+    props.label
+  );
 }
 
 function GBtn(props) {
   return h('button', {
-    onClick: props.onClick && function(e){ haptic('selection'); props.onClick(e); },
-    style: Object.assign({width:'100%',background:'transparent',color:props.danger?C.red:C.t2,
-      border:'1px solid '+(props.danger?C.redDim:'var(--b)'),
-      borderRadius:'var(--r)',padding:'16px 22px',
-      fontSize:'var(--fs-caption)',fontWeight:600,letterSpacing:'-.01em'}, props.style||{})},
-    props.label);
+    onClick: props.onClick && function(e){ haptic('light'); props.onClick(e); },
+    className: 'btn-ghost pressable',
+    style: Object.assign({
+      width:'100%',
+      background:'rgba(255,255,255,.06)',
+      color:C.t,
+      border:'1px solid rgba(255,255,255,.1)',
+      borderRadius:'var(--r)',
+      padding:'15px 18px',
+      fontSize:'var(--fs-body)',
+      fontWeight:600,
+      letterSpacing:'-.01em',
+      cursor:'pointer',
+      backdropFilter:'blur(12px)',
+    }, props.style||{})
+  }, props.label);
 }
 
 function BackBtn(props) {
@@ -549,10 +576,9 @@ function Nav(props) {
   ];
   var tabs = role === 'insp' ? iTabs : bTabs;
 
-  return h('nav',{role:'navigation','aria-label':'Main navigation',
+  return h('nav',{role:'navigation','aria-label':'Main navigation',className:'glass-nav',
     style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
-      background:'rgba(10,10,10,.93)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
-      borderTop:'1px solid var(--b)',display:'flex',zIndex:300,
+      display:'flex',zIndex:300,
       height:'var(--nav)',paddingBottom:'var(--safe-bot)'}},
     tabs.map(function(t){
       var active = sc === t.id;
@@ -672,7 +698,7 @@ function HomeScreen(props) {
 
       /* Earnings card — lime on money figures only */
       h('div',{className:'fu pressable',onClick:function(){nav('earn');},
-        style:{background:'linear-gradient(135deg,'+C.s2+','+C.s1+')',borderRadius:'var(--rx)',border:'1px solid var(--b)',padding:22,marginBottom:12,cursor:'pointer',position:'relative',overflow:'hidden'}},
+        className:'glass pressable',style:{borderRadius:'var(--rx)',padding:22,marginBottom:12,cursor:'pointer',position:'relative',overflow:'hidden'}},
         h('div',{style:{position:'absolute',top:-40,right:-40,width:180,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(212,247,42,.06) 0%,transparent 70%)'}}),
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
           h('div',null,
@@ -959,6 +985,7 @@ function BookScreen(props) {
   var _model= useState('');     var model= _model[0];var setModel= _model[1];
   var _year = useState('');     var year = _year[0]; var setYear = _year[1];
   var _loc  = useState('');     var loc  = _loc[0];  var setLoc  = _loc[1];
+  var _dealer = useState('');   var dealer = _dealer[0]; var setDealer = _dealer[1];
   var _notes= useState('');     var notes= _notes[0];var setNotes= _notes[1];
   var _insp = useState(null);   var inspector=_insp[0]; var setInspector=_insp[1];
   var _sort = useState('eta');  var sort = _sort[0]; var setSort = _sort[1];
@@ -979,7 +1006,7 @@ function BookScreen(props) {
     return function(){ clearInterval(iv); };
   }, [step]);
 
-  var ready = vin.trim()&&make&&model&&year&&loc.trim();
+  var ready = vin.trim()&&make&&model&&year&&(dealer.trim()||loc.trim());
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
@@ -992,7 +1019,7 @@ function BookScreen(props) {
     setLoading(true);
     Data.createBooking({
       buyerId: props.user.id, vin: vin, make: make, model: model, year: Number(year),
-      location: loc, notes: notes, inspectorId: inspector.id, inspectionFee: inspector.price,
+      location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer, notes: notes, inspectorId: inspector.id, inspectionFee: inspector.price,
     }).then(function(booking){
       setBookingId(booking.id);
       var dest = geo || SA_DEFAULT;
@@ -1022,9 +1049,12 @@ function BookScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){nav('home');},mb:0}),
         h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
-      h('div',{style:{marginBottom:12}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},
-          h('label',{style:Object.assign({},LBL,{marginBottom:0})},'Where is the car?'),
+      h('div',{style:{marginBottom:14}},
+        h('label',{style:LBL},'Dealership'),
+        h('input',{value:dealer,onChange:function(e){setDealer(e.target.value);},placeholder:'e.g. CMH Toyota Midrand','aria-label':'Dealership name'})),
+      h('div',{style:{marginBottom:14}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+          h('label',{style:Object.assign({},LBL,{marginBottom:0})},'Address or area'),
           h('button',{
             type:'button',
             onClick:function(){
@@ -1038,10 +1068,10 @@ function BookScreen(props) {
                 });
               }).catch(function(){ setGeoLoading(false); showToast('Could not get location', true); });
             },
-            style:{background:'none',border:'none',color:C.lime,fontSize:12,fontWeight:700,padding:'4px 0',display:'flex',alignItems:'center',gap:4}
-          }, geoLoading ? 'Locating…' : '📍 Use my location')
+            style:{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:99,color:C.t,fontSize:11,fontWeight:600,padding:'5px 10px'}
+          }, geoLoading ? 'Locating…' : 'Use my location')
         ),
-        h('input',{value:loc,onChange:function(e){setLoc(e.target.value);},placeholder:'Dealer, address or suburb…','aria-label':'Location'})),
+        h('input',{value:loc,onChange:function(e){setLoc(e.target.value);},placeholder:'Street, suburb or GPS area','aria-label':'Address'})),
       h('div',{style:{marginBottom:12}},h('label',{style:LBL},'VIN number'),
         h('input',{value:vin,onChange:function(e){setVin(e.target.value.toUpperCase());},placeholder:'e.g. ABC123GP',maxLength:17,'aria-label':'VIN',style:{fontWeight:600,letterSpacing:'.04em'}})),
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
@@ -1082,11 +1112,11 @@ function BookScreen(props) {
       }),
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
-        h('div',{style:{background:'rgba(10,10,10,.88)',backdropFilter:'blur(16px)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
+        h('div',{style:{background:'rgba(20,20,22,.75)',backdropFilter:'blur(24px) saturate(160%)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Your area')))),
 
-    h('div',{style:{background:C.bg,borderRadius:'22px 22px 0 0',marginTop:-14,paddingBottom:32,boxShadow:'0 -1px 0 rgba(255,255,255,.06)'},className:'su'},
+    h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
       h('div',{style:{padding:'14px 18px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,
@@ -1228,10 +1258,10 @@ function BookScreen(props) {
           h('div',{role:'timer','aria-live':'polite'},
             arrived
               ? h('div',{style:{background:C.green,color:'#fff',borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-body)',boxShadow:'0 4px 24px rgba(50,215,75,.45)'}},'Inspector arrived')
-              : h('div',{style:{background:'rgba(0,0,0,.82)',backdropFilter:'blur(16px)',color:C.t,borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-headline)',border:'1px solid var(--b)',letterSpacing:'-.02em'}},
+              : h('div',{style:{background:'rgba(20,20,22,.72)',backdropFilter:'blur(24px) saturate(160%)',color:C.t,borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-headline)',border:'1px solid var(--b)',letterSpacing:'-.02em'}},
                   mins + ':' + String(ss2).padStart(2,'0'))
           ),
-          !arrived && h('div',{style:{background:'rgba(10,10,10,.78)',backdropFilter:'blur(12px)',borderRadius:12,padding:'8px 14px',border:'1px solid var(--b)',display:'flex',gap:16,alignItems:'center'}},
+          !arrived && h('div',{style:{background:'rgba(20,20,22,.72)',backdropFilter:'blur(20px) saturate(160%)',borderRadius:12,padding:'8px 14px',border:'1px solid var(--b)',display:'flex',gap:16,alignItems:'center'}},
             h('div',null,
               h('p',{style:{fontSize:10,color:C.t3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em'}},'Distance'),
               h('p',{style:{fontSize:14,fontWeight:800,color:C.t}}, remainingM != null ? formatDistance(remainingM) : '…')
@@ -1244,7 +1274,7 @@ function BookScreen(props) {
           )
         )
       ),
-      h('div',{style:{background:C.bg,borderRadius:'22px 22px 0 0',marginTop:-14},className:'su'},
+      h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16},
         h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
         arrived
           ? h('div',{style:{padding:'24px 20px 40px',textAlign:'center'}},
@@ -1940,7 +1970,7 @@ function App() {
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
-      h('p', {style:{color:C.t3,fontSize:13,fontWeight:600,letterSpacing:'.04em'}}, 'LEMONCHECK'));
+      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'LEMONCHECK'));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));
