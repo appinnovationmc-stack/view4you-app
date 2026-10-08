@@ -4,27 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#f6f6f4" />
+    <meta name="theme-color" content="#8f9093" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Your Real Name</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <script>
-      (function(){try{
-        var s=localStorage.getItem('lc-theme');
-        var d=s?s==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme',d?'dark':'light');
-        var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content',d?'#0b0b0c':'#f6f6f4');
-        if(!s&&window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){
-          if(localStorage.getItem('lc-theme'))return;
-          document.documentElement.setAttribute('data-theme',e.matches?'dark':'light');
-          window.dispatchEvent(new Event('lc-theme'));});}
-      }catch(e){}})();
-    </script>
+    <script>document.documentElement.setAttribute("data-theme","light");</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>

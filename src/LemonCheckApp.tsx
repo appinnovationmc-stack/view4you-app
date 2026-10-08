@@ -22,12 +22,12 @@ var C = {
   bg:'var(--bg)', s1:'var(--s1)', s2:'var(--s2)', s3:'var(--s3)',
   b:'var(--b)', b2:'var(--b2)',
   t:'var(--t)', t2:'var(--t2)', t3:'var(--t3)',
-  lime:'var(--ink)', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim2)',
+  lime:'#ffffff', ink:'#000000', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim2)',
   green:'var(--green)', greenDim:'var(--green-dim)',
   red:'var(--red)', redDim:'var(--red-dim)',
   amber:'var(--amber)', amberDim:'var(--amber-dim)',
   blue:'var(--blue)', blueDim:'var(--blue-dim)',
-  brand:'#FFD60A',
+  brand:'#ffffff',
 };
 /* THEME-V3 (light + dark) */
 
@@ -166,7 +166,7 @@ function makePinIcon(color, label, size) {
   size = size || 36;
   var L = window.L;
   if (!L) return null;
-  var html = '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:3px solid var(--s1);box-shadow:0 2px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:'+(size*0.38)+'px;color:var(--on-ink);font-family:Inter,sans-serif">'+ (label||'') +'</div>';
+  var html = '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:'+(size*0.38)+'px;color:#fff;font-family:Poppins,sans-serif">'+ (label||'') +'</div>';
   return L.divIcon({ className: '', html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }
 
@@ -274,7 +274,7 @@ function MapView(props) {
     }
 
     markers.forEach(function(mk){
-      var icon = makePinIcon(mk.color || C.lime, mk.label || '', mk.size || 36);
+      var icon = makePinIcon(mk.color || C.ink, mk.label || '', mk.size || 36);
       addMarker(mk.lat, mk.lng, icon, mk.popup);
     });
 
@@ -367,33 +367,12 @@ function Ic(name, size, col) {
 }
 function Logo(props) {
   var s = props.size || 44;
-  return h('div',{style:{width:s,height:s,borderRadius:Math.round(s*0.3),background:C.brand,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-    Ic('shield', Math.round(s*0.55), '#0D0D0F'));
+  return h('div',{style:{width:s,height:s,borderRadius:Math.round(s*0.32),background:'rgba(255,255,255,.28)',border:'1px solid rgba(255,255,255,.55)',
+    WebkitBackdropFilter:'blur(14px)',backdropFilter:'blur(14px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+    Ic('shield', Math.round(s*0.52), '#000'));
 }
 function inkNow() {
   try { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#000'; } catch(e) { return '#000'; }
-}
-/* Light / dark switch — persists, drives CSS variables + map tiles */
-function ThemeToggle(props) {
-  var _t = useState(function(){ return document.documentElement.getAttribute('data-theme') || 'light'; });
-  var theme = _t[0], setTheme = _t[1];
-  function flip() {
-    var next = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('lc-theme', next); } catch(e) {}
-    var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', next === 'dark' ? '#0B0B0C' : '#F6F6F4');
-    window.dispatchEvent(new Event('lc-theme'));
-    setTheme(next);
-    haptic('selection');
-  }
-  var dark = theme === 'dark';
-  if (props.wide) return h('button',{onClick:flip,className:'btn-ghost pressable',
-    style:{width:'100%',padding:'15px 18px',fontSize:'var(--fs-body)',fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:10}},
-    Ic(dark?'sun':'moon',18,C.t), dark ? 'Switch to light mode' : 'Switch to dark mode');
-  return h('button',{onClick:flip,'aria-label':dark?'Switch to light mode':'Switch to dark mode',
-    style:{width:40,height:40,borderRadius:'50%',background:C.s2,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
-    Ic(dark?'sun':'moon',18,C.t2));
 }
 
 function Spin(props) {
@@ -436,7 +415,7 @@ function SkeletonInspectorList() {
 
 function Av(props) {
   var sz = props.size || 40;
-  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'linear-gradient(145deg, var(--accent-2), var(--accent))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.38,fontWeight:500,color:'#17140f',flexShrink:0,letterSpacing:'-.02em',boxShadow:'inset 0 1px 0 rgba(255,255,255,.5)'}}, props.label);
+  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:500,color:'#000',flexShrink:0,letterSpacing:'-.02em',boxShadow:'0 10px 20px -10px rgba(0,0,0,.5)'}}, props.label);
 }
 
 /* FIX: Ring — animated fill on mount, sub-label for context, thicker fill stroke */
@@ -451,15 +430,15 @@ function Ring(props) {
     h('svg', {width:sz, height:sz, viewBox:'0 0 '+sz+' '+sz,
               role:'img', 'aria-label':'Condition score: '+sc+' out of 100 — '+m.sub},
       /* Track */
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'var(--w08)',strokeWidth:3.5}),
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(255,255,255,.28)',strokeWidth:3.5}),
       /* FIX: fill stroke is thicker (5) than track (3.5), ring-fill animation */
       h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:m.col,strokeWidth:5,
                    strokeDasharray:cir+' '+cir,strokeDashoffset:cir-fill,strokeLinecap:'round',
                    transform:'rotate(-90 '+cx+' '+cy+')',
                    style:{'--ring-cir':cir,'--ring-gap':cir-fill,strokeDashoffset:cir-fill,animation:'ring-draw .85s cubic-bezier(.22,1,.36,1) both'}}),
-      h('text', {x:cx,y:cy-sz*.05,textAnchor:'middle',dominantBaseline:'middle',fill:C.t,fontSize:sz*.26,fontWeight:800,fontFamily:"'Inter',sans-serif",letterSpacing:'-.03em'}, sc),
+      h('text', {x:cx,y:cy-sz*.05,textAnchor:'middle',dominantBaseline:'middle',fill:C.t,fontSize:sz*.26,fontWeight:500,fontFamily:"'Poppins',sans-serif",letterSpacing:'-.03em'}, sc),
       /* FIX: sub-label inside ring for context */
-      h('text', {x:cx,y:cy+sz*.21,textAnchor:'middle',fill:C.t3,fontSize:sz*.115,fontFamily:"'Inter',sans-serif"}, '/ 100')),
+      h('text', {x:cx,y:cy+sz*.21,textAnchor:'middle',fill:C.t3,fontSize:sz*.115,fontFamily:"'Poppins',sans-serif"}, '/ 100')),
     props.showLabel && h('span', {style:{fontSize:10,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap'}}, m.sub));
 }
 
@@ -502,9 +481,9 @@ function PBtn(props) {
     className: props.dark ? 'btn-ghost' : 'btn-primary',
     style: Object.assign({
       width:'100%',
-      background: props.dark ? 'var(--s1)' : C.lime,
-      color: props.dark ? C.t : 'var(--on-ink)',
-      border: props.dark ? '1px solid var(--b2)' : 'none',
+      background: props.dark ? '#fff' : '#000',
+      color: props.dark ? '#000' : '#fff',
+      border: 'none',
       borderRadius:'var(--pill)',
       padding:'17px 24px',
       fontSize:'var(--fs-body)',
@@ -516,10 +495,10 @@ function PBtn(props) {
       gap:10,
       opacity: dis ? 0.4 : 1,
       cursor: dis ? 'default' : 'pointer',
-      boxShadow: props.dark ? 'none' : '0 14px 28px -12px rgba(0,0,0,.55)',
+      boxShadow: props.dark ? '0 14px 26px -14px rgba(0,0,0,.5)' : '0 14px 26px -12px rgba(0,0,0,.7)',
     }, props.style||{})
   },
-    props.loading ? h(Spin,{size:18,col:props.dark?C.t:'var(--on-ink)',track:props.dark?undefined:'var(--on-ink-dim)'}) : null,
+    props.loading ? h(Spin,{size:18,col:props.dark?'#000':'#fff',track:props.dark?'rgba(0,0,0,.15)':'rgba(255,255,255,.3)'}) : null,
     props.label
   );
 }
@@ -530,9 +509,9 @@ function GBtn(props) {
     className: 'btn-ghost pressable',
     style: Object.assign({
       width:'100%',
-      background:'var(--s1)',
-      color:C.t,
-      border:'1px solid var(--b2)',
+      background:'#fff',
+      color:'#000',
+      border:'none',
       borderRadius:'var(--pill)',
       padding:'16px 22px',
       fontSize:'var(--fs-body)',
@@ -579,19 +558,12 @@ function Toast(props) {
 
 function NBadge(props) {
   if (!props.n) return null;
-  return h('div',{style:{position:'absolute',top:-3,right:-3,background:C.red,color:'#fff',fontSize:9,fontWeight:800,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--bg)',padding:'0 3px'}},props.n>9?'9+':props.n);
+  return h('div',{style:{position:'absolute',top:-3,right:-3,background:'#000',color:'#fff',fontSize:9,fontWeight:600,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--canvas)',padding:'0 3px'}},props.n>9?'9+':props.n);
 }
 
 /* REDESIGN-HELPERS-START */
 var APP_NAME = 'Your Real Name';
 
-/* Glowing accent orb (reference 1) */
-function Orb(props) {
-  var s = props.size || 160;
-  return h('div',{'aria-hidden':'true',style:Object.assign({position:'absolute',width:s,height:s,pointerEvents:'none'},props.style||{})},
-    h('div',{style:{position:'absolute',top:-s*0.28,left:-s*0.28,right:-s*0.28,bottom:-s*0.28,borderRadius:'50%',background:'radial-gradient(circle, var(--accent) 0%, transparent 66%)',filter:'blur(20px)',opacity:.7}}),
-    h('div',{style:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:'50%',background:'linear-gradient(150deg, var(--accent-2), var(--accent))',boxShadow:'0 24px 50px -14px var(--accent)'}}));
-}
 /* Circle arrow detail (reference 1) */
 function ArrowDot(props) {
   var s = props.size || 40;
@@ -732,7 +704,6 @@ function HomeScreen(props) {
           h('p',{className:'lc-cap',style:{marginBottom:6}}, greet()),
           h('h1',{className:'lc-h1'}, user.first)),
         h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
-          h(ThemeToggle,null),
           h('button',{onClick:function(){nav('alerts');},'aria-label':(unread||'No')+' unread notifications',
             style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s1,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
             h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:unread>0?C.t:C.t2,strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
@@ -743,7 +714,6 @@ function HomeScreen(props) {
       /* Earnings hero with glowing orb */
       h('div',{className:'glass pressable fu',onClick:function(){nav('earn');},
         style:{borderRadius:'var(--rx)',padding:'26px 24px 22px',marginBottom:14,cursor:'pointer',position:'relative',overflow:'hidden',minHeight:236}},
-        h(Orb,{size:150,style:{right:-38,top:34}}),
         h('div',{style:{position:'relative'}},
           h('p',{className:'lc-cap'}, 'Passive earnings'),
           h('p',{className:'lc-big',style:{marginTop:10}}, R(total)),
@@ -910,7 +880,7 @@ function SearchScreen(props) {
               insp
                 ? h(PBtn,{label:'View full report',onClick:function(){ setCarData(result); nav('report'); }})
                 : h('div',null,
-                    h('div',{style:{background:C.blueDim,border:'1px solid rgba(10,132,255,.15)',borderRadius:'var(--r)',padding:'14px',marginBottom:10}},
+                    h('div',{style:{background:C.blueDim,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'14px',marginBottom:10}},
                       h('p',{style:{fontSize:'var(--fs-caption)',color:C.blue,lineHeight:1.6}}, 'No inspections yet. Be the first and earn every time your report is resold.')),
                     h(PBtn,{label:'Book inspection now',onClick:function(){nav('book');}}))),
 
@@ -1407,11 +1377,10 @@ function ReportScreen(props) {
   }
 
   if (detail) {
-    return h('div',{style:{minHeight:'100vh',background:'var(--bg)'}},
-      h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'var(--bg)',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}},
-        h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid var(--w2)',color:'var(--t)',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
-        h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'YOUR REAL NAME REPORT')),
-      h('div',{className:'lc-paper',style:{borderRadius:'var(--rx) var(--rx) 0 0',overflow:'hidden'}},h(ReportView,detail)));
+    return h('div',{style:{minHeight:'100vh',paddingBottom:40}},
+      h('div',{className:'noprint',style:{padding:'var(--safe-top) 20px 0'}},
+        h(BackBtn,{onClick:function(){nav('search');},mb:0})),
+      h(ReportView,detail));
   }
 
   var passC=(insp.findings||[]).filter(function(f){return f.s==='pass';}).length;
@@ -1472,7 +1441,7 @@ function AlertsScreen(props) {
             notifs.map(function(n,i){
               return h('div',{key:n.id,role:'article','aria-label':n.title+(n.read?'':' — unread'),
                 style:{padding:'16px 18px',borderBottom:i<notifs.length-1?'1px solid var(--b)':'none',background:n.read?'transparent':C.limeDim2,display:'flex',gap:12,alignItems:'flex-start'}},
-                h('div',{style:{width:40,height:40,borderRadius:10,background:n.read?C.s3:C.s2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,border:'1px solid var(--b)'}},n.icon),
+                h('div',{style:{width:40,height:40,borderRadius:14,background:n.read?C.s2:C.s3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:'1px solid var(--b)',color:C.t}},Ic(n.type==='earn'?'coins':n.type==='track'?'search':'shield',20)),
                 h('div',{style:{flex:1}},
                   h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em',marginBottom:3}},n.title),
                   h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.5,marginBottom:3}},n.body),
@@ -1504,8 +1473,8 @@ function EarnScreen(props) {
   var maxW=Math.max.apply(null,week.map(function(w){return w.insp+w.resale;}));
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
-    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}}, h(Orb,{size:130,style:{right:-34,top:'calc(var(--safe-top) + 4px)',zIndex:-1}}),
-      h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income 2025'),
+    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}},
+      h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income '+new Date().getFullYear()),
       h('p',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.lime,letterSpacing:'-.04em',lineHeight:1,marginBottom:6}},R(total)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:18}},'From '+TXNS.length+' report resale'+(TXNS.length===1?'':'s')+' · '+R(total)+' total'),
       h('div',{style:{display:'flex',gap:8}},
@@ -1617,7 +1586,7 @@ function InspHomeScreen(props) {
                         h('path',{d:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'}),h('circle',{cx:12,cy:10,r:3})),
                       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},job.location)),
                     h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'From '+job.customer+' · '+job.date),
-                    job.notes&&h('div',{style:{background:C.blueDim,borderRadius:7,padding:'7px 10px',marginTop:8,border:'1px solid rgba(10,132,255,.14)'}},
+                    job.notes&&h('div',{style:{background:C.blueDim,borderRadius:7,padding:'7px 10px',marginTop:8,border:'1px solid var(--b)'}},
                       h('p',{style:{fontSize:11,color:C.blue,lineHeight:1.45}},'"'+job.notes+'"'))),
                   /* Lime = money */
                   h('p',{style:{fontSize:22,fontWeight:800,color:C.lime,letterSpacing:'-.04em',flexShrink:0}},R(job.pay))),
@@ -1708,7 +1677,7 @@ function JobScreen(props) {
           h(Tag,{label:'From '+job.customer,bg:C.s3,c:C.t2}),
           h(Tag,{label:job.date,bg:C.s3,c:C.t2}))),
 
-      job.notes&&h('div',{style:{background:C.blueDim,border:'1px solid rgba(10,132,255,.14)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
+      job.notes&&h('div',{style:{background:C.blueDim,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
         h('p',{style:{fontSize:'var(--fs-caption)',color:C.blue,lineHeight:1.5}},'"'+job.notes+'"')),
 
       /* Photo slots */
@@ -1789,7 +1758,7 @@ function InspEarnScreen(props) {
   var resaleTotal = TXNS.reduce(function(a,t){ return a + (t.amount||0); }, 0);
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
-    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}}, h(Orb,{size:130,style:{right:-34,top:'calc(var(--safe-top) + 4px)',zIndex:-1}}),
+    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}},
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Total earned'),
       h('p',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.lime,letterSpacing:'-.04em',lineHeight:1,marginBottom:5}},R(user.earned)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3}},user.jobs+' completed inspections')),
@@ -1864,7 +1833,6 @@ function InspProfileScreen(props) {
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:r[3]?C.lime:C.t,letterSpacing:'-.01em'}},r[1]),
                 h('p',{style:{fontSize:11,color:C.t3,marginTop:2}},r[2])));
           }))),
-      h(ThemeToggle,{wide:true}),
       h(GBtn,{label:'Log out',onClick:logout,danger:true})),
     h(Nav,{sc:'iprofile',nav:nav,role:'insp'}));
 }
