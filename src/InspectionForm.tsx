@@ -14,11 +14,11 @@ import { deriveFindings, scoreFromFindings } from './lib/reportMapping'
 // ---- palette: mirrors C in LemonCheckApp.tsx ----
 const C = {
   bg: '#0A0A0A', s1: '#141414', s2: '#1C1C1C', s3: '#242424',
-  t: '#FFFFFF', t2: 'rgba(255,255,255,.6)', t3: 'rgba(255,255,255,.32)',
-  lime: '#D4F72A', limeDim2: 'rgba(212,247,42,.06)',
-  green: '#32D74B', greenDim: 'rgba(50,215,75,.14)',
-  red: '#FF453A', redDim: 'rgba(255,69,58,.14)',
-  amber: '#FF9F0A', amberDim: 'rgba(255,159,10,.14)',
+  t: '#FFFFFF', t2: 'var(--w6)', t3: 'var(--w32)',
+  lime: 'var(--ink)', limeDim2: 'var(--ink-dim2)',
+  green: 'var(--green)', greenDim: 'rgba(50,215,75,.14)',
+  red: 'var(--red)', redDim: 'var(--red-dim)',
+  amber: 'var(--amber)', amberDim: 'var(--amber-dim)',
 }
 
 export interface InspectionJob {
@@ -438,7 +438,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
 
         {job.notes && (
           <div style={{ background: 'rgba(10,132,255,.14)', border: '1px solid rgba(10,132,255,.14)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 10 }}>
-            <p style={{ fontSize: 'var(--fs-caption)', color: '#0A84FF', lineHeight: 1.5 }}>"{job.notes}"</p>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--blue)', lineHeight: 1.5 }}>"{job.notes}"</p>
           </div>
         )}
 
@@ -585,7 +585,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           </p>
         )}
         <button type="button" onClick={submit} disabled={issues.length > 0 || saving}
-          style={{ width: '100%', background: issues.length || saving ? 'rgba(212,247,42,.28)' : C.lime, color: issues.length || saving ? C.t3 : '#0A0A0A',
+          style={{ width: '100%', background: issues.length || saving ? 'var(--ink-dim2)' : C.lime, color: issues.length || saving ? C.t3 : '#0A0A0A',
             borderRadius: 'var(--r)', padding: '15px 22px', fontSize: 'var(--fs-body)', fontWeight: 700, opacity: issues.length || saving ? .6 : 1 }}>
           {saving ? 'Saving report…' : `Submit report · Earn R ${job.pay.toLocaleString()}`}
         </button>
