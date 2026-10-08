@@ -1,61 +1,56 @@
 /* ============================================================
-   LemonCheck — Glass design system
+   LemonCheck — flat, high-contrast system (light)
    ============================================================ */
 :root {
-  --bg: #060606;
-  --bg-elevated: #0c0c0c;
-  --s1: rgba(255,255,255,0.045);
-  --s2: rgba(255,255,255,0.07);
-  --s3: rgba(255,255,255,0.1);
-  --b: rgba(255,255,255,0.08);
-  --b2: rgba(255,255,255,0.14);
-  --b-glass: rgba(255,255,255,0.12);
+  --bg: #ffffff;
+  --bg-elevated: #ffffff;
+  --s1: #f6f6f6;
+  --s2: #eeeeee;
+  --s3: #e2e2e2;
+  --b: rgba(0,0,0,0.08);
+  --b2: rgba(0,0,0,0.16);
+  --b-glass: rgba(0,0,0,0.08);
 
-  --t: #f5f5f7;
-  --t2: rgba(245,245,247,0.62);
-  --t3: rgba(245,245,247,0.34);
+  --t: #000000;
+  --t2: #4b4b4b;
+  --t3: #6b6b6b;
 
-  --lime: #c8f031;
-  --lime-dim: rgba(200,240,49,0.14);
-  --lime-dim2: rgba(200,240,49,0.07);
-  --green: #30d158;
-  --green-dim: rgba(48,209,88,0.16);
-  --red: #ff453a;
-  --red-dim: rgba(255,69,58,0.14);
-  --amber: #ff9f0a;
-  --amber-dim: rgba(255,159,10,0.14);
-  --blue: #0a84ff;
-  --blue-dim: rgba(10,132,255,0.16);
+  --lime: #000000;
+  --lime-dim: #eeeeee;
+  --lime-dim2: #f6f6f6;
+  --brand: #ffd60a;
+  --green: #058547;
+  --green-dim: rgba(5,163,87,0.12);
+  --red: #d92d20;
+  --red-dim: rgba(217,45,32,0.09);
+  --amber: #9a5b00;
+  --amber-dim: rgba(255,192,67,0.28);
+  --blue: #276ef1;
+  --blue-dim: rgba(39,110,241,0.1);
 
-  --fs-display: 34px;
-  --fs-title: 22px;
+  --fs-display: 32px;
+  --fs-title: 24px;
   --fs-headline: 17px;
   --fs-body: 15px;
-  --fs-caption: 12px;
+  --fs-caption: 13px;
   --fs-micro: 11px;
 
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 20px; --sp-6: 28px; --sp-7: 36px; --sp-8: 48px;
 
-  --r: 16px;
-  --rl: 20px;
-  --rx: 28px;
+  --r: 12px;
+  --rl: 16px;
+  --rx: 20px;
   --pill: 999px;
 
-  --nav: 84px;
+  --nav: 76px;
   --safe-top: max(52px, calc(env(safe-area-inset-top) + 12px));
-  --safe-bot: max(20px, env(safe-area-inset-bottom));
+  --safe-bot: max(16px, env(safe-area-inset-bottom));
 
-  --f: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-       "Segoe UI", Inter, system-ui, sans-serif;
+  --f: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 
-  --glass-bg: rgba(22,22,24,0.55);
-  --glass-bg-strong: rgba(18,18,20,0.72);
-  --glass-blur: saturate(180%) blur(28px);
-  --glass-border: 1px solid rgba(255,255,255,0.1);
-  --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.12);
-  --shadow-soft: 0 8px 32px rgba(0,0,0,0.35);
-  --shadow-sheet: 0 -8px 40px rgba(0,0,0,0.45);
+  --shadow-soft: 0 2px 12px rgba(0,0,0,0.12);
+  --shadow-sheet: 0 -6px 28px rgba(0,0,0,0.14);
 }
 
 *, *::before, *::after {
@@ -74,18 +69,19 @@ body {
   color: var(--t);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 #root {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
-  background:
-    radial-gradient(120% 60% at 50% -10%, rgba(200,240,49,0.06), transparent 50%),
-    radial-gradient(80% 40% at 100% 20%, rgba(10,132,255,0.05), transparent 40%),
-    var(--bg);
+  background: var(--bg);
   position: relative;
   overflow-x: hidden;
+}
+@media (min-width: 431px) {
+  html, body { background: #f2f2f2; }
+  #root { box-shadow: 0 0 0 1px var(--b); }
 }
 .scroll-view {
   overflow-y: auto;
@@ -94,42 +90,22 @@ body {
 }
 ::-webkit-scrollbar { display: none; }
 
-/* ---------- Glass surfaces ---------- */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: var(--glass-border);
-  box-shadow: var(--glass-highlight), var(--shadow-soft);
-}
-.glass-strong {
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: var(--glass-border);
-  box-shadow: var(--glass-highlight), var(--shadow-soft);
-}
+/* ---------- Surfaces (flat — class names kept for compatibility) ---------- */
+.glass        { background: var(--s1); border: none; box-shadow: none; }
+.glass-strong { background: #fff; border: 1px solid var(--b); box-shadow: none; }
 .glass-nav {
-  background: rgba(12,12,14,0.62);
-  backdrop-filter: saturate(200%) blur(40px);
-  -webkit-backdrop-filter: saturate(200%) blur(40px);
-  border-top: 1px solid rgba(255,255,255,0.08);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  background: #fff;
+  border-top: 1px solid var(--b);
 }
 .glass-sheet {
-  background: rgba(16,16,18,0.82);
-  backdrop-filter: saturate(180%) blur(40px);
-  -webkit-backdrop-filter: saturate(180%) blur(40px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-bottom: none;
-  box-shadow: var(--glass-highlight), var(--shadow-sheet);
+  background: #fff;
+  border: none;
+  box-shadow: var(--shadow-sheet);
 }
 .glass-pill {
-  background: rgba(20,20,22,0.7);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.3);
+  background: #fff;
+  border: 1px solid var(--b);
+  box-shadow: var(--shadow-soft);
 }
 
 /* ---------- Forms ---------- */
@@ -138,20 +114,18 @@ input, textarea, select {
   font-size: var(--fs-body);
   width: 100%;
   outline: none;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--s2);
+  border: 2px solid transparent;
   color: var(--t);
   border-radius: var(--r);
-  padding: 15px 16px;
-  transition: border-color .2s, background .2s, box-shadow .2s;
+  padding: 14px 16px;
+  transition: border-color .15s, background .15s;
   -webkit-appearance: none;
-  caret-color: var(--lime);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  caret-color: #000;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: rgba(200,240,49,0.35);
-  background: rgba(255,255,255,0.08);
-  box-shadow: 0 0 0 3px rgba(200,240,49,0.1), inset 0 1px 0 rgba(255,255,255,0.06);
+  border-color: #000;
+  background: #fff;
 }
 input::placeholder, textarea::placeholder {
   color: var(--t3);
@@ -169,24 +143,23 @@ label {
 
 /* ---------- Buttons ---------- */
 .btn-primary {
-  background: var(--lime);
-  color: #0a0a0a;
+  background: #000;
+  color: #fff;
   border: none;
   border-radius: var(--r);
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--fs-body);
-  letter-spacing: -0.02em;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 24px rgba(200,240,49,0.2);
-  transition: transform .15s, filter .15s;
+  letter-spacing: -0.01em;
+  transition: transform .12s, background .12s;
 }
-.btn-primary:active { transform: scale(0.98); filter: brightness(0.95); }
+.btn-primary:active { transform: scale(0.985); background: #2b2b2b; }
 .btn-ghost {
-  background: rgba(255,255,255,0.06);
+  background: var(--s2);
   color: var(--t);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: none;
   border-radius: var(--r);
-  backdrop-filter: blur(12px);
 }
+.btn-ghost:active { background: var(--s3); }
 .pressable { cursor: pointer; transition: transform .12s ease, opacity .12s; }
 .pressable:active { transform: scale(0.985); opacity: 0.92; }
 
@@ -248,67 +221,71 @@ label {
 
 nav button { min-height: 44px; }
 
+
+@keyframes ring-draw {
+  from { stroke-dashoffset: var(--ring-cir); }
+  to   { stroke-dashoffset: var(--ring-gap); }
+}
+@keyframes onb {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* ---------- Map ---------- */
 .leaflet-container {
-  background: #0a0f0c !important;
+  background: #e8e8e8 !important;
   font-family: var(--f) !important;
   width: 100%;
   height: 100%;
 }
 .leaflet-control-attribution {
-  background: rgba(10,10,12,0.55) !important;
-  backdrop-filter: blur(8px);
-  color: rgba(255,255,255,0.3) !important;
+  background: rgba(255,255,255,0.75) !important;
+  color: rgba(0,0,0,0.45) !important;
   font-size: 9px !important;
   border-radius: 6px 0 0 0;
   padding: 2px 6px !important;
   border: none !important;
 }
-.leaflet-control-attribution a { color: rgba(255,255,255,0.35) !important; }
+.leaflet-control-attribution a { color: rgba(0,0,0,0.55) !important; }
 .leaflet-popup-content-wrapper {
-  background: rgba(22,22,24,0.92) !important;
-  backdrop-filter: blur(20px);
-  color: #fff !important;
-  border-radius: 14px !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #fff !important;
+  color: #000 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2) !important;
+  border: none;
 }
-.leaflet-popup-tip { background: rgba(22,22,24,0.92) !important; }
+.leaflet-popup-tip { background: #fff !important; }
 .leaflet-popup-content {
   margin: 10px 14px !important;
   font-size: 13px !important;
   font-weight: 600;
 }
-.leaflet-container a.leaflet-popup-close-button { color: rgba(255,255,255,0.45) !important; }
+.leaflet-container a.leaflet-popup-close-button { color: rgba(0,0,0,0.45) !important; }
 .map-overlay > * { pointer-events: auto; }
 
 .lc-zoom {
   display: flex;
   flex-direction: column;
   margin: 14px 14px 0 0 !important;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  background: rgba(20,20,22,0.72);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.3);
+  background: #fff;
+  border: 1px solid var(--b);
+  box-shadow: var(--shadow-soft);
 }
 .lc-zoom-btn {
   width: 42px;
   height: 42px;
   border: none;
   background: transparent;
-  color: var(--t);
+  color: #000;
   font-size: 22px;
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
 }
-.lc-zoom-btn:first-child {
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.lc-zoom-btn:active { color: var(--lime); background: rgba(255,255,255,0.06); }
+.lc-zoom-btn:first-child { border-bottom: 1px solid var(--b); }
+.lc-zoom-btn:active { background: var(--s2); }
 
 .lc-user-dot { position: relative; width: 22px; height: 22px; }
 .lc-user-core {
@@ -319,12 +296,12 @@ nav button { min-height: 44px; }
   border-radius: 50%;
   background: var(--blue);
   border: 3px solid #fff;
-  box-shadow: 0 0 0 3px rgba(10,132,255,0.35);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.25);
 }
 .lc-user-pulse {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: rgba(10,132,255,0.35);
+  background: rgba(39,110,241,0.3);
   animation: lc-pulse 2s ease-out infinite;
 }

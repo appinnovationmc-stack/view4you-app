@@ -19,15 +19,17 @@ function haptic(type) {
    PALETTE (shorthand object)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 var C = {
-  bg:'#060606', s1:'rgba(255,255,255,.045)', s2:'rgba(255,255,255,.07)', s3:'rgba(255,255,255,.1)',
-  b:'rgba(255,255,255,.08)', b2:'rgba(255,255,255,.14)',
-  t:'#F5F5F7', t2:'rgba(245,245,247,.62)', t3:'rgba(245,245,247,.34)',
-  lime:'#C8F031', limeDim:'rgba(200,240,49,.14)', limeDim2:'rgba(200,240,49,.07)',
-  green:'#30D158', greenDim:'rgba(48,209,88,.16)',
-  red:'#FF453A', redDim:'rgba(255,69,58,.14)',
-  amber:'#FF9F0A', amberDim:'rgba(255,159,10,.14)',
-  blue:'#0A84FF', blueDim:'rgba(10,132,255,.16)',
+  bg:'#FFFFFF', s1:'#F6F6F6', s2:'#EEEEEE', s3:'#E2E2E2',
+  b:'rgba(0,0,0,.08)', b2:'rgba(0,0,0,.16)',
+  t:'#000000', t2:'#4B4B4B', t3:'#6B6B6B',
+  lime:'#000000', limeDim:'#EEEEEE', limeDim2:'#F6F6F6',
+  green:'#058547', greenDim:'rgba(5,163,87,.12)',
+  red:'#D92D20', redDim:'rgba(217,45,32,.09)',
+  amber:'#9A5B00', amberDim:'rgba(255,192,67,.28)',
+  blue:'#276EF1', blueDim:'rgba(39,110,241,.1)',
+  brand:'#FFD60A',
 };
+/* REDESIGN-V1 */
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    DATA
@@ -53,14 +55,14 @@ var INSP_USER = null;
 /* Onboarding copy per role */
 var ONBOARD = {
   buyer:[
-    {icon:'🔍',title:'Search any car',       body:'Enter a South African VIN to see full inspection history, accident records, and eNaTIS data — before you commit to a single rand.'},
-    {icon:'⚡',title:'Inspector in minutes', body:'Choose from certified inspectors near the car. They arrive within the hour — no waiting rooms, no scheduling delays.'},
-    {icon:'💰',title:'Earn while you sleep', body:'Once you commission an inspection, you earn R180 every time another buyer purchases that same report. Passively. Forever.'},
+    {icon:'search',title:'Search any car',       body:'Enter a South African VIN to see full inspection history, accident records, and eNaTIS data — before you commit to a single rand.'},
+    {icon:'bolt',title:'Inspector in minutes', body:'Choose from certified inspectors near the car. They arrive within the hour — no waiting rooms, no scheduling delays.'},
+    {icon:'wallet',title:'Earn while you sleep', body:'Once you commission an inspection, you earn R180 every time another buyer purchases that same report. Passively. Forever.'},
   ],
   insp:[
-    {icon:'📋',title:'Accept nearby jobs',   body:'Inspection requests appear in real time. Accept the ones that fit your location and schedule — no commitment required.'},
-    {icon:'🔧',title:'Complete the checklist',body:'Work through the full checklist on your phone: condition buttons, brake and tyre readings, photos. Submit on-site when done.'},
-    {icon:'🍋',title:'Earn twice per job',   body:'Collect R1,800–R2,100 per inspection, plus R70 every time your report is resold. Passive income that compounds over time.'},
+    {icon:'clipboard',title:'Accept nearby jobs',   body:'Inspection requests appear in real time. Accept the ones that fit your location and schedule — no commitment required.'},
+    {icon:'wrench',title:'Complete the checklist',body:'Work through the full checklist on your phone: condition buttons, brake and tyre readings, photos. Submit on-site when done.'},
+    {icon:'shield',title:'Earn twice per job',   body:'Collect R1,800–R2,100 per inspection, plus R70 every time your report is resold. Passive income that compounds over time.'},
   ],
 };
 
@@ -164,7 +166,7 @@ function makePinIcon(color, label, size) {
   size = size || 36;
   var L = window.L;
   if (!L) return null;
-  var html = '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:'+(size*0.38)+'px;color:#0A0A0A;font-family:Inter,sans-serif">'+ (label||'') +'</div>';
+  var html = '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:'+(size*0.38)+'px;color:#fff;font-family:Inter,sans-serif">'+ (label||'') +'</div>';
   return L.divIcon({ className: '', html: html, iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }
 
@@ -212,7 +214,7 @@ function MapView(props) {
       maxZoom: 18,
     }).setView([center.lat, center.lng], zoom);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd',
     }).addTo(map);
@@ -286,14 +288,14 @@ function MapView(props) {
     // Prefer real road route if provided
     if (routeCoords && routeCoords.length > 1) {
       var poly = L.polyline(routeCoords, {
-        color: C.lime, weight: 4, opacity: 0.85, lineCap: 'round', lineJoin: 'round'
+        color: '#000', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round'
       }).addTo(map);
       layersRef.current.push(poly);
       routeCoords.forEach(function(c){ boundsPts.push(c); });
     } else if (routeTo && (userPos || (markers[0]))) {
       var from = markers[0] ? { lat: markers[0].lat, lng: markers[0].lng } : userPos;
       var line = L.polyline([[from.lat, from.lng], [routeTo.lat, routeTo.lng]], {
-        color: C.lime, weight: 3, opacity: 0.55, dashArray: '8 10'
+        color: '#000', weight: 3, opacity: 0.5, dashArray: '8 10'
       }).addTo(map);
       layersRef.current.push(line);
       boundsPts.push([routeTo.lat, routeTo.lng]);
@@ -326,7 +328,7 @@ function MapView(props) {
       position: 'relative',
       height: props.height || '52vh',
       overflow: 'hidden',
-      background: '#0C1B0B',
+      background: '#E8E8E8',
       borderRadius: props.rounded ? '0 0 20px 20px' : 0,
     }
   },
@@ -339,9 +341,34 @@ function MapView(props) {
 }
 
 
+
+/* ━━ ICONS (single line-icon set; replaces all emoji) ━━ */
+var IC = {
+  search:'M21 21l-4.3-4.3M17 11a6 6 0 11-12 0 6 6 0 0112 0z',
+  bolt:'M13 2L4 14h7l-1 8 9-12h-7l1-8z',
+  wallet:'M3 7a2 2 0 012-2h12v3M3 7v11a2 2 0 002 2h14a1 1 0 001-1V9a1 1 0 00-1-1H5a2 2 0 01-2-1zM17 14h.01',
+  clipboard:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 13l2 2 4-4',
+  wrench:'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z',
+  car:'M5 17H3v-4l2-5h11l3 5h2v4h-2M5 17h2m10 0H9M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM5 13h14',
+  pin:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM15 10a3 3 0 11-6 0 3 3 0 016 0z',
+  check:'M20 6L9 17l-5-5',
+  shield:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  star:'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z'
+};
+function Ic(name, size, col, fillIt) {
+  return h('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:fillIt?(col||'currentColor'):'none',
+    stroke:col||'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true',style:{flexShrink:0}},
+    h('path',{d:IC[name]||IC.check}));
+}
+function Logo(props) {
+  var s = props.size || 44;
+  return h('div',{style:{width:s,height:s,borderRadius:Math.round(s*0.28),background:C.brand,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+    Ic('shield', Math.round(s*0.55), '#000'));
+}
+
 function Spin(props) {
   var sz = (props && props.size) || 18;
-  return h('div', {style:{width:sz,height:sz,border:'2px solid rgba(255,255,255,.1)',borderTop:'2px solid '+C.t,borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
+  return h('div', {style:{width:sz,height:sz,border:'2px solid '+(props.track||'rgba(0,0,0,.1)'),borderTop:'2px solid '+(props.col||C.t),borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
 }
 
 /* FIX: Skeleton shimmer replaces universal spinner for data loading */
@@ -396,13 +423,13 @@ function Ring(props) {
     h('svg', {width:sz, height:sz, viewBox:'0 0 '+sz+' '+sz,
               role:'img', 'aria-label':'Condition score: '+sc+' out of 100 — '+m.sub},
       /* Track */
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(255,255,255,.08)',strokeWidth:3.5}),
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(0,0,0,.08)',strokeWidth:3.5}),
       /* FIX: fill stroke is thicker (5) than track (3.5), ring-fill animation */
       h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:m.col,strokeWidth:5,
                    strokeDasharray:cir+' '+cir,strokeDashoffset:cir-fill,strokeLinecap:'round',
                    transform:'rotate(-90 '+cx+' '+cy+')',
                    style:{'--ring-cir':cir,'--ring-gap':cir-fill,strokeDashoffset:cir-fill,animation:'ring-draw .85s cubic-bezier(.22,1,.36,1) both'}}),
-      h('text', {x:cx,y:cy-sz*.05,textAnchor:'middle',dominantBaseline:'middle',fill:C.t,fontSize:sz*.26,fontWeight:800,fontFamily:"'Inter',sans-serif",letterSpacing:'-.03em'}, sc),
+      h('text', {x:cx,y:cy-sz*.05,textAnchor:'middle',dominantBaseline:'middle',fill:C.t,fontSize:sz*.26,fontWeight:700,fontFamily:"'Inter',sans-serif",letterSpacing:'-.03em'}, sc),
       /* FIX: sub-label inside ring for context */
       h('text', {x:cx,y:cy+sz*.21,textAnchor:'middle',fill:C.t3,fontSize:sz*.115,fontFamily:"'Inter',sans-serif"}, '/ 100')),
     props.showLabel && h('span', {style:{fontSize:10,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap'}}, m.sub));
@@ -448,10 +475,10 @@ function PBtn(props) {
     style: Object.assign({
       width:'100%',
       background: dis
-        ? (props.dark ? 'rgba(255,255,255,.04)' : 'rgba(200,240,49,.28)')
-        : (props.dark ? 'rgba(255,255,255,.07)' : C.lime),
-      color: props.dark ? C.t : '#0A0A0A',
-      border: props.dark ? '1px solid rgba(255,255,255,.1)' : 'none',
+        ? (props.dark ? '#F6F6F6' : '#000000')
+        : (props.dark ? '#EEEEEE' : '#000000'),
+      color: props.dark ? C.t : '#FFFFFF',
+      border: 'none',
       borderRadius:'var(--r)',
       padding:'16px 20px',
       fontSize:'var(--fs-body)',
@@ -461,12 +488,12 @@ function PBtn(props) {
       alignItems:'center',
       justifyContent:'center',
       gap:10,
-      opacity: dis ? 0.55 : 1,
+      opacity: dis ? 0.32 : 1,
       cursor: dis ? 'default' : 'pointer',
-      boxShadow: (!dis && !props.dark) ? '0 1px 0 rgba(255,255,255,.25) inset, 0 8px 24px rgba(200,240,49,.18)' : 'none',
+      boxShadow: 'none',
     }, props.style||{})
   },
-    props.loading ? h(Spin,{size:18}) : null,
+    props.loading ? h(Spin,{size:18,col:props.dark?C.t:'#fff',track:props.dark?undefined:'rgba(0,0,0,.3)'}) : null,
     props.label
   );
 }
@@ -477,16 +504,15 @@ function GBtn(props) {
     className: 'btn-ghost pressable',
     style: Object.assign({
       width:'100%',
-      background:'rgba(255,255,255,.06)',
+      background:'#EEEEEE',
       color:C.t,
-      border:'1px solid rgba(255,255,255,.1)',
+      border:'none',
       borderRadius:'var(--r)',
       padding:'15px 18px',
       fontSize:'var(--fs-body)',
       fontWeight:600,
       letterSpacing:'-.01em',
       cursor:'pointer',
-      backdropFilter:'blur(12px)',
     }, props.style||{})
   }, props.label);
 }
@@ -520,14 +546,14 @@ function SecTitle(props) {
 function Toast(props) {
   if (!props.t) return null;
   return h('div',{style:{position:'fixed',top:0,left:0,right:0,maxWidth:430,margin:'0 auto',zIndex:9999,padding:'14px',pointerEvents:'none'},className:'fu'},
-    h('div',{role:'alert','aria-live':'polite',style:{background:C.s3,border:'1px solid var(--b2)',color:C.t,borderRadius:'var(--r)',padding:'13px 16px',fontSize:'var(--fs-caption)',fontWeight:500,display:'flex',alignItems:'center',gap:10,boxShadow:'0 20px 60px rgba(0,0,0,.6)'}},
-      h('div',{style:{width:6,height:6,borderRadius:3,background:props.t.err?C.red:C.lime,flexShrink:0}}),
+    h('div',{role:'alert','aria-live':'polite',style:{background:'#000',border:'none',color:'#fff',borderRadius:'var(--r)',padding:'13px 16px',fontSize:'var(--fs-caption)',fontWeight:500,display:'flex',alignItems:'center',gap:10,boxShadow:'0 8px 28px rgba(0,0,0,.25)'}},
+      h('div',{style:{width:6,height:6,borderRadius:3,background:props.t.err?'#FF6B5E':'#fff',flexShrink:0}}),
       props.t.msg));
 }
 
 function NBadge(props) {
   if (!props.n) return null;
-  return h('div',{style:{position:'absolute',top:-3,right:-3,background:C.red,color:C.t,fontSize:9,fontWeight:800,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--bg)',padding:'0 3px'}},props.n>9?'9+':props.n);
+  return h('div',{style:{position:'absolute',top:-3,right:-3,background:C.red,color:'#fff',fontSize:9,fontWeight:700,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--bg)',padding:'0 3px'}},props.n>9?'9+':props.n);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -541,10 +567,10 @@ function Onboarding(props) {
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'64px 28px 48px'}},
     h('div',null,
-      h('div',{style:{width:44,height:44,borderRadius:12,background:C.lime,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,marginBottom:40}}, '🍋'),
+      h(Logo,{size:44}),
       h('div',{key:step,className:'fu',style:{animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
-        h('div',{style:{fontSize:44,marginBottom:24}}, cur.icon),
-        h('h1',{style:{fontSize:30,fontWeight:800,color:C.t,letterSpacing:'-.04em',lineHeight:1.1,marginBottom:12}}, cur.title),
+        h('div',{style:{width:72,height:72,borderRadius:20,background:C.s2,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:28}}, Ic(cur.icon,32,C.t)),
+        h('h1',{style:{fontSize:30,fontWeight:700,color:C.t,letterSpacing:'-.03em',lineHeight:1.1,marginBottom:12}}, cur.title),
         h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.7}}, cur.body))),
     h('div',null,
       /* Progress dots */
@@ -624,38 +650,37 @@ function AuthScreen(props) {
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   if (!pickedRole) return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',position:'relative',overflow:'hidden'}},
-    h('div',{style:{position:'absolute',top:-200,right:-100,width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(212,247,42,.05) 0%,transparent 70%)',pointerEvents:'none'}}),
     h('div',{style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 24px 48px'},className:'fu'},
       h('div',{style:{marginBottom:56}},
         h('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:32}},
-          h('div',{style:{width:44,height:44,borderRadius:12,background:C.lime,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}}, '🍋'),
-          h('span',{style:{fontSize:24,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, 'LemonCheck')),
-        h('h1',{style:{fontSize:'var(--fs-display)',fontWeight:900,color:C.t,letterSpacing:'-.05em',lineHeight:1.08,marginBottom:14}}, 'Car inspections,\non demand.'),
+          h(Logo,{size:44}),
+          h('span',{style:{fontSize:24,fontWeight:700,color:C.t,letterSpacing:'-.03em'}}, 'LemonCheck')),
+        h('h1',{style:{fontSize:'var(--fs-display)',fontWeight:700,color:C.t,letterSpacing:'-.035em',lineHeight:1.08,marginBottom:14}}, 'Car inspections,\non demand.'),
         h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.6,maxWidth:280}}, 'Certified inspectors at your location. Real reports. Passive income.')),
       h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
         h('button',{onClick:function(){haptic('selection');setPickedRole('buyer');},'aria-label':'Continue as buyer',
           style:{background:C.lime,border:'none',borderRadius:'var(--rx)',padding:'20px 22px',display:'flex',alignItems:'center',gap:14,textAlign:'left'}},
-          h('div',{style:{width:44,height:44,borderRadius:12,background:'rgba(0,0,0,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}, '🚗'),
+          h('div',{style:{width:44,height:44,borderRadius:12,background:'rgba(255,255,255,.14)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}, Ic('car',22,'#fff')),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:'#0A0A0A',letterSpacing:'-.02em'}}, 'I need an inspection'),
-            h('p',{style:{fontSize:'var(--fs-caption)',color:'rgba(0,0,0,.5)',marginTop:3}}, 'Book in 60 seconds. Pay securely.')),
-          h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'rgba(0,0,0,.35)',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:'#fff',letterSpacing:'-.02em'}}, 'I need an inspection'),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:'rgba(0,0,0,.7)',marginTop:3}}, 'Book in 60 seconds. Pay securely.')),
+          h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'rgba(0,0,0,.6)',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
             h('path',{d:'M9 18l6-6-6-6'}))),
         h('button',{onClick:function(){haptic('selection');setPickedRole('insp');},'aria-label':'Continue as inspector',
           style:{background:C.s2,border:'1px solid var(--b2)',borderRadius:'var(--rx)',padding:'20px 22px',display:'flex',alignItems:'center',gap:14,textAlign:'left'}},
-          h('div',{style:{width:44,height:44,borderRadius:12,background:C.s3,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}, '🔧'),
+          h('div',{style:{width:44,height:44,borderRadius:12,background:C.s3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}, Ic('wrench',22,C.t)),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em'}}, "I'm an inspector"),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em'}}, "I'm an inspector"),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}}, 'Accept jobs. Earn per inspection + resales.')),
           h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:C.t3,strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
             h('path',{d:'M9 18l6-6-6-6'})))),
-      h('p',{style:{textAlign:'center',fontSize:'var(--fs-caption)',color:C.t3,marginTop:24}}, 'Secured by PayFast · 🇿🇦 South Africa')));
+      h('p',{style:{textAlign:'center',fontSize:'var(--fs-caption)',color:C.t3,marginTop:24}}, 'Secured by PayFast · South Africa')));
 
   /* Credentials step */
   return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',padding:'var(--safe-top) 24px 40px'},className:'fu'},
     h(BackBtn,{onClick:function(){setPickedRole(null);setErr('');}}),
     h('div',{style:{flex:1}},
-      h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em',marginBottom:6}}, mode==='signup'?'Create your account':'Welcome back'),
+      h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em',marginBottom:6}}, mode==='signup'?'Create your account':'Welcome back'),
       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:24}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
       mode==='signup' && h('div',{style:{marginBottom:12}},
         h('label',{style:LBL},'Full name'),
@@ -687,7 +712,7 @@ function HomeScreen(props) {
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}},
         h('div',null,
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,fontWeight:500,marginBottom:4}}, greet()),
-          h('h1',{style:{fontSize:28,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, user.first)),
+          h('h1',{style:{fontSize:28,fontWeight:700,color:C.t,letterSpacing:'-.03em'}}, user.first)),
         h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
           h('button',{onClick:function(){nav('alerts');},'aria-label':(unread||'No')+' unread notifications',
             style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s2,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
@@ -699,30 +724,29 @@ function HomeScreen(props) {
       /* Earnings card — lime on money figures only */
       h('div',{className:'fu pressable',onClick:function(){nav('earn');},
         className:'glass pressable',style:{borderRadius:'var(--rx)',padding:22,marginBottom:12,cursor:'pointer',position:'relative',overflow:'hidden'}},
-        h('div',{style:{position:'absolute',top:-40,right:-40,width:180,height:180,borderRadius:'50%',background:'radial-gradient(circle,rgba(212,247,42,.06) 0%,transparent 70%)'}}),
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
           h('div',null,
             h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}, 'Passive earnings'),
             /* Lime = money ✓ */
-            h('p',{style:{fontSize:'var(--fs-display)',fontWeight:900,color:C.lime,letterSpacing:'-.05em',lineHeight:1}}, R(total))),
+            h('p',{style:{fontSize:'var(--fs-display)',fontWeight:700,color:C.lime,letterSpacing:'-.035em',lineHeight:1}}, R(total))),
           h('div',{style:{background:C.limeDim2,borderRadius:10,padding:'9px 12px',border:'1px solid var(--lime-dim)'}},
-            h('p',{style:{fontSize:18,marginBottom:2}}, '💰'),
+            h('div',{style:{marginBottom:4,display:'flex',justifyContent:'center'}}, Ic('wallet',18,C.t)),
             h('p',{style:{fontSize:11,color:C.lime,fontWeight:700}}, 'View'))),
         h('div',{style:{display:'flex',gap:8}},
           [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'},{v:total>0?('+R'+total):'R0',l:'Total earned'}].map(function(s){
-            return h('div',{key:s.l,style:{flex:1,background:'rgba(255,255,255,.04)',borderRadius:10,padding:12,border:'1px solid var(--b)'}},
-              h('p',{style:{fontSize:16,fontWeight:800,color:C.lime,letterSpacing:'-.03em'}}, s.v),
+            return h('div',{key:s.l,style:{flex:1,background:'rgba(0,0,0,.04)',borderRadius:10,padding:12,border:'1px solid var(--b)'}},
+              h('p',{style:{fontSize:16,fontWeight:700,color:C.lime,letterSpacing:'-.03em'}}, s.v),
               h('p',{style:{fontSize:11,color:C.t3,marginTop:3}}, s.l));
           }))),
 
       /* Quick actions */
       h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12},className:'fu d1'},
-        [{e:'🔍',t:'Search VIN',s:'Reports & history',id:'search',bg:C.blueDim},
-         {e:'⚡',t:'Book now',  s:'Inspector in minutes',id:'book',bg:C.limeDim2}]
+        [{e:'search',t:'Search VIN',s:'Reports & history',id:'search',bg:'#FFFFFF'},
+         {e:'bolt',t:'Book now',  s:'Inspector in minutes',id:'book',bg:'#FFFFFF'}]
         .map(function(a){
           return h('button',{key:a.id,onClick:function(){nav(a.id);},className:'pressable',
             style:{background:C.s1,borderRadius:'var(--rl)',padding:'18px 14px',textAlign:'left',border:'1px solid var(--b)',display:'flex',flexDirection:'column',gap:12}},
-            h('div',{style:{width:40,height:40,borderRadius:10,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}, a.e),
+            h('div',{style:{width:40,height:40,borderRadius:10,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center'}}, Ic(a.e,20,C.t)),
             h('div',null,
               h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:2}}, a.t),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}}, a.s)));
@@ -806,7 +830,7 @@ function SearchScreen(props) {
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     /* Header */
     h('div',{style:{padding:'var(--safe-top) 20px 0'}},
-      h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em',marginBottom:4}}, 'Search VIN'),
+      h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em',marginBottom:4}}, 'Search VIN'),
       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:18}}, 'Inspection reports & SA vehicle history'),
 
       /* Search bar */
@@ -825,7 +849,7 @@ function SearchScreen(props) {
             style:{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',padding:4,display:'flex',alignItems:'center',lineHeight:0}},
             h(XIcon,{size:18,col:C.t3}))),
         h('button',{onClick:function(){doSearch();},disabled:loading||!vin.trim(),'aria-label':'Search VIN',
-          style:{background:C.lime,color:'#0A0A0A',border:'none',borderRadius:'var(--r)',padding:'0 20px',fontSize:'var(--fs-caption)',fontWeight:700,opacity:loading||!vin.trim()?.4:1,display:'flex',alignItems:'center',gap:6,flexShrink:0}},
+          style:{background:C.lime,color:'#FFFFFF',border:'none',borderRadius:'var(--r)',padding:'0 20px',fontSize:'var(--fs-caption)',fontWeight:700,opacity:loading||!vin.trim()?.4:1,display:'flex',alignItems:'center',gap:6,flexShrink:0}},
           loading ? h(Spin,{size:16}) : 'Search')),
 
       /* Quick-try chips */
@@ -858,7 +882,7 @@ function SearchScreen(props) {
                   h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}},
                     h('div',{style:{flex:1,marginRight:12}},
                       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:6}}, 'Vehicle'),
-                      h('p',{style:{fontSize:20,fontWeight:800,color:C.t,letterSpacing:'-.03em',marginBottom:4}}, result.year+' '+result.make+' '+result.model),
+                      h('p',{style:{fontSize:20,fontWeight:700,color:C.t,letterSpacing:'-.03em',marginBottom:4}}, result.year+' '+result.make+' '+result.model),
                       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}}, result.vin+' · '+result.colour+' · '+result.mileage.toLocaleString()+' km'),
                       h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
                         h(Tag,{label:result.engine,      bg:C.s3,c:C.t2}),
@@ -869,9 +893,9 @@ function SearchScreen(props) {
                     h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
                       h(Tag,{label:'Inspected '+insp.date,bg:C.greenDim,c:C.green}),
                       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}}, 'by '+insp.inspector)))),
-                insp && h('div',{style:{padding:'12px 18px',background:C.limeDim2,borderTop:'1px solid rgba(212,247,42,.08)'}},
-                  h('p',{style:{fontSize:'var(--fs-caption)',color:'rgba(212,247,42,.8)',lineHeight:1.6}},
-                    '🍋 Buy for ', h('strong',{style:{color:C.lime}}, R(insp.reportPrice)),
+                insp && h('div',{style:{padding:'12px 18px',background:C.limeDim2,borderTop:'1px solid rgba(0,0,0,.06)'}},
+                  h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2,lineHeight:1.6}},
+                    'Buy for ', h('strong',{style:{color:C.lime}}, R(insp.reportPrice)),
                     ' instead of '+R(insp.fullPrice)+'. '+insp.payer+' earns '+R(insp.payerCut)+' every resale.'))),
               insp
                 ? h(PBtn,{label:'View full report',onClick:function(){ setCarData(result); nav('report'); }})
@@ -892,7 +916,7 @@ function SearchScreen(props) {
                     h('path',{d:'M18 28h20M28 18v20',stroke:C.blue,strokeWidth:2,strokeLinecap:'round',opacity:.4}),
                     h('circle',{cx:28,cy:28,r:8,stroke:C.blue,strokeWidth:1.5,fill:'none'}),
                     h('path',{d:'M34 34l6 6',stroke:C.blue,strokeWidth:2,strokeLinecap:'round'})),
-                  h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'SA Vehicle History'),
+                  h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'SA Vehicle History'),
                   h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginBottom:20}}, 'Records from eNaTIS, TransUnion AutoInfo and SAPS.'),
                   h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20,textAlign:'left'}},
                     ['Accident history','Finance & liens','Owner changes','Roadworthy history','SAPS stolen check','Odometer verify'].map(function(f){
@@ -908,7 +932,7 @@ function SearchScreen(props) {
                 /* Flags */
                 (hist.accidents.length>0 || hist.finance || hist.cc>0) &&
                   h('div',{style:{background:C.redDim,border:'1px solid rgba(255,69,58,.18)',borderRadius:'var(--r)',padding:'14px',marginBottom:10}},
-                    h('p',{style:{fontWeight:800,fontSize:'var(--fs-caption)',color:C.red,marginBottom:6}}, 'Flags detected'),
+                    h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.red,marginBottom:6}}, 'Flags detected'),
                     hist.accidents.length>0 && h('p',{style:{fontSize:'var(--fs-caption)',color:C.red,marginBottom:3}}, '• '+hist.accidents.length+' accident'+(hist.accidents.length>1?'s':'')+' on record'),
                     hist.finance && h('p',{style:{fontSize:'var(--fs-caption)',color:C.red,marginBottom:3}}, '• Outstanding finance — '+hist.fb),
                     hist.cc>0 && h('p',{style:{fontSize:'var(--fs-caption)',color:C.red}}, '• '+hist.cc+' colour change(s)')),
@@ -962,7 +986,7 @@ function SearchScreen(props) {
               h('circle',{cx:28,cy:27,r:10,stroke:C.t3,strokeWidth:1.5,fill:'none'}),
               h('path',{d:'M35 34l7 7',stroke:C.t3,strokeWidth:2,strokeLinecap:'round'}),
               h('path',{d:'M24 27h8M28 23v8',stroke:C.t3,strokeWidth:1.5,strokeLinecap:'round',opacity:.4})),
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'No inspection found'),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'No inspection found'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6,marginBottom:22,maxWidth:220,margin:'0 auto 22px'}}, 'Be the first to inspect this car — you\'ll earn R180 every time another buyer purchases your report.'),
             h(PBtn,{label:'Book an inspection',onClick:function(){nav('book');}}))),
     h(Nav,{sc:'search',nav:nav,role:'buyer'}));
@@ -1048,7 +1072,7 @@ function BookScreen(props) {
     h('div',{style:{padding:'var(--safe-top) 20px 0'},className:'fu'},
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){nav('home');},mb:0}),
-        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
+        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em'}},'Book inspection')),
       h('div',{style:{marginBottom:14}},
         h('label',{style:LBL},'Dealership'),
         h('input',{value:dealer,onChange:function(e){setDealer(e.target.value);},placeholder:'e.g. CMH Toyota Midrand','aria-label':'Dealership name'})),
@@ -1068,7 +1092,7 @@ function BookScreen(props) {
                 });
               }).catch(function(){ setGeoLoading(false); showToast('Could not get location', true); });
             },
-            style:{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:99,color:C.t,fontSize:11,fontWeight:600,padding:'5px 10px'}
+            style:{background:'#EEEEEE',border:'none',borderRadius:99,color:C.t,fontSize:11,fontWeight:600,padding:'5px 10px'}
           }, geoLoading ? 'Locating…' : 'Use my location')
         ),
         h('input',{value:loc,onChange:function(e){setLoc(e.target.value);},placeholder:'Street, suburb or GPS area','aria-label':'Address'})),
@@ -1112,7 +1136,7 @@ function BookScreen(props) {
       }),
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
-        h('div',{style:{background:'rgba(20,20,22,.75)',backdropFilter:'blur(24px) saturate(160%)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
+        h('div',{style:{background:'#FFFFFF',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Your area')))),
 
@@ -1120,7 +1144,7 @@ function BookScreen(props) {
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
       h('div',{style:{padding:'14px 18px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('div',null,
-          h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em'}},'Nearby inspectors'),
+          h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em'}},'Nearby inspectors'),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},year+' '+make+' '+model)),
         h('button',{onClick:function(){setStep('input');},style:{fontSize:'var(--fs-caption)',fontWeight:600,color:C.t3}},'Edit')),
 
@@ -1129,7 +1153,7 @@ function BookScreen(props) {
         [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'},{id:'price',l:'Lowest price'}].map(function(s){
           var active = sort===s.id;
           return h('button',{key:s.id,onClick:function(){setSort(s.id);},
-            style:{background:active?C.limeDim:C.s2,color:active?C.lime:C.t3,border:'1px solid '+(active?'rgba(212,247,42,.25)':'var(--b)'),
+            style:{background:active?C.limeDim:C.s2,color:active?C.lime:C.t3,border:'1px solid '+(active?'rgba(0,0,0,.06)':'var(--b)'),
               borderRadius:99,padding:'6px 14px',fontSize:'var(--fs-caption)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0,
               transition:'all .15s'}}, s.l);
         })),
@@ -1143,9 +1167,9 @@ function BookScreen(props) {
               h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
                 /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},R(insp.price))),
+                h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},R(insp.price))),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
-                h('span',{style:{color:'#F59E0B',fontSize:12}},'★'),
+                h('span',{style:{color:'#000',fontSize:12}},'★'),
                 h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
                 h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+insp.jobs+' jobs')),
               h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
@@ -1169,16 +1193,16 @@ function BookScreen(props) {
     h('div',{style:{padding:'var(--safe-top) 20px 0'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){setStep('choose');},mb:0}),
-        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Confirm booking')),
+        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em'}},'Confirm booking')),
 
       /* Inspector hero row */
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px',display:'flex',alignItems:'center',gap:14}},
           h(Av,{label:inspector.init,size:52}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}},inspector.name),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}},inspector.name),
             h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-              h('span',{style:{color:'#F59E0B',fontSize:13}},'★'),
+              h('span',{style:{color:'#000',fontSize:13}},'★'),
               h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},inspector.rating.toFixed(2)),
               h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+inspector.jobs+' inspections')),
             h('div',{style:{display:'flex',gap:5}},
@@ -1197,7 +1221,7 @@ function BookScreen(props) {
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
-          h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:700,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
             h('span',null,'Total'),h('span',{style:{color:C.lime}},R(inspector.price+175))))),
 
       /* Payment */
@@ -1207,8 +1231,8 @@ function BookScreen(props) {
           ['saved','new'].map(function(opt){
             var sel=card===opt;
             return h('button',{key:opt,onClick:function(){setCard(opt);},
-              style:{width:'100%',background:sel?C.limeDim2:C.s2,border:'1px solid '+(sel?'rgba(212,247,42,.25)':'var(--b)'),borderRadius:10,padding:'13px 14px',textAlign:'left',marginBottom:7,display:'flex',alignItems:'center',gap:10}},
-              h('div',{style:{width:18,height:18,borderRadius:9,border:'2px solid '+(sel?C.lime:'rgba(255,255,255,.2)'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
+              style:{width:'100%',background:sel?C.limeDim2:C.s2,border:'1px solid '+(sel?'rgba(0,0,0,.06)':'var(--b)'),borderRadius:10,padding:'13px 14px',textAlign:'left',marginBottom:7,display:'flex',alignItems:'center',gap:10}},
+              h('div',{style:{width:18,height:18,borderRadius:9,border:'2px solid '+(sel?C.lime:'rgba(0,0,0,.2)'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
                 sel&&h('div',{style:{width:9,height:9,borderRadius:5,background:C.lime}})),
               opt==='saved'
                 ?h('div',null,h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},'Visa ending 4242'),h('p',{style:{fontSize:11,color:C.t3,marginTop:1}},'Expires 12/27'))
@@ -1216,8 +1240,8 @@ function BookScreen(props) {
           }))),
 
       /* Passive income note — shown after payment, not blocking it */
-      h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.08)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'🍋  Your report goes live after the inspection. Earn R180 every time another buyer purchases it.')),
+      h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. Earn R180 every time another buyer purchases it.')),
       h(PBtn,{label:loading?'Confirming…':'Pay '+R(inspector.price+175)+' via PayFast',onClick:confirm,loading:loading})));
 
   /* ── TRACKING ── */
@@ -1257,14 +1281,14 @@ function BookScreen(props) {
         h('div',{style:{position:'absolute',top:14,left:14,right:14,display:'flex',flexDirection:'column',alignItems:'center',gap:8}},
           h('div',{role:'timer','aria-live':'polite'},
             arrived
-              ? h('div',{style:{background:C.green,color:'#fff',borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-body)',boxShadow:'0 4px 24px rgba(50,215,75,.45)'}},'Inspector arrived')
-              : h('div',{style:{background:'rgba(20,20,22,.72)',backdropFilter:'blur(24px) saturate(160%)',color:C.t,borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-headline)',border:'1px solid var(--b)',letterSpacing:'-.02em'}},
+              ? h('div',{style:{background:C.green,color:'#fff',borderRadius:99,padding:'10px 22px',fontWeight:700,fontSize:'var(--fs-body)',boxShadow:'0 4px 24px rgba(50,215,75,.45)'}},'Inspector arrived')
+              : h('div',{style:{background:'#FFFFFF',color:C.t,borderRadius:99,padding:'10px 22px',fontWeight:700,fontSize:'var(--fs-headline)',border:'1px solid var(--b)',boxShadow:'0 2px 12px rgba(0,0,0,.14)',letterSpacing:'-.02em'}},
                   mins + ':' + String(ss2).padStart(2,'0'))
           ),
-          !arrived && h('div',{style:{background:'rgba(20,20,22,.72)',backdropFilter:'blur(20px) saturate(160%)',borderRadius:12,padding:'8px 14px',border:'1px solid var(--b)',display:'flex',gap:16,alignItems:'center'}},
+          !arrived && h('div',{style:{background:'#FFFFFF',borderRadius:12,padding:'8px 14px',border:'1px solid var(--b)',display:'flex',gap:16,alignItems:'center'}},
             h('div',null,
               h('p',{style:{fontSize:10,color:C.t3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em'}},'Distance'),
-              h('p',{style:{fontSize:14,fontWeight:800,color:C.t}}, remainingM != null ? formatDistance(remainingM) : '…')
+              h('p',{style:{fontSize:14,fontWeight:700,color:C.t}}, remainingM != null ? formatDistance(remainingM) : '…')
             ),
             h('div',{style:{width:1,height:28,background:'var(--b)'}}),
             h('div',null,
@@ -1278,15 +1302,15 @@ function BookScreen(props) {
         h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
         arrived
           ? h('div',{style:{padding:'24px 20px 40px',textAlign:'center'}},
-              h('div',{style:{fontSize:48,marginBottom:14}},'🎉'),
-              h('p',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em',marginBottom:8}},'Inspector arrived'),
+              h('div',{style:{marginBottom:14,display:'flex',justifyContent:'center'}},Ic('check',48,C.green)),
+              h('p',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em',marginBottom:8}},'Inspector arrived'),
               h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:24}},'Your inspection is underway.'),
               h(PBtn,{label:'Back to home',onClick:function(){nav('home');}}))
           : h('div',{style:{padding:'18px 18px 36px'}},
               h('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:18}},
                 h(Av,{label:inspector.init,size:50}),
                 h('div',{style:{flex:1}},
-                  h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:3}},inspector.name),
+                  h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:3}},inspector.name),
                   h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'En route to '+loc),
                   h('div',{style:{display:'flex',gap:5,marginTop:8}},
                     h(Tag,{label:'★ '+inspector.rating.toFixed(2),bg:C.s3,c:C.t2}),
@@ -1310,11 +1334,11 @@ function BookScreen(props) {
   /* Done state */
   if (bookingId) { Data.markBookingPaid(bookingId).catch(function(e){ console.error(e); }); }
   return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center'},className:'fu'},
-    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:24,border:'1px solid rgba(50,215,75,.2)'}},'✅'),
-    h('p',{style:{fontSize:26,fontWeight:900,color:C.t,letterSpacing:'-.05em',marginBottom:10}},'Inspection complete'),
+    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:24,border:'1px solid rgba(50,215,75,.2)'}},Ic('check',40,C.green)),
+    h('p',{style:{fontSize:26,fontWeight:700,color:C.t,letterSpacing:'-.035em',marginBottom:10}},'Inspection complete'),
     h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:24,maxWidth:260}},'Your report will be ready within 30 minutes.'),
-    h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.1)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'🍋  Your report is live. You\'ll earn R180 every time another buyer purchases it.')),
+    h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
+      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'Your report is live. You\'ll earn R180 every time another buyer purchases it.')),
     h(PBtn,{label:'Back to home',onClick:function(){nav('home');}}));
 }
 
@@ -1372,9 +1396,9 @@ function ReportScreen(props) {
 
   if (detail) {
     return h('div',{style:{minHeight:'100vh',background:'#fff'}},
-      h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'#111',display:'flex',justifyContent:'space-between',alignItems:'center'}},
-        h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid rgba(255,255,255,.2)',color:'#fff',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
-        h('span',{style:{color:'#fff',fontSize:12,fontWeight:700}},'LEMONCHECK REPORT')),
+      h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'#fff',borderBottom:'1px solid rgba(0,0,0,.08)',display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid rgba(0,0,0,.16)',color:'#000',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
+        h('span',{style:{color:'#000',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'LEMONCHECK REPORT')),
       h(ReportView,detail));
   }
 
@@ -1388,7 +1412,7 @@ function ReportScreen(props) {
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
         h('div',{style:{flex:1,marginRight:14}},
           h('p',{style:{fontSize:11,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:7}},m.lbl+' CONDITION'),
-          h('p',{style:{fontSize:22,fontWeight:800,color:C.t,letterSpacing:'-.03em',lineHeight:1.15,marginBottom:5}},car.year+' '+car.make+' '+car.model),
+          h('p',{style:{fontSize:22,fontWeight:700,color:C.t,letterSpacing:'-.03em',lineHeight:1.15,marginBottom:5}},car.year+' '+car.make+' '+car.model),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}},car.vin+' · '+Number(car.mileage||0).toLocaleString()+' km')),
         h(Ring,{score:insp.score,size:74,showLabel:true})),
       h(Card,{style:{marginBottom:12}},
@@ -1404,16 +1428,16 @@ function ReportScreen(props) {
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
             [{v:passC,l:'Passed',c:C.green,bg:C.greenDim},{v:warnC,l:'Advisory',c:C.amber,bg:C.amberDim},{v:failC,l:'Failed',c:C.red,bg:C.redDim}].map(function(x){
               return h('div',{key:x.l,style:{background:x.bg,borderRadius:10,padding:'12px',textAlign:'center'}},
-                h('p',{style:{fontSize:26,fontWeight:900,color:x.c}},x.v),
+                h('p',{style:{fontSize:26,fontWeight:700,color:x.c}},x.v),
                 h('p',{style:{fontSize:10,fontWeight:700,color:x.c,textTransform:'uppercase'}},x.l));
             })))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
-          h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
+          h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
           h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
             'The full LemonCheck report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
           dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
-      h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'rgba(10,10,10,.96)',backdropFilter:'blur(24px)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
+      h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'#FFFFFF',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
         h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));
 }
 
@@ -1423,7 +1447,7 @@ function AlertsScreen(props) {
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 20px'}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}},
-        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Notifications'),
+        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:700,color:C.t,letterSpacing:'-.03em'}},'Notifications'),
         unread>0&&h('button',{onClick:onRead,'aria-label':'Mark all notifications as read',
           style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t3,background:C.s2,border:'1px solid var(--b)',padding:'5px 12px',borderRadius:99}},'Mark read')),
       notifs.length===0
@@ -1470,12 +1494,12 @@ function EarnScreen(props) {
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 24px',background:'linear-gradient(180deg,#0C180C 0%,'+C.bg+' 100%)'}},
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income 2025'),
-      h('p',{style:{fontSize:'var(--fs-display)',fontWeight:900,color:C.lime,letterSpacing:'-.06em',lineHeight:1,marginBottom:6}},R(total)),
+      h('p',{style:{fontSize:'var(--fs-display)',fontWeight:700,color:C.lime,letterSpacing:'-.03em',lineHeight:1,marginBottom:6}},R(total)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:18}},'From '+TXNS.length+' report resale'+(TXNS.length===1?'':'s')+' · '+R(total)+' total'),
       h('div',{style:{display:'flex',gap:8}},
         [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'},{v:total>0?('+'+R(total)):'R0',l:'Total earned'}].map(function(s){
-          return h('div',{key:s.l,style:{flex:1,background:C.limeDim2,borderRadius:10,padding:'12px 10px',border:'1px solid rgba(212,247,42,.1)'}},
-            h('p',{style:{fontSize:18,fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},s.v),
+          return h('div',{key:s.l,style:{flex:1,background:C.limeDim2,borderRadius:10,padding:'12px 10px',border:'1px solid rgba(0,0,0,.06)'}},
+            h('p',{style:{fontSize:18,fontWeight:700,color:C.lime,letterSpacing:'-.03em'}},s.v),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},s.l));
         }))),
 
@@ -1492,7 +1516,7 @@ function EarnScreen(props) {
               return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
                 h('div',{style:{width:'100%',display:'flex',flexDirection:'column',alignItems:'stretch',gap:1}},
                   w.resale>0&&h('div',{style:{height:resaleH,background:C.green,borderRadius:'3px 3px 0 0',opacity:.75}}),
-                  h('div',{style:{height:total>0?inspH:4,background:total>0?C.lime:'rgba(255,255,255,.06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
+                  h('div',{style:{height:total>0?inspH:4,background:total>0?C.lime:'rgba(0,0,0,.06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
                 h('p',{style:{fontSize:10,fontWeight:600,color:C.t3,letterSpacing:'.02em'}},days[i]));
             })),
           /* Legend */
@@ -1502,17 +1526,17 @@ function EarnScreen(props) {
           h(Hr,{my:10}),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Week total'),
-            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},
+            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.lime,letterSpacing:'-.03em'}},
               R(week.reduce(function(a,w){return a+w.insp+w.resale;},0)))))),
 
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:10}},'How passive income works'),
-          h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.08)',borderRadius:10,padding:'12px',marginBottom:10}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.65}},'🍋  When you commission an inspection, you earn 18% (R180) every time another buyer purchases that report.')),
+          h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:10,padding:'12px',marginBottom:10}},
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.65}},'When you commission an inspection, you earn 18% (R180) every time another buyer purchases that report.')),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'3 resales on Corolla'),
-            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},R(total))))),
+            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.lime,letterSpacing:'-.03em'}},R(total))))),
 
       h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em',marginBottom:8}},'Transactions'),
       h(Card,{style:{overflow:'hidden',marginBottom:10}},
@@ -1521,7 +1545,7 @@ function EarnScreen(props) {
             h('div',null,
               h('p',{style:{fontWeight:600,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},t.buyer),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},t.car+' · '+t.date)),
-            h('p',{style:{fontSize:'var(--fs-body)',fontWeight:800,color:C.green,letterSpacing:'-.02em'}},'+'+R(t.amount)));
+            h('p',{style:{fontSize:'var(--fs-body)',fontWeight:700,color:C.green,letterSpacing:'-.02em'}},'+'+R(t.amount)));
         })),
       h(GBtn,{label:'Withdraw to bank account',onClick:function(){}})),
     h(Nav,{sc:'earn',nav:nav,role:'buyer'}));
@@ -1543,7 +1567,7 @@ function InspHomeScreen(props) {
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
         h('div',null,
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:3}},greet()),
-          h('p',{style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.04em'}},user.first)),
+          h('p',{style:{fontSize:26,fontWeight:700,color:C.t,letterSpacing:'-.03em'}},user.first)),
         h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
           /* Online/Offline toggle */
           h('button',{onClick:function(){ haptic('selection'); setOnline(function(v){ var nv=!v; Data.setOnlineStatus(user.id, nv).catch(function(e){console.error(e);}); return nv; }); },
@@ -1555,7 +1579,7 @@ function InspHomeScreen(props) {
       h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:4}},
         [{v:String(user.jobs),l:'Jobs'},{v:user.rating.toFixed(2)+'★',l:'Rating'},{v:R(user.earned),l:'Earned'}].map(function(s){
           return h(Card,{key:s.l,style:{textAlign:'center',padding:'14px 6px'}},
-            h('p',{style:{fontSize:'var(--fs-body)',fontWeight:800,color:C.t,letterSpacing:'-.02em',marginBottom:2}},s.v),
+            h('p',{style:{fontSize:'var(--fs-body)',fontWeight:700,color:C.t,letterSpacing:'-.02em',marginBottom:2}},s.v),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},s.l));
         }))),
 
@@ -1573,7 +1597,7 @@ function InspHomeScreen(props) {
               h('div',{style:{padding:'16px 18px'}},
                 h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}},
                   h('div',{style:{flex:1,marginRight:10}},
-                    h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:3}},job.year+' '+job.make+' '+job.model),
+                    h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:3}},job.year+' '+job.make+' '+job.model),
                     h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,letterSpacing:'.02em',marginBottom:7}},'VIN: '+job.vin),
                     h('div',{style:{display:'flex',alignItems:'center',gap:5,marginBottom:3}},
                       h('svg',{width:11,height:11,viewBox:'0 0 24 24',fill:'none',stroke:C.t3,strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
@@ -1583,7 +1607,7 @@ function InspHomeScreen(props) {
                     job.notes&&h('div',{style:{background:C.blueDim,borderRadius:7,padding:'7px 10px',marginTop:8,border:'1px solid rgba(10,132,255,.14)'}},
                       h('p',{style:{fontSize:11,color:C.blue,lineHeight:1.45}},'"'+job.notes+'"'))),
                   /* Lime = money */
-                  h('p',{style:{fontSize:22,fontWeight:900,color:C.lime,letterSpacing:'-.04em',flexShrink:0}},R(job.pay))),
+                  h('p',{style:{fontSize:22,fontWeight:700,color:C.lime,letterSpacing:'-.03em',flexShrink:0}},R(job.pay))),
                 h('div',{style:{display:'flex',gap:8}},
                   h('button',{onClick:function(){
                     haptic('error');
@@ -1608,7 +1632,7 @@ function InspHomeScreen(props) {
                   h('p',{style:{fontWeight:600,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},job.year+' '+job.make+' '+job.model),
                   h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},job.location+' · '+job.date)),
                 h('div',{style:{textAlign:'right',display:'flex',flexDirection:'column',gap:5,alignItems:'flex-end'}},
-                  h('p',{style:{fontSize:'var(--fs-body)',fontWeight:800,color:C.lime,letterSpacing:'-.02em'}},R(job.pay)),
+                  h('p',{style:{fontSize:'var(--fs-body)',fontWeight:700,color:C.lime,letterSpacing:'-.02em'}},R(job.pay)),
                   job.score&&h(Tag,{label:'Score '+job.score,bg:C.greenDim,c:C.green})));
             }))),
     h(Nav,{sc:'ijobs',nav:nav,role:'insp'}));
@@ -1647,13 +1671,13 @@ function JobScreen(props) {
   }
 
   if (done) return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center'},className:'fu'},
-    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:22,border:'1px solid rgba(50,215,75,.18)'}},'🎉'),
-    h('p',{style:{fontSize:26,fontWeight:900,color:C.t,letterSpacing:'-.05em',marginBottom:8}},'Report submitted'),
+    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:22,border:'1px solid rgba(50,215,75,.18)'}},Ic('check',40,C.green)),
+    h('p',{style:{fontSize:26,fontWeight:700,color:C.t,letterSpacing:'-.035em',marginBottom:8}},'Report submitted'),
     h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:6}},
-      'Score: ',h('strong',{style:{color:m.col,fontWeight:800}},score+'/100'),
+      'Score: ',h('strong',{style:{color:m.col,fontWeight:700}},score+'/100'),
       '. Payment of ',h('strong',{style:{color:C.lime}},R(job.pay)),' within 24 hrs.'),
-    h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.1)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'🍋  You earn R70 every time this report is resold. Passively, forever.')),
+    h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
+      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'You earn R70 every time this report is resold. Passively, forever.')),
     h(PBtn,{label:'Back to jobs',onClick:function(){nav('ijobs');}}));
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:110}},
@@ -1661,13 +1685,13 @@ function JobScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:18}},
         h(BackBtn,{onClick:function(){nav('ijobs');},mb:0}),
         h('div',{style:{flex:1}},
-          h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,letterSpacing:'-.02em',lineHeight:1.2}},job.year+' '+job.make+' '+job.model),
+          h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.t,letterSpacing:'-.02em',lineHeight:1.2}},job.year+' '+job.make+' '+job.model),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}},'VIN: '+job.vin)),
         h(Ring,{score:score,size:58})),
 
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'12px 16px',display:'flex',gap:7,flexWrap:'wrap'}},
-          h(Tag,{label:'📍 '+job.location,bg:C.s3,c:C.t2}),
+          h(Tag,{label:job.location,bg:C.s3,c:C.t2}),
           h(Tag,{label:'From '+job.customer,bg:C.s3,c:C.t2}),
           h(Tag,{label:job.date,bg:C.s3,c:C.t2}))),
 
@@ -1712,17 +1736,17 @@ function JobScreen(props) {
                 style:{fontSize:'var(--fs-caption)',borderRadius:8,background:C.s3,border:'1px solid var(--b)'}})));
         })),
 
-      h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.08)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.5}},'🍋  After submission you earn R70 every time this report is resold.'))),
+      h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.5}},'After submission you earn R70 every time this report is resold.'))),
 
     /* Fixed bottom — safe-bot */
     h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
-      background:'rgba(10,10,10,.95)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
+      background:'#FFFFFF',
       borderTop:'1px solid var(--b)',padding:'12px 20px',
       paddingBottom:'max(20px, var(--safe-bot))',zIndex:100}},
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
         h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Live score'),
-        h('p',{style:{fontSize:19,fontWeight:900,color:m.col,letterSpacing:'-.04em',},'aria-live':'polite'},score+' / 100')),
+        h('p',{style:{fontSize:19,fontWeight:700,color:m.col,letterSpacing:'-.03em',},'aria-live':'polite'},score+' / 100')),
       h(PBtn,{label:'Submit report  ·  Earn '+R(job.pay),onClick:submit,loading:loading})));
 }
 
@@ -1754,7 +1778,7 @@ function InspEarnScreen(props) {
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 24px',background:'linear-gradient(180deg,#0C180C 0%,'+C.bg+' 100%)'}},
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Total earned'),
-      h('p',{style:{fontSize:'var(--fs-display)',fontWeight:900,color:C.lime,letterSpacing:'-.06em',lineHeight:1,marginBottom:5}},R(user.earned)),
+      h('p',{style:{fontSize:'var(--fs-display)',fontWeight:700,color:C.lime,letterSpacing:'-.03em',lineHeight:1,marginBottom:5}},R(user.earned)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3}},user.jobs+' completed inspections')),
     h('div',{style:{padding:'0 20px'},className:'fu'},
       h(Card,{style:{marginBottom:10}},
@@ -1768,7 +1792,7 @@ function InspEarnScreen(props) {
               return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
                 h('div',{style:{width:'100%',display:'flex',flexDirection:'column',alignItems:'stretch',gap:1}},
                   w.resale>0&&h('div',{style:{height:resaleH,background:C.green,borderRadius:'3px 3px 0 0',opacity:.75}}),
-                  h('div',{style:{height:tot>0?inspH:4,background:tot>0?C.lime:'rgba(255,255,255,.06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
+                  h('div',{style:{height:tot>0?inspH:4,background:tot>0?C.lime:'rgba(0,0,0,.06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
                 h('p',{style:{fontSize:10,fontWeight:600,color:C.t3,letterSpacing:'.02em'}},days[i]));
             })),
           h('div',{style:{display:'flex',gap:16,marginBottom:10}},
@@ -1777,18 +1801,18 @@ function InspEarnScreen(props) {
           h(Hr,{my:10}),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Week total'),
-            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},
+            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.lime,letterSpacing:'-.03em'}},
               R(week.reduce(function(a,w){return a+w.insp+w.resale;},0)))))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:10}},'Resale income'),
-          h('div',{style:{background:C.limeDim2,border:'1px solid rgba(212,247,42,.08)',borderRadius:10,padding:'12px',marginBottom:10}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'🍋  You earn R70 (20%) every time a buyer purchases a report from one of your inspections.')),
+          h('div',{style:{background:C.limeDim2,border:'1px solid rgba(0,0,0,.06)',borderRadius:10,padding:'12px',marginBottom:10}},
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'You earn R70 (20%) every time a buyer purchases a report from one of your inspections.')),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('div',null,
               h('p',{style:{fontSize:'var(--fs-body)',fontWeight:600,color:C.t}},'Passive earnings'),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},TXNS.length+' resale'+(TXNS.length===1?'':'s'))),
-            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.green,letterSpacing:'-.03em'}},R(resaleTotal))))),
+            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.green,letterSpacing:'-.03em'}},R(resaleTotal))))),
       h(GBtn,{label:'Withdraw to bank account',onClick:function(){}})),
     h(Nav,{sc:'iearnings',nav:nav,role:'insp'}));
 }
@@ -1803,9 +1827,9 @@ function InspProfileScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:22}},
         h(Av,{label:user.init,size:60}),
         h('div',null,
-          h('p',{style:{fontSize:20,fontWeight:800,color:C.t,letterSpacing:'-.03em',marginBottom:5}},user.name),
+          h('p',{style:{fontSize:20,fontWeight:700,color:C.t,letterSpacing:'-.03em',marginBottom:5}},user.name),
           h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-            h(Tag,{label:'★ '+user.rating.toFixed(2),bg:C.s3,c:'#F59E0B'}),
+            h(Tag,{label:'★ '+user.rating.toFixed(2),bg:C.s3,c:C.t}),
             h(Tag,{label:'Verified',bg:C.greenDim,c:C.green})))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
@@ -1819,10 +1843,10 @@ function InspProfileScreen(props) {
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'How you earn'),
-          [['🔧','Per inspection','R1,800–R2,100 per inspection',false],
-           ['🍋','Resale cut','+R70 every time your report is rebought',true]].map(function(r,i){
-            return h('div',{key:r[1],style:{display:'flex',gap:12,alignItems:'center',padding:'12px',background:r[3]?C.limeDim2:C.s2,borderRadius:10,marginBottom:i===0?8:0,border:'1px solid '+(r[3]?'rgba(212,247,42,.08)':'var(--b)')}},
-              h('span',{style:{fontSize:20,flexShrink:0}},r[0]),
+          [['wrench','Per inspection','R1,800–R2,100 per inspection',false],
+           ['shield','Resale cut','+R70 every time your report is rebought',true]].map(function(r,i){
+            return h('div',{key:r[1],style:{display:'flex',gap:12,alignItems:'center',padding:'12px',background:r[3]?C.limeDim2:C.s2,borderRadius:10,marginBottom:i===0?8:0,border:'1px solid '+(r[3]?'rgba(0,0,0,.06)':'var(--b)')}},
+              h('span',{style:{flexShrink:0,display:'flex'}},Ic(r[0],20,C.t)),
               h('div',null,
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:r[3]?C.lime:C.t,letterSpacing:'-.01em'}},r[1]),
                 h('p',{style:{fontSize:11,color:C.t3,marginTop:2}},r[2])));
