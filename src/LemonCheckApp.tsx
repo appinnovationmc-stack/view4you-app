@@ -436,9 +436,7 @@ function SkeletonInspectorList() {
 
 function Av(props) {
   var sz = props.size || 40;
-  var pals = ['#1A1A2E','#16213E','#1B4332','#2D2D2D','#1A0A2E','#2A1A0E'];
-  var idx  = props.label ? props.label.charCodeAt(0) % pals.length : 0;
-  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||pals[idx],border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:700,color:C.t,flexShrink:0,letterSpacing:'-.02em'}}, props.label);
+  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'linear-gradient(145deg, var(--accent-2), var(--accent))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.38,fontWeight:500,color:'#17140f',flexShrink:0,letterSpacing:'-.02em',boxShadow:'inset 0 1px 0 rgba(255,255,255,.5)'}}, props.label);
 }
 
 /* FIX: Ring — animated fill on mount, sub-label for context, thicker fill stroke */
@@ -504,23 +502,21 @@ function PBtn(props) {
     className: props.dark ? 'btn-ghost' : 'btn-primary',
     style: Object.assign({
       width:'100%',
-      background: dis
-        ? (props.dark ? 'var(--w04)' : C.lime)
-        : (props.dark ? 'var(--w07)' : C.lime),
+      background: props.dark ? 'var(--s1)' : C.lime,
       color: props.dark ? C.t : 'var(--on-ink)',
-      border: props.dark ? '1px solid var(--w1)' : 'none',
-      borderRadius:'var(--r)',
-      padding:'16px 20px',
+      border: props.dark ? '1px solid var(--b2)' : 'none',
+      borderRadius:'var(--pill)',
+      padding:'17px 24px',
       fontSize:'var(--fs-body)',
-      fontWeight:700,
-      letterSpacing:'-.02em',
+      fontWeight:500,
+      letterSpacing:'-.01em',
       display:'flex',
       alignItems:'center',
       justifyContent:'center',
       gap:10,
-      opacity: dis ? 0.35 : 1,
+      opacity: dis ? 0.4 : 1,
       cursor: dis ? 'default' : 'pointer',
-      boxShadow: 'none',
+      boxShadow: props.dark ? 'none' : '0 14px 28px -12px rgba(0,0,0,.55)',
     }, props.style||{})
   },
     props.loading ? h(Spin,{size:18,col:props.dark?C.t:'var(--on-ink)',track:props.dark?undefined:'var(--on-ink-dim)'}) : null,
@@ -534,13 +530,13 @@ function GBtn(props) {
     className: 'btn-ghost pressable',
     style: Object.assign({
       width:'100%',
-      background:'var(--w06)',
+      background:'var(--s1)',
       color:C.t,
-      border:'1px solid var(--w1)',
-      borderRadius:'var(--r)',
-      padding:'15px 18px',
+      border:'1px solid var(--b2)',
+      borderRadius:'var(--pill)',
+      padding:'16px 22px',
       fontSize:'var(--fs-body)',
-      fontWeight:600,
+      fontWeight:500,
       letterSpacing:'-.01em',
       cursor:'pointer',
     }, props.style||{})
@@ -586,6 +582,25 @@ function NBadge(props) {
   return h('div',{style:{position:'absolute',top:-3,right:-3,background:C.red,color:'#fff',fontSize:9,fontWeight:800,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--bg)',padding:'0 3px'}},props.n>9?'9+':props.n);
 }
 
+/* REDESIGN-HELPERS-START */
+var APP_NAME = 'Your Real Name';
+
+/* Glowing accent orb (reference 1) */
+function Orb(props) {
+  var s = props.size || 160;
+  return h('div',{'aria-hidden':'true',style:Object.assign({position:'absolute',width:s,height:s,pointerEvents:'none'},props.style||{})},
+    h('div',{style:{position:'absolute',top:-s*0.28,left:-s*0.28,right:-s*0.28,bottom:-s*0.28,borderRadius:'50%',background:'radial-gradient(circle, var(--accent) 0%, transparent 66%)',filter:'blur(20px)',opacity:.7}}),
+    h('div',{style:{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:'50%',background:'linear-gradient(150deg, var(--accent-2), var(--accent))',boxShadow:'0 24px 50px -14px var(--accent)'}}));
+}
+/* Circle arrow detail (reference 1) */
+function ArrowDot(props) {
+  var s = props.size || 40;
+  return h('span',{className:'dot',style:{width:s,height:s}},
+    h('svg',{width:Math.round(s*0.42),height:Math.round(s*0.42),viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
+      h('path',{d:'M9 18l6-6-6-6'})));
+}
+/* REDESIGN-HELPERS-END */
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FIX: ONBOARDING  (first-run, per role)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -595,21 +610,17 @@ function Onboarding(props) {
   var cur    = slides[step];
   var isLast = step === slides.length - 1;
 
-  return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'64px 28px 48px'}},
-    h('div',null,
-      h(Logo,{size:44}),
-      h('div',{key:step,className:'fu',style:{animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
-        h('div',{style:{width:72,height:72,borderRadius:22,background:C.s2,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:28}}, Ic(cur.icon,32,C.t)),
-        h('h1',{style:{fontSize:30,fontWeight:800,color:C.t,letterSpacing:'-.04em',lineHeight:1.1,marginBottom:12}}, cur.title),
-        h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.7}}, cur.body))),
-    h('div',null,
-      /* Progress dots */
-      h('div',{style:{display:'flex',gap:6,justifyContent:'center',marginBottom:32}},
-        slides.map(function(_,i){
-          return h('div',{key:i,style:{height:6,borderRadius:3,background:i===step?C.lime:C.s3,width:i===step?22:6,transition:'width .25s, background .25s'}});
-        })),
-      h(PBtn,{label:isLast?'Get started':'Continue',onClick:function(){ haptic('light'); isLast?props.onDone():setStep(function(s){return s+1;}); }}),
-      h('button',{onClick:props.onDone,style:{width:'100%',marginTop:12,padding:12,fontSize:'var(--fs-caption)',color:C.t3,background:'none',border:'none'}}, 'Skip')));
+  return h('div',{className:'lc-auth'},
+    h('div',{className:'lc-auth-in'},
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
+        h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#fff')),
+        h('h1',{className:'lc-title'}, cur.title),
+        h('p',{className:'lc-sub',style:{fontSize:15}}, cur.body)),
+      h('div',{className:'lc-dots'},
+        slides.map(function(_,i){ return h('i',{key:i,className:i===step?'on':''}); })),
+      h('button',{className:'lc-btn-pill dark',onClick:function(){ haptic('light'); isLast?props.onDone():setStep(function(s){return s+1;}); }}, isLast?'Get started':'Continue'),
+      h('button',{className:'lc-btn-pill light',onClick:props.onDone}, 'Skip')));
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -632,28 +643,20 @@ function Nav(props) {
   ];
   var tabs = role === 'insp' ? iTabs : bTabs;
 
-  return h('nav',{role:'navigation','aria-label':'Main navigation',className:'glass-nav',
-    style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
-      display:'flex',zIndex:300,
-      height:'var(--nav)',paddingBottom:'var(--safe-bot)'}},
-    tabs.map(function(t){
-      var active = sc === t.id;
-      return h('button',{key:t.id,
-        onClick:function(){ haptic('selection'); nav(t.id); },
-        'aria-label': t.l, 'aria-current': active?'page':undefined,
-        style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-          gap:4,border:'none',background:'none',position:'relative',color:active?C.t:C.t3,
-          /* FIX: min 44px touch target */
-          minHeight:44}},
-        h('div',{style:{position:'relative'}},
-          h('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',
-                   strokeWidth:active?2.2:1.5,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-            h('path',{d:t.d})),
-          t.badge && h(NBadge,{n:t.badge})),
-        /* FIX: 12px label (was 10px) */
-        h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:active?700:400}}, t.l),
-        active && h('div',{style:{position:'absolute',bottom:0,left:'50%',transform:'translateX(-50%)',width:18,height:2,borderRadius:1,background:C.lime}}));
-    }));
+  return h('div',{className:'lc-nav-wrap'},
+    h('nav',{role:'navigation','aria-label':'Main navigation',className:'lc-nav'},
+      tabs.map(function(t){
+        var active = sc === t.id;
+        return h('button',{key:t.id,className:'lc-tab'+(active?' on':''),
+          onClick:function(){ haptic('selection'); nav(t.id); },
+          'aria-label': t.l, 'aria-current': active?'page':undefined},
+          h('div',{style:{position:'relative',display:'flex'}},
+            h('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',
+                     strokeWidth:active?2:1.6,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
+              h('path',{d:t.d})),
+            t.badge > 0 && h(NBadge,{n:t.badge})),
+          active && h('span',null, t.l));
+      })));
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -677,54 +680,39 @@ function AuthScreen(props) {
      .catch(function(e){ setLoading(false); setErr((e && e.message) || 'Something went wrong.'); });
   }
 
-  var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
-
-  if (!pickedRole) return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',position:'relative',overflow:'hidden'}},
-    h('div',{style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 24px 48px'},className:'fu'},
-      h('div',{style:{marginBottom:56}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:32}},
-          h(Logo,{size:44}),
-          h('span',{style:{fontSize:24,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, 'RealName')),
-        h('h1',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.t,letterSpacing:'-.035em',lineHeight:1.08,marginBottom:14}}, 'Car inspections,\non demand.'),
-        h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.6,maxWidth:280}}, 'Certified inspectors at your location. Real reports. Passive income.')),
-      h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
-        h('button',{onClick:function(){haptic('selection');setPickedRole('buyer');},'aria-label':'Continue as buyer',
-          style:{background:C.lime,border:'none',borderRadius:'var(--rx)',padding:'20px 22px',display:'flex',alignItems:'center',gap:14,textAlign:'left'}},
-          h('div',{style:{width:44,height:44,borderRadius:12,background:'var(--on-ink-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}, Ic('car',22,'var(--on-ink)')),
-          h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:'var(--on-ink)',letterSpacing:'-.02em'}}, 'I need an inspection'),
-            h('p',{style:{fontSize:'var(--fs-caption)',color:'var(--on-ink-2)',marginTop:3}}, 'Book in 60 seconds. Pay securely.')),
-          h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'var(--on-ink-3)',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-            h('path',{d:'M9 18l6-6-6-6'}))),
-        h('button',{onClick:function(){haptic('selection');setPickedRole('insp');},'aria-label':'Continue as inspector',
-          style:{background:C.s2,border:'1px solid var(--b2)',borderRadius:'var(--rx)',padding:'20px 22px',display:'flex',alignItems:'center',gap:14,textAlign:'left'}},
-          h('div',{style:{width:44,height:44,borderRadius:12,background:C.s3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}, Ic('wrench',22,C.t)),
-          h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em'}}, "I'm an inspector"),
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}}, 'Accept jobs. Earn per inspection + resales.')),
-          h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:C.t3,strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-            h('path',{d:'M9 18l6-6-6-6'})))),
-      h('p',{style:{textAlign:'center',fontSize:'var(--fs-caption)',color:C.t3,marginTop:24}}, 'Secured by PayFast · South Africa')));
+  if (!pickedRole) return h('div',{className:'lc-auth'},
+    h('div',{className:'lc-auth-in fu'},
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{style:{flex:1}}),
+      h('h1',{className:'lc-title',style:{fontSize:36}}, 'Car inspections,', h('br'), 'on demand.'),
+      h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
+      h('button',{className:'lc-role dark',onClick:function(){haptic('selection');setPickedRole('buyer');},'aria-label':'Continue as buyer'},
+        h('span',null, h('b',null,'I need an inspection'), h('small',null,'Book in 60 seconds. Pay securely.')),
+        h(ArrowDot,{size:42})),
+      h('button',{className:'lc-role light',onClick:function(){haptic('selection');setPickedRole('insp');},'aria-label':'Continue as inspector'},
+        h('span',null, h('b',null,"I'm an inspector"), h('small',null,'Accept jobs. Earn per inspection + resales.')),
+        h(ArrowDot,{size:42})),
+      h('p',{style:{textAlign:'center',fontSize:13,color:'rgba(255,255,255,.85)',marginTop:18}}, 'Secured by PayFast \u00b7 South Africa')));
 
   /* Credentials step */
-  return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',padding:'var(--safe-top) 24px 40px'},className:'fu'},
-    h(BackBtn,{onClick:function(){setPickedRole(null);setErr('');}}),
-    h('div',{style:{flex:1}},
-      h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em',marginBottom:6}}, mode==='signup'?'Create your account':'Welcome back'),
-      h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:24}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
-      mode==='signup' && h('div',{style:{marginBottom:12}},
-        h('label',{style:LBL},'Full name'),
-        h('input',{value:name,onChange:function(e){setName(e.target.value);},placeholder:'Thabo Mokoena','aria-label':'Full name'})),
-      h('div',{style:{marginBottom:12}},
-        h('label',{style:LBL},'Email'),
-        h('input',{value:email,onChange:function(e){setEmail(e.target.value);},type:'email',placeholder:'you@email.com','aria-label':'Email',autoCapitalize:'none'})),
-      h('div',{style:{marginBottom:8}},
-        h('label',{style:LBL},'Password'),
-        h('input',{value:pw,onChange:function(e){setPw(e.target.value);},type:'password',placeholder:'••••••••','aria-label':'Password',onKeyDown:function(e){if(e.key==='Enter')submit();}})),
-      err && h('p',{style:{fontSize:'var(--fs-caption)',color:C.red,marginTop:6}}, err)),
-    h(PBtn,{label:loading?'Please wait…':(mode==='signup'?'Create account':'Sign in'),onClick:submit,loading:loading,disabled:!email||!pw||(mode==='signup'&&!name)}),
-    h('button',{onClick:function(){setMode(mode==='signup'?'signin':'signup');setErr('');},style:{width:'100%',marginTop:14,padding:12,fontSize:'var(--fs-caption)',color:C.t3,background:'none',border:'none'}},
-      mode==='signup'?'Already have an account? Sign in':"Don't have an account? Sign up"));
+  var signup = mode === 'signup';
+  function back() { setPickedRole(null); setErr(''); }
+  return h('div',{className:'lc-auth'},
+    h('div',{className:'lc-auth-in fu'},
+      h('button',{className:'lc-back',onClick:back,'aria-label':'Go back'},
+        h('svg',{width:16,height:16,viewBox:'0 0 16 16',fill:'none','aria-hidden':'true'},
+          h('path',{d:'M10 3L5 8L10 13',stroke:'#fff',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}))),
+      h('h1',{className:'lc-title',style:{marginTop:64}}, signup?'Create':'Log into', h('br'), 'your account'),
+      h('p',{className:'lc-sub',style:{marginBottom:34}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
+      signup && h('input',{className:'lc-line',value:name,onChange:function(e){setName(e.target.value);},placeholder:'Full name','aria-label':'Full name',autoComplete:'name'}),
+      h('input',{className:'lc-line',value:email,onChange:function(e){setEmail(e.target.value);},type:'email',placeholder:'Email','aria-label':'Email',autoCapitalize:'none',autoComplete:'email'}),
+      h('input',{className:'lc-line',value:pw,onChange:function(e){setPw(e.target.value);},type:'password',placeholder:'Password','aria-label':'Password',autoComplete:signup?'new-password':'current-password',onKeyDown:function(e){if(e.key==='Enter')submit();}}),
+      err && h('p',{className:'lc-err',role:'alert'}, err),
+      h('div',{style:{height:30}}),
+      h('button',{className:'lc-btn-pill dark',onClick:submit,disabled:loading||!email||!pw||(signup&&!name)}, loading?'Please wait\u2026':(signup?'Sign up':'Log in')),
+      h('button',{className:'lc-btn-pill light',onClick:back}, 'Change account type'),
+      h('p',{className:'lc-foot'}, signup?'Already have an account? ':"Don't have an account? ",
+        h('button',{className:'lc-link',onClick:function(){setMode(signup?'signin':'signup');setErr('');}}, signup?'Log in':'Sign up'))));
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -736,66 +724,61 @@ function HomeScreen(props) {
   var unread = notifs.filter(function(n){ return !n.read; }).length;
   var total  = TXNS.reduce(function(a,t){ return a+t.amount; }, 0);
 
-  return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
-    h('div',{style:{padding:'var(--safe-top) 20px 20px'}},
+  return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'calc(var(--nav) + 16px)'}},
+    h('div',{style:{padding:'var(--safe-top) 22px 20px'}},
       /* Header */
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:26}},
         h('div',null,
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,fontWeight:500,marginBottom:4}}, greet()),
-          h('h1',{style:{fontSize:28,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, user.first)),
+          h('p',{className:'lc-cap',style:{marginBottom:6}}, greet()),
+          h('h1',{className:'lc-h1'}, user.first)),
         h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
           h(ThemeToggle,null),
           h('button',{onClick:function(){nav('alerts');},'aria-label':(unread||'No')+' unread notifications',
-            style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s2,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
+            style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s1,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
             h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:unread>0?C.t:C.t2,strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
               h('path',{d:'M18 8A6 6 0 0 0 6 8C6 14 3 16 3 16H21C21 16 18 14 18 8ZM13.7 21A2 2 0 0 1 10.3 21'})),
             unread > 0 && h(NBadge,{n:unread})),
           h(Av,{label:user.init,size:40}))),
 
-      /* Earnings card — lime on money figures only */
-      h('div',{className:'fu pressable',onClick:function(){nav('earn');},
-        className:'glass pressable',style:{borderRadius:'var(--rx)',padding:22,marginBottom:12,cursor:'pointer',position:'relative',overflow:'hidden'}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
-          h('div',null,
-            h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}, 'Passive earnings'),
-            /* Lime = money ✓ */
-            h('p',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.lime,letterSpacing:'-.035em',lineHeight:1}}, R(total))),
-          h('div',{style:{background:C.limeDim2,borderRadius:10,padding:'9px 12px',border:'1px solid var(--lime-dim)'}},
-            h('div',{style:{marginBottom:4,display:'flex',justifyContent:'center'}}, Ic('coins',18,C.t)),
-            h('p',{style:{fontSize:11,color:C.lime,fontWeight:700}}, 'View'))),
-        h('div',{style:{display:'flex',gap:8}},
-          [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'},{v:total>0?('+R'+total):'R0',l:'Total earned'}].map(function(s){
-            return h('div',{key:s.l,style:{flex:1,background:'var(--w04)',borderRadius:10,padding:12,border:'1px solid var(--b)'}},
-              h('p',{style:{fontSize:16,fontWeight:800,color:C.lime,letterSpacing:'-.03em'}}, s.v),
-              h('p',{style:{fontSize:11,color:C.t3,marginTop:3}}, s.l));
-          }))),
+      /* Earnings hero with glowing orb */
+      h('div',{className:'glass pressable fu',onClick:function(){nav('earn');},
+        style:{borderRadius:'var(--rx)',padding:'26px 24px 22px',marginBottom:14,cursor:'pointer',position:'relative',overflow:'hidden',minHeight:236}},
+        h(Orb,{size:150,style:{right:-38,top:34}}),
+        h('div',{style:{position:'relative'}},
+          h('p',{className:'lc-cap'}, 'Passive earnings'),
+          h('p',{className:'lc-big',style:{marginTop:10}}, R(total)),
+          h('div',{style:{display:'flex',gap:26,marginTop:52,alignItems:'flex-end'}},
+            [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'}].map(function(s){
+              return h('div',{key:s.l},
+                h('p',{style:{fontSize:22,fontWeight:400,color:C.t,letterSpacing:'-.03em'}}, s.v),
+                h('p',{className:'lc-cap',style:{marginTop:2}}, s.l));
+            }),
+            h('div',{style:{marginLeft:'auto'}}, h(ArrowDot,{size:44}))))),
 
       /* Quick actions */
-      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12},className:'fu d1'},
-        [{e:'search',t:'Search VIN',s:'Reports & history',id:'search',bg:C.s2},
-         {e:'bolt',t:'Book now',  s:'Inspector in minutes',id:'book',bg:C.s2}]
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:26},className:'fu d1'},
+        [{t:'Search VIN',s:'Reports & history',id:'search',cls:''},
+         {t:'Book now',s:'Inspector in minutes',id:'book',cls:' solid'}]
         .map(function(a){
-          return h('button',{key:a.id,onClick:function(){nav(a.id);},className:'pressable',
-            style:{background:C.s1,borderRadius:'var(--rl)',padding:'18px 14px',textAlign:'left',border:'1px solid var(--b)',display:'flex',flexDirection:'column',gap:12}},
-            h('div',{style:{width:40,height:40,borderRadius:10,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center'}}, Ic(a.e,20,C.t)),
+          return h('button',{key:a.id,onClick:function(){nav(a.id);},className:'lc-tile-act pressable'+a.cls},
             h('div',null,
-              h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:2}}, a.t),
-              h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}}, a.s)));
+              h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:'inherit',letterSpacing:'-.02em',marginBottom:4}}, a.t),
+              h('p',{className:'lc-cap',style:{opacity:.8}}, a.s)),
+            h(ArrowDot,{size:40}));
         })),
 
       /* My cars */
       h('div',{className:'fu d2'},
         h(SecTitle,{title:'My Cars',action:'+ Add',onAct:function(){nav('search');}}),
-        h(Card,{onClick:function(){nav('report');},style:{marginBottom:8}},
-          h('div',{style:{padding:'16px 18px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h(Card,{onClick:function(){nav('report');},style:{marginBottom:8,borderRadius:'var(--rx)'}},
+          h('div',{style:{padding:'20px 22px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('div',{style:{flex:1,marginRight:14}},
-              h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, '2019 Toyota Corolla'),
-              h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}}, 'ABC123GP · 87 500 km'),
-              /* FIX: green tags for pass status, not lime */
+              h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, '2019 Toyota Corolla'),
+              h('p',{className:'lc-cap',style:{marginBottom:12}}, 'ABC123GP \u00b7 87 500 km'),
               h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
                 h(Tag,{label:'1 inspection',bg:C.greenDim,c:C.green}),
                 h(Tag,{label:'Score 82',    bg:C.greenDim,c:C.green}))),
-            h(Ring,{score:82,size:66}))))),
+            h(Ring,{score:82,size:68}))))),
     h(Nav,{sc:'home',nav:nav,role:'buyer',nc:unread}));
 }
 
@@ -865,30 +848,26 @@ function SearchScreen(props) {
       h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:18}}, 'Inspection reports & SA vehicle history'),
 
       /* Search bar */
-      h('div',{style:{display:'flex',gap:8,marginBottom:10}},
-        h('div',{style:{flex:1,position:'relative'}},
-          h('input',{value:vin,
-            onChange:function(e){ setVin(e.target.value.toUpperCase()); },
-            placeholder:'Enter VIN · e.g. ABC123GP',maxLength:17,
-            'aria-label':'Vehicle identification number',
-            onKeyDown:function(e){ if(e.key==='Enter') doSearch(); },
-            style:{fontWeight:600,letterSpacing:'.04em',paddingRight:46}}),
-          /* FIX: SVG ✕ icon, not the letter 'x' */
-          vin && h('button',{
-            onClick:function(){ setVin(''); setSearched(false); setResult(null); setHist(null); },
-            'aria-label':'Clear search',
-            style:{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',padding:4,display:'flex',alignItems:'center',lineHeight:0}},
-            h(XIcon,{size:18,col:C.t3}))),
-        h('button',{onClick:function(){doSearch();},disabled:loading||!vin.trim(),'aria-label':'Search VIN',
-          style:{background:C.lime,color:'var(--on-ink)',border:'none',borderRadius:'var(--r)',padding:'0 20px',fontSize:'var(--fs-caption)',fontWeight:700,opacity:loading||!vin.trim()?.4:1,display:'flex',alignItems:'center',gap:6,flexShrink:0}},
-          loading ? h(Spin,{size:16}) : 'Search')),
+      h('div',{className:'lc-search',style:{marginBottom:12}},
+        h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
+          h('path',{d:'M21 21L15.5 15.5M18 11C18 15 14.4 18.5 10.5 18.5C6.6 18.5 3 15 3 11C3 7 6.6 3.5 10.5 3.5C14.4 3.5 18 7 18 11Z'})),
+        h('input',{value:vin,
+          onChange:function(e){ setVin(e.target.value.toUpperCase()); },
+          placeholder:'Enter VIN, e.g. ABC123GP',maxLength:17,
+          'aria-label':'Vehicle identification number',
+          onKeyDown:function(e){ if(e.key==='Enter') doSearch(); }}),
+        vin && h('button',{className:'lc-x',
+          onClick:function(){ setVin(''); setSearched(false); setResult(null); setHist(null); },
+          'aria-label':'Clear search'},
+          h(XIcon,{size:18,col:C.t3})),
+        h('button',{className:'lc-go',onClick:function(){doSearch();},disabled:loading||!vin.trim(),'aria-label':'Search VIN'},
+          loading ? h(Spin,{size:16,col:'var(--on-ink)'}) : h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},h('path',{d:'M5 12h14M13 6l6 6-6 6'})))),
 
       /* Quick-try chips */
-      h('div',{style:{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}},
-        h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}}, 'Try:'),
+      h('div',{className:'lc-chips'},
+        h('span',{className:'lc-cap'}, 'Try'),
         ['ABC123GP','XYZ789WC','DEF456GP'].map(function(v){
-          return h('button',{key:v,onClick:function(){doSearch(v);},
-            style:{background:C.s2,color:C.t2,fontSize:'var(--fs-caption)',fontWeight:600,padding:'4px 10px',borderRadius:99,border:'1px solid var(--b)'}}, v);
+          return h('button',{key:v,className:'lc-chip',onClick:function(){doSearch(v);}}, v);
         }))),
 
     /* FIX: Skeleton while loading, not just a spinner */
@@ -927,7 +906,7 @@ function SearchScreen(props) {
                 insp && h('div',{style:{padding:'12px 18px',background:C.limeDim2,borderTop:'1px solid var(--b)'}},
                   h('p',{style:{fontSize:'var(--fs-caption)',color:'var(--t2)',lineHeight:1.6}},
                     'Buy for ', h('strong',{style:{color:C.lime}}, R(insp.reportPrice)),
-                    ' instead of '+R(insp.fullPrice)+'. '+insp.payer+' earns '+R(insp.payerCut)+' every resale.'))),
+                    ' instead of '+R(insp.fullPrice)+'. '+(insp.payer.charAt(0).toUpperCase()+insp.payer.slice(1))+' earns '+R(insp.payerCut)+' every resale.'))),
               insp
                 ? h(PBtn,{label:'View full report',onClick:function(){ setCarData(result); nav('report'); }})
                 : h('div',null,
@@ -1051,6 +1030,8 @@ function BookScreen(props) {
   var _load = useState(false);  var loading=_load[0];var setLoading=_load[1];
   var _secs = useState(0);      var secs = _secs[0]; var setSecs = _secs[1];
   var _bkid = useState(null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
+  var _rt = useState(null); var route = _rt[0]; var setRoute = _rt[1];
+  var _ts = useState(0);    var totalSecs = _ts[0]; var setTotalSecs = _ts[1];
 
   useEffect(function(){
     if (step !== 'tracking' || !inspector) return;
@@ -1429,7 +1410,7 @@ function ReportScreen(props) {
     return h('div',{style:{minHeight:'100vh',background:'var(--bg)'}},
       h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'var(--bg)',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid var(--w2)',color:'var(--t)',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
-        h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'REALNAME REPORT')),
+        h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'YOUR REAL NAME REPORT')),
       h(ReportView,detail));
   }
 
@@ -1442,7 +1423,7 @@ function ReportScreen(props) {
       h(BackBtn,{onClick:function(){nav('search');}}),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18}},
         h('div',{style:{flex:1,marginRight:14}},
-          h('p',{style:{fontSize:11,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:7}},m.lbl+' CONDITION'),
+          h('p',{style:{fontSize:11,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:7}},m.lbl+' condition'),
           h('p',{style:{fontSize:22,fontWeight:800,color:C.t,letterSpacing:'-.03em',lineHeight:1.15,marginBottom:5}},car.year+' '+car.make+' '+car.model),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}},car.vin+' · '+Number(car.mileage||0).toLocaleString()+' km')),
         h(Ring,{score:insp.score,size:74,showLabel:true})),
@@ -1450,7 +1431,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
           h(Av,{label:'LC',size:42}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'RealName Inspector'),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'Your Real Name Inspector'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
           h(Tag,{label:'Inspection complete',bg:C.greenDim,c:C.green}))),
       h(Card,{style:{marginBottom:10}},
@@ -1466,7 +1447,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
           h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
-            'The full RealName report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
+            'The full Your Real Name report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
           dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
       h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'var(--bg)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
         h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));
@@ -1523,7 +1504,7 @@ function EarnScreen(props) {
   var maxW=Math.max.apply(null,week.map(function(w){return w.insp+w.resale;}));
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
-    h('div',{style:{padding:'var(--safe-top) 20px 24px',background:'var(--hero)'}},
+    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}}, h(Orb,{size:130,style:{right:-34,top:'calc(var(--safe-top) + 4px)',zIndex:-1}}),
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income 2025'),
       h('p',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.lime,letterSpacing:'-.04em',lineHeight:1,marginBottom:6}},R(total)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:18}},'From '+TXNS.length+' report resale'+(TXNS.length===1?'':'s')+' · '+R(total)+' total'),
@@ -1547,12 +1528,12 @@ function EarnScreen(props) {
               return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
                 h('div',{style:{width:'100%',display:'flex',flexDirection:'column',alignItems:'stretch',gap:1}},
                   w.resale>0&&h('div',{style:{height:resaleH,background:C.green,borderRadius:'3px 3px 0 0',opacity:.75}}),
-                  h('div',{style:{height:total>0?inspH:4,background:total>0?C.lime:'var(--w06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
+                  h('div',{style:{height:total>0?inspH:4,background:total>0?'linear-gradient(180deg,var(--accent-2),var(--accent))':'var(--w06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
                 h('p',{style:{fontSize:10,fontWeight:600,color:C.t3,letterSpacing:'.02em'}},days[i]));
             })),
           /* Legend */
           h('div',{style:{display:'flex',gap:16,marginBottom:10}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:2,background:C.lime}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Inspection')),
+            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:5,background:'linear-gradient(180deg,var(--accent-2),var(--accent))'}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Inspection')),
             h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:2,background:C.green,opacity:.75}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Resale'))),
           h(Hr,{my:10}),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
@@ -1589,6 +1570,7 @@ function EarnScreen(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function InspHomeScreen(props) {
   var nav=props.nav, user=props.user, setJob=props.setJob;
+  var showToast=props.showToast; var _dvi = useState(0); var setDataVersion=_dvi[1];
   var _on=useState(!!(user && user.online)); var online=_on[0]; var setOnline=_on[1];
   var pending=JOBS.filter(function(j){return j.status==='pending';});
   var done   =JOBS.filter(function(j){return j.status==='done';});
@@ -1807,7 +1789,7 @@ function InspEarnScreen(props) {
   var resaleTotal = TXNS.reduce(function(a,t){ return a + (t.amount||0); }, 0);
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
-    h('div',{style:{padding:'var(--safe-top) 20px 24px',background:'var(--hero)'}},
+    h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}}, h(Orb,{size:130,style:{right:-34,top:'calc(var(--safe-top) + 4px)',zIndex:-1}}),
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Total earned'),
       h('p',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.lime,letterSpacing:'-.04em',lineHeight:1,marginBottom:5}},R(user.earned)),
       h('p',{style:{fontSize:'var(--fs-body)',color:C.t3}},user.jobs+' completed inspections')),
@@ -1823,11 +1805,11 @@ function InspEarnScreen(props) {
               return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
                 h('div',{style:{width:'100%',display:'flex',flexDirection:'column',alignItems:'stretch',gap:1}},
                   w.resale>0&&h('div',{style:{height:resaleH,background:C.green,borderRadius:'3px 3px 0 0',opacity:.75}}),
-                  h('div',{style:{height:tot>0?inspH:4,background:tot>0?C.lime:'var(--w06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
+                  h('div',{style:{height:tot>0?inspH:4,background:tot>0?'linear-gradient(180deg,var(--accent-2),var(--accent))':'var(--w06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
                 h('p',{style:{fontSize:10,fontWeight:600,color:C.t3,letterSpacing:'.02em'}},days[i]));
             })),
           h('div',{style:{display:'flex',gap:16,marginBottom:10}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:2,background:C.lime}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Inspection fee')),
+            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:5,background:'linear-gradient(180deg,var(--accent-2),var(--accent))'}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Inspection fee')),
             h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:2,background:C.green,opacity:.75}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Resale cut'))),
           h(Hr,{my:10}),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
@@ -2026,7 +2008,7 @@ function App() {
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
-      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'REALNAME'));
+      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'YOUR REAL NAME'));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));

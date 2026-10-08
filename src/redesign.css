@@ -1,0 +1,132 @@
+/* ============================================================
+   REDESIGN — glassmorphism reference build.
+   Full-bleed mesh on auth/onboarding, floating pill nav,
+   underline fields, black + white pill buttons.
+   Colours come from --accent / --accent-2 (modern.css).
+   ============================================================ */
+:root { --nav: 104px; }
+button { background: none; border: none; color: inherit; font-family: inherit; }
+.dot { display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: var(--ink); color: var(--on-ink); }
+
+/* ---------- Auth + onboarding canvas (always the soft grey mesh) ---------- */
+.lc-auth { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; color: #fff; background: #7c7d80; }
+.lc-auth::before {
+  content: ""; position: absolute; inset: -25%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(34% 22% at 88% 6%,  color-mix(in srgb, var(--accent-2) 65%, #fff) 0, transparent 70%),
+    radial-gradient(40% 22% at 30% 30%, rgba(255,255,255,.34) 0, transparent 70%),
+    radial-gradient(30% 22% at 6% 62%,  color-mix(in srgb, var(--accent) 38%, #e8dccd) 0, transparent 70%),
+    radial-gradient(40% 20% at 85% 68%, rgba(255,255,255,.5) 0, transparent 70%),
+    radial-gradient(60% 22% at 50% 102%, #f4f4f4 0, transparent 70%),
+    radial-gradient(35% 18% at 4% 98%,  color-mix(in srgb, var(--accent-2) 30%, #fff) 0, transparent 70%);
+  filter: blur(26px);
+  animation: lc-drift 30s ease-in-out infinite alternate;
+}
+.lc-auth-in { position: relative; display: flex; flex-direction: column; min-height: 100vh; padding: var(--safe-top) 28px max(36px, env(safe-area-inset-bottom)); }
+.lc-title { font-size: 32px; font-weight: 500; line-height: 1.18; letter-spacing: -0.02em; color: #fff; }
+.lc-sub   { font-size: 14px; line-height: 1.55; color: rgba(255,255,255,.9); margin-top: 12px; max-width: 310px; }
+.lc-brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+
+/* underline fields */
+input.lc-line {
+  display: block; width: 100%; background: transparent; border: none; border-radius: 0;
+  border-bottom: 1.5px solid rgba(255,255,255,.92); padding: 16px 2px 11px; margin-bottom: 14px;
+  color: #fff; font-size: 16px; caret-color: #fff; box-shadow: none;
+}
+input.lc-line:focus { background: transparent; border-bottom-color: #fff; box-shadow: 0 10px 14px -12px rgba(255,255,255,.95); }
+input.lc-line::placeholder { color: rgba(255,255,255,.92); }
+input.lc-line:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 99999s; }
+
+/* pills */
+.lc-btn-pill {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 310px;
+  margin: 0 auto 14px; padding: 17px 24px; border: none; border-radius: 999px;
+  font-family: inherit; font-size: 16px; font-weight: 500; cursor: pointer; transition: transform .12s, opacity .12s;
+}
+.lc-btn-pill.dark  { background: #000; color: #fff; box-shadow: 0 14px 26px -12px rgba(0,0,0,.7); }
+.lc-btn-pill.light { background: #fff; color: #000; box-shadow: 0 14px 26px -14px rgba(0,0,0,.5); }
+.lc-btn-pill:active, .lc-role:active { transform: scale(.985); }
+.lc-btn-pill:disabled { opacity: .5; cursor: default; }
+
+.lc-role {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 18px 18px 18px 26px; margin-bottom: 12px;
+  border: none; border-radius: 36px; text-align: left; font-family: inherit; cursor: pointer; transition: transform .12s;
+}
+.lc-role.dark  { background: #000; color: #fff; box-shadow: 0 14px 26px -12px rgba(0,0,0,.7); }
+.lc-role.light { background: #fff; color: #000; box-shadow: 0 14px 26px -14px rgba(0,0,0,.5); }
+.lc-role b { display: block; font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+.lc-role small { display: block; font-size: 13px; opacity: .62; margin-top: 3px; }
+.lc-role .dot { margin-left: auto; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lc-role.dark .dot { background: #fff; color: #000; }
+.lc-role.light .dot { background: #000; color: #fff; }
+
+.lc-foot { text-align: center; font-size: 14px; color: rgba(255,255,255,.95); margin-top: auto; padding-top: 28px; }
+.lc-link { background: none; border: none; color: #fff; text-decoration: underline; font: inherit; cursor: pointer; padding: 0; }
+.lc-back {
+  width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer;
+  background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+.lc-err { color: #fff; background: rgba(150,28,20,.45); border-radius: 14px; padding: 10px 14px; font-size: 13px; margin: 4px 0 12px; }
+.lc-tile {
+  width: 76px; height: 76px; border-radius: 26px; margin-bottom: 28px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.45);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+.lc-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 26px; }
+.lc-dots i { display: block; height: 6px; border-radius: 3px; background: rgba(255,255,255,.45); width: 6px; transition: width .25s, background .25s; }
+.lc-dots i.on { width: 24px; background: #fff; }
+
+/* ---------- Floating glass nav ---------- */
+.lc-nav-wrap { position: fixed; left: 0; right: 0; bottom: 0; max-width: 430px; margin: 0 auto; padding: 0 14px max(14px, env(safe-area-inset-bottom)); z-index: 300; pointer-events: none; }
+.lc-nav {
+  pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: 999px;
+  background: var(--s1); border: 1px solid var(--b); box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6);
+}
+.lc-tab {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1;
+  height: 48px; min-width: 48px; padding: 0 12px; border: none; border-radius: 999px; background: transparent;
+  color: var(--t2); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background .25s, color .25s, padding .25s;
+}
+.lc-tab.on { flex: 0 0 auto; padding: 0 20px; background: var(--ink); color: var(--on-ink); }
+
+/* ---------- Home ---------- */
+.lc-big { font-size: 54px; font-weight: 300; letter-spacing: -0.045em; line-height: 1; color: var(--t); }
+.lc-h1  { font-size: 34px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.1; color: var(--t); }
+.lc-cap { font-size: var(--fs-caption); color: var(--t2); }
+.lc-tile-act {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-height: 150px; padding: 20px; text-align: left;
+  border-radius: var(--rx); background: var(--s1); border: 1px solid var(--b); box-shadow: var(--glass-shadow); font-family: inherit; cursor: pointer;
+}
+.lc-tile-act.solid { background: var(--ink); color: var(--on-ink); border-color: transparent; }
+.lc-tile-act.solid .lc-cap, .lc-tile-act.solid p { color: inherit; }
+.lc-tile-act.solid .dot { background: var(--on-ink); color: var(--ink); }
+
+/* ============================================================
+   GLOBAL SKIN — restyles every screen (including files the
+   redesign doesn't rewrite) by matching the shared inline tokens.
+   ============================================================ */
+h1[style], h2[style], h1, h2 { font-weight: 500 !important; letter-spacing: -0.03em !important; }
+label[style] { font-size: 13px !important; font-weight: 500 !important; }
+h1[style*="--fs-title"] { font-size: 30px !important; line-height: 1.12; }
+[style*="font-size: var(--fs-display)"] { font-weight: 300 !important; font-size: 52px !important; letter-spacing: -0.045em !important; }
+[style*="text-transform: uppercase"] { text-transform: none !important; letter-spacing: 0 !important; }
+[style*="border-radius: 7px"], [style*="border-radius: 8px"] { border-radius: 14px !important; }
+[style*="border-radius: 9px"], [style*="border-radius: 10px"] { border-radius: 16px !important; }
+[style*="border-radius: 12px"] { border-radius: 20px !important; }
+button[style*="border-radius: var(--r)"] { border-radius: 999px !important; }
+[role="alert"]:not(.lc-err) { background: var(--canvas) !important; border: 1px solid var(--b2) !important; border-radius: 999px !important; box-shadow: var(--shadow-soft) !important; }
+/* fixed bottom action bars: fade into the page instead of a solid slab */
+[style*="position: fixed"][style*="bottom: 0px"][style*="max-width: 430px"] { background: linear-gradient(to top, var(--canvas) 62%, transparent) !important; border: none !important; }
+
+/* ---------- Search field ---------- */
+.lc-search { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 18px; border-radius: 999px; background: var(--s1); border: 1px solid var(--b2); box-shadow: var(--glass-shadow); }
+.lc-search > svg { color: var(--t3); }
+.lc-search input, .lc-search input:focus { flex: 1; min-width: 0; width: auto; border: none; background: transparent; box-shadow: none; padding: 12px 6px; border-radius: 0; font-weight: 500; letter-spacing: .02em; }
+.lc-search .lc-go { width: 46px; height: 46px; border-radius: 50%; border: none; background: var(--ink); color: var(--on-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+.lc-search .lc-go:disabled { opacity: .4; cursor: default; }
+.lc-search .lc-x { background: none; border: none; padding: 6px; display: flex; line-height: 0; cursor: pointer; }
+.lc-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lc-chip { border: 1px solid var(--b); background: var(--s1); color: var(--t2); padding: 7px 14px; border-radius: 999px; font-size: var(--fs-caption); font-weight: 500; cursor: pointer; }
