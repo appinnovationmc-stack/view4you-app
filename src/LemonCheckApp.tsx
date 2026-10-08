@@ -1242,7 +1242,8 @@ function BookScreen(props) {
               h('p',{style:{fontSize:14,fontWeight:700,color:C.t,maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, loc || 'Car location')
             )
           )
-        ),
+        )
+      ),
       h('div',{style:{background:C.bg,borderRadius:'22px 22px 0 0',marginTop:-14},className:'su'},
         h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
         arrived
