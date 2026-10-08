@@ -684,7 +684,7 @@ function AuthScreen(props) {
       h('div',{style:{marginBottom:56}},
         h('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:32}},
           h(Logo,{size:44}),
-          h('span',{style:{fontSize:24,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, 'LemonCheck')),
+          h('span',{style:{fontSize:24,fontWeight:800,color:C.t,letterSpacing:'-.04em'}}, 'RealName')),
         h('h1',{style:{fontSize:'var(--fs-display)',fontWeight:800,color:C.t,letterSpacing:'-.035em',lineHeight:1.08,marginBottom:14}}, 'Car inspections,\non demand.'),
         h('p',{style:{fontSize:'var(--fs-body)',color:C.t2,lineHeight:1.6,maxWidth:280}}, 'Certified inspectors at your location. Real reports. Passive income.')),
       h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
@@ -1429,7 +1429,7 @@ function ReportScreen(props) {
     return h('div',{style:{minHeight:'100vh',background:'var(--bg)'}},
       h('div',{style:{maxWidth:820,margin:'0 auto',padding:'12px 16px',background:'var(--bg)',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}},
         h('button',{onClick:function(){nav('search');},style:{background:'transparent',border:'1px solid var(--w2)',color:'var(--t)',borderRadius:8,padding:'8px 12px',fontWeight:700}},'← Back'),
-        h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'LEMONCHECK REPORT')),
+        h('span',{style:{color:'var(--t)',fontSize:12,fontWeight:700,letterSpacing:'.04em'}},'REALNAME REPORT')),
       h(ReportView,detail));
   }
 
@@ -1450,7 +1450,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
           h(Av,{label:'LC',size:42}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'LemonCheck Inspector'),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'RealName Inspector'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
           h(Tag,{label:'Inspection complete',bg:C.greenDim,c:C.green}))),
       h(Card,{style:{marginBottom:10}},
@@ -1466,7 +1466,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
           h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
-            'The full LemonCheck report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
+            'The full RealName report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
           dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
       h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'var(--bg)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
         h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));
@@ -2026,7 +2026,7 @@ function App() {
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
-      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'LEMONCHECK'));
+      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'REALNAME'));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));

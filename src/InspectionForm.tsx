@@ -1,4 +1,4 @@
-// Inspector's on-site data-entry screen for the detailed LemonCheck report.
+// Inspector's on-site data-entry screen for the detailed RealName report.
 // Replaces the old 12-row pass/warn/fail screen. Everything the buyer later sees
 // (score, verdict, roadworthy pass/fail, area findings) is derived from the data entered here.
 

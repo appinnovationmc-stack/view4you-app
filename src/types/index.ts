@@ -1,4 +1,4 @@
-// LemonCheck domain types — mirror supabase/schema.sql exactly.
+// RealName domain types — mirror supabase/schema.sql exactly.
 
 export type UserRole = 'buyer' | 'inspector'
 

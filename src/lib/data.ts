@@ -1,4 +1,4 @@
-// Typed Supabase data-access layer for LemonCheck.
+// Typed Supabase data-access layer for RealName.
 // Every screen calls into this module instead of touching `supabase` directly,
 // so the query shape lives in one place and matches supabase/schema.sql.
 
