@@ -215,13 +215,12 @@ function MapView(props) {
       maxZoom: 18,
     }).setView([center.lat, center.lng], zoom);
 
-    var tileUrl = function(d){ return 'https://{s}.basemaps.cartocdn.com/' + (d ? 'dark_all' : 'light_all') + '/{z}/{x}/{y}{r}.png'; };
-    var tiles = L.tileLayer(tileUrl(document.documentElement.getAttribute('data-theme') === 'dark'), { maxZoom: 19, subdomains: 'abcd' }).addTo(map);
-    var onTheme = function(){ tiles.setUrl(tileUrl(document.documentElement.getAttribute('data-theme') === 'dark')); setThemeV(function(v){ return v + 1; }); };
-    window.addEventListener('lc-theme', onTheme);
+    /* CARTO raster basemap (Voyager). The key is a public client-side tile key: it ships in the tile URL.
+       Free to 5M tiles/month; CARTO + OpenStreetMap attribution must stay visible (see control below). */
+    L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2tzb_1_41e7e439caad0def62204e67', { maxZoom: 19 }).addTo(map);
 
     L.control.attribution({ position: 'bottomright', prefix: false })
-      .addAttribution('© OSM · CARTO').addTo(map);
+      .addAttribution('© OpenStreetMap contributors © CARTO').addTo(map);
 
     // Custom zoom buttons (top-right)
     if (props.showZoom !== false) {
@@ -250,7 +249,6 @@ function MapView(props) {
 
     return function(){
       window.removeEventListener('resize', fix);
-      window.removeEventListener('lc-theme', onTheme);
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   }, [leafletReady]);
