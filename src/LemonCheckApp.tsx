@@ -215,13 +215,12 @@ function MapView(props) {
       maxZoom: 18,
     }).setView([center.lat, center.lng], zoom);
 
-    var tileUrl = function(d){ return 'https://{s}.basemaps.cartocdn.com/' + (d ? 'dark_all' : 'light_all') + '/{z}/{x}/{y}{r}.png'; };
-    var tiles = L.tileLayer(tileUrl(document.documentElement.getAttribute('data-theme') === 'dark'), { maxZoom: 19, subdomains: 'abcd' }).addTo(map);
-    var onTheme = function(){ tiles.setUrl(tileUrl(document.documentElement.getAttribute('data-theme') === 'dark')); setThemeV(function(v){ return v + 1; }); };
-    window.addEventListener('lc-theme', onTheme);
+    /* OpenStreetMap standard tiles: free, no API key (Carto's free basemaps now require one).
+       For heavy production traffic, swap this URL for a keyed provider (MapTiler, Stadia, Carto). */
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: 'abc' }).addTo(map);
 
     L.control.attribution({ position: 'bottomright', prefix: false })
-      .addAttribution('© OSM · CARTO').addTo(map);
+      .addAttribution('© OpenStreetMap contributors').addTo(map);
 
     // Custom zoom buttons (top-right)
     if (props.showZoom !== false) {
@@ -250,7 +249,6 @@ function MapView(props) {
 
     return function(){
       window.removeEventListener('resize', fix);
-      window.removeEventListener('lc-theme', onTheme);
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   }, [leafletReady]);
