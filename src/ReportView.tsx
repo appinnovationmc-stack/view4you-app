@@ -63,7 +63,7 @@ export default function ReportView(p: ReportViewProps) {
       <style>{css}</style>
       <button className="noprint" onClick={() => window.print()}>Print / save as PDF</button>
 
-      <h1>Your Real Name Condition Report</h1>
+      <h1>LemonCheck Condition Report</h1>
       <div className="meta">Report no. <b>{p.reportNumber}</b>{p.inspectedAt && <> · Inspected {p.inspectedAt}</>}{p.inspectorName && <> · by {p.inspectorName}</>}</div>
       <p className="lead">A non-invasive visual and diagnostic inspection of key safety and roadworthy indicators. It reflects the vehicle's condition at the time of inspection only and does not predict future performance or wear.</p>
 

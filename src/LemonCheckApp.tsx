@@ -562,7 +562,7 @@ function NBadge(props) {
 }
 
 /* REDESIGN-HELPERS-START */
-var APP_NAME = 'Your Real Name';
+var APP_NAME = 'LemonCheck';
 
 /* Circle arrow detail (reference 1) */
 function ArrowDot(props) {
@@ -1400,7 +1400,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
           h(Av,{label:'LC',size:42}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'Your Real Name Inspector'),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'LemonCheck Inspector'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
           h(Tag,{label:'Inspection complete',bg:C.greenDim,c:C.green}))),
       h(Card,{style:{marginBottom:10}},
@@ -1416,7 +1416,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
           h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
-            'The full Your Real Name report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
+            'The full LemonCheck report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
           dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
       h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'var(--bg)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
         h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));

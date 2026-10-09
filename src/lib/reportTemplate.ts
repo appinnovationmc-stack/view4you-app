@@ -1,4 +1,4 @@
-// Your Real Name detailed report: checklist template + evaluation logic.
+// LemonCheck detailed report: checklist template + evaluation logic.
 // Thresholds below are DEFAULTS. Verify against the standard you want to certify to.
 
 export type Condition = 'good' | 'as_expected' | 'fair' | 'poor' | 'na'
