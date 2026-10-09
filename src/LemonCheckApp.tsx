@@ -215,12 +215,12 @@ function MapView(props) {
       maxZoom: 18,
     }).setView([center.lat, center.lng], zoom);
 
-    /* OpenStreetMap standard tiles: free, no API key (Carto's free basemaps now require one).
-       For heavy production traffic, swap this URL for a keyed provider (MapTiler, Stadia, Carto). */
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: 'abc' }).addTo(map);
+    /* CARTO raster basemap (Voyager). The key is a public client-side tile key: it ships in the tile URL.
+       Free to 5M tiles/month; CARTO + OpenStreetMap attribution must stay visible (see control below). */
+    L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_2tzb_1_41e7e439caad0def62204e67', { maxZoom: 19 }).addTo(map);
 
     L.control.attribution({ position: 'bottomright', prefix: false })
-      .addAttribution('© OpenStreetMap contributors').addTo(map);
+      .addAttribution('© OpenStreetMap contributors © CARTO').addTo(map);
 
     // Custom zoom buttons (top-right)
     if (props.showZoom !== false) {
