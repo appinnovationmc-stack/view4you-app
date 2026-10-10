@@ -22,6 +22,7 @@ export interface Profile {
   eta_minutes: number | null
   online: boolean
   top_rated: boolean
+  approved?: boolean
   created_at: string
 }
 
@@ -82,6 +83,8 @@ export interface Booking {
   travel_fee: number
   platform_fee: number
   paid: boolean
+  payment_status?: 'unpaid' | 'paid' | 'legacy_unverified' | 'refund_due' | 'refunded'
+  amount_due?: number | null
   created_at: string
   accepted_at: string | null
   completed_at: string | null

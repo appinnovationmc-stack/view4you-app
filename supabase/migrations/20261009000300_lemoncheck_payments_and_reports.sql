@@ -332,6 +332,7 @@ begin
     'report_number', i.report_number,
     'score', i.score,
     'report_price', i.report_price,
+    'payer_cut', i.payer_cut,
     'inspected_at', coalesce(i.submitted_at, i.created_at),
     'roadworthy_status', i.roadworthy_status,
     'inspector_name', (select p.name from public.profiles p where p.id = i.inspector_id),

@@ -32,16 +32,9 @@ export async function signUp(params: {
   const user = data.user
   if (!user) throw new Error('Sign up did not return a user.')
 
-  // The database trigger creates the profile even when email confirmation is enabled
-  // and Supabase returns no session. If a session exists, upsert keeps the profile
-  // synchronized without relying on client-side INSERT permission.
-  if (data.session) {
-    const { error: profileErr } = await supabase.from('profiles').upsert({
-      id: user.id, role, name, first_name, init, email,
-    }, { onConflict: 'id' })
-    if (profileErr) throw profileErr
-    return fetchProfile(user.id)
-  }
+  // The database trigger (handle_new_user) creates the profile, so the client never writes `profiles` itself.
+  // New inspector accounts start unapproved: an operator approves them (docs/RELEASE_CHECKLIST.md).
+  if (data.session) return fetchProfile(user.id)
 
   throw new Error('Account created. Check your email to confirm the account, then sign in.')
 }
@@ -69,8 +62,9 @@ export async function fetchProfile(id: string): Promise<Profile> {
   return data as Profile
 }
 
-export async function setOnlineStatus(inspectorId: string, online: boolean) {
-  const { error } = await supabase.from('profiles').update({ online }).eq('id', inspectorId)
+/** Goes online/offline. Only approved inspectors can; the database enforces it. */
+export async function setOnlineStatus(online: boolean) {
+  const { error } = await supabase.rpc('set_online', { p_online: online })
   if (error) throw error
 }
 
@@ -78,32 +72,44 @@ export async function setOnlineStatus(inspectorId: string, online: boolean) {
 // Vehicles + history (Search screen)
 // ---------------------------------------------------------------------------
 
+export type ReportPreview = Inspection & {
+  findings: InspectionFinding[]
+  inspector_name: string
+  owned: boolean
+}
+
+/**
+ * Vehicle row plus the latest report PREVIEW. What a non-purchaser may see (score, price, area pass/warn/fail)
+ * is decided by the database (report_preview); notes and the verdict text only come back once the caller owns the report.
+ */
 export async function fetchVehicleWithLatestInspection(vin: string): Promise<{
   vehicle: Vehicle
-  inspection: (Inspection & { findings: InspectionFinding[]; inspector_name: string }) | null
+  inspection: ReportPreview | null
 } | null> {
   const { data: vehicle, error } = await supabase.from('vehicles').select('*').eq('vin', vin).maybeSingle()
   if (error) throw error
   if (!vehicle) return null
 
-  const { data: inspections, error: insErr } = await supabase
-    .from('inspections')
-    .select('*, inspection_findings(*), profiles!inspections_inspector_id_fkey(name)')
-    .eq('vin', vin)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  if (insErr) throw insErr
-
-  const row = inspections?.[0] as (Inspection & {
-    inspection_findings: InspectionFinding[]
-    profiles: { name: string } | null
-  }) | undefined
+  const { data: pv, error: pvErr } = await supabase.rpc('report_preview', { p_vin: vin })
+  if (pvErr) throw pvErr
+  const p = pv as null | {
+    inspection_id: string; report_number: string | null; score: number; report_price: number; payer_cut: number
+    inspected_at: string; roadworthy_status: 'pass' | 'fail' | null; inspector_name: string | null
+    owned: boolean; verdict: string | null
+    areas: { area: string; status: FindingStatus; note: string | null }[]
+  }
+  if (!p) return { vehicle: vehicle as Vehicle, inspection: null }
 
   return {
     vehicle: vehicle as Vehicle,
-    inspection: row
-      ? { ...row, findings: row.inspection_findings, inspector_name: row.profiles?.name ?? 'Inspector' }
-      : null,
+    inspection: {
+      id: p.inspection_id, booking_id: '', vin, inspector_id: '', score: p.score, verdict: p.verdict,
+      full_price: 0, report_price: p.report_price, payer_cut: p.payer_cut, inspector_cut: 0,
+      created_at: p.inspected_at, report_number: p.report_number, roadworthy_status: p.roadworthy_status,
+      findings: p.areas.map((a, i) => ({ id: String(i), inspection_id: p.inspection_id, area: a.area, status: a.status, note: a.note })),
+      inspector_name: p.inspector_name ?? 'Inspector',
+      owned: p.owned,
+    },
   }
 }
 
@@ -139,78 +145,85 @@ export async function fetchMyVehicles(buyerId: string): Promise<
   return withScores
 }
 
-export async function ensureVehicleTracked(vin: string, buyerId: string) {
-  await supabase.from('vehicles')
-    .update({ first_tracked_by: buyerId })
-    .eq('vin', vin)
-    .is('first_tracked_by', null)
-}
-
 // ---------------------------------------------------------------------------
 // Inspectors + booking (Book screen)
 // ---------------------------------------------------------------------------
 
+// Public inspector info comes from the inspector_directory view (approved inspectors only; no email/phone).
 export async function fetchOnlineInspectors(): Promise<Profile[]> {
   const { data, error } = await supabase
-    .from('profiles').select('*').eq('role', 'inspector').eq('online', true)
+    .from('inspector_directory').select('*').eq('online', true)
     .order('eta_minutes', { ascending: true })
   if (error) throw error
-  return (data ?? []) as Profile[]
+  return (data ?? []) as unknown as Profile[]
 }
 
 export async function fetchOfflineInspectors(): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from('profiles').select('*').eq('role', 'inspector').eq('online', false)
+  const { data, error } = await supabase.from('inspector_directory').select('*').eq('online', false)
   if (error) throw error
-  return (data ?? []) as Profile[]
+  return (data ?? []) as unknown as Profile[]
 }
 
+/**
+ * Creates an UNPAID booking. The price is computed by the database from the inspector's profile;
+ * the client sends no money values. The booking only reaches the inspector once payment is confirmed by PayFast.
+ */
 export async function createBooking(params: {
-  buyerId: string; vin: string; make: string; model: string; year: number
-  location: string; notes: string; inspectorId: string; inspectionFee: number
+  vin: string; make: string; model: string; year: number
+  location: string; notes: string; inspectorId: string
 }): Promise<Booking> {
-  const { buyerId, vin, make, model, year, location, notes, inspectorId, inspectionFee } = params
-
-  await supabase.from('vehicles').upsert(
-    { vin, make, model, year, first_tracked_by: buyerId },
-    { onConflict: 'vin', ignoreDuplicates: false },
-  )
-  await ensureVehicleTracked(vin, buyerId)
-
-  const { data, error } = await supabase.from('bookings').insert({
-    buyer_id: buyerId, vin, location, notes,
-    inspector_id: inspectorId, status: 'pending',
-    inspection_fee: inspectionFee,
-  }).select().single()
+  const { vin, make, model, year, location, notes, inspectorId } = params
+  const { data, error } = await supabase.rpc('create_booking', {
+    p_vin: vin, p_make: make, p_model: model, p_year: year,
+    p_location: location, p_notes: notes || null, p_inspector_id: inspectorId,
+  })
   if (error) throw error
   return data as Booking
 }
 
-export async function acceptBooking(bookingId: string, inspectorId: string): Promise<void> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-    .eq('id', bookingId)
-    .eq('inspector_id', inspectorId)
-    .eq('status', 'pending')
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('This inspection request is no longer available.')
+export interface PayfastCheckout { order_ref: string; amount: number; action: string; fields: Record<string, string> }
+
+async function invokePayment(fn: string, body: Record<string, string>): Promise<PayfastCheckout> {
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session?.access_token) throw new Error('Please sign in again.')
+  const { data, error } = await supabase.functions.invoke(fn, { body })
+  if (error) {
+    // Edge Function errors carry the JSON body on error.context; surface the server's message when present.
+    const ctx = (error as { context?: Response }).context
+    const msg = ctx && typeof ctx.json === 'function' ? (await ctx.json().catch(() => null))?.error : null
+    throw new Error(msg || error.message || 'Payment could not be started')
+  }
+  if (!data?.action || !data?.fields) throw new Error(data?.error ?? 'Payment could not be started')
+  return data as PayfastCheckout
 }
 
-export async function declineBooking(bookingId: string, inspectorId: string): Promise<void> {
-  const { error } = await supabase
-    .from('bookings')
-    .update({ status: 'declined' })
-    .eq('id', bookingId)
-    .eq('inspector_id', inspectorId)
-    .eq('status', 'pending')
+/** Asks the server for a signed PayFast checkout for this booking (amount comes from the database). */
+export const startBookingPayment = (bookingId: string) => invokePayment('create-booking-payment', { booking_id: bookingId })
+
+export async function fetchBooking(bookingId: string): Promise<Booking | null> {
+  const { data, error } = await supabase.from('bookings').select('*').eq('id', bookingId).maybeSingle()
+  if (error) throw error
+  return (data as Booking) ?? null
+}
+
+export async function cancelBooking(bookingId: string): Promise<void> {
+  const { error } = await supabase.rpc('cancel_booking', { p_booking_id: bookingId })
   if (error) throw error
 }
 
-export async function markBookingPaid(bookingId: string) {
-  const { error } = await supabase.from('bookings').update({ paid: true }).eq('id', bookingId)
+export async function acceptBooking(bookingId: string): Promise<void> {
+  const { error } = await supabase.rpc('accept_booking', { p_booking_id: bookingId })
+  if (error) throw error
+}
+
+export async function declineBooking(bookingId: string): Promise<void> {
+  const { error } = await supabase.rpc('decline_booking', { p_booking_id: bookingId })
+  if (error) throw error
+}
+
+/** Inspector progress: accepted -> en_route -> in_progress. The database enforces the order. */
+export async function advanceBooking(bookingId: string, status: 'en_route' | 'in_progress'): Promise<void> {
+  const { error } = await supabase.rpc('advance_booking', { p_booking_id: bookingId, p_status: status })
   if (error) throw error
 }
 
@@ -218,58 +231,19 @@ export async function markBookingPaid(bookingId: string) {
 // Inspector jobs
 // ---------------------------------------------------------------------------
 
-export interface JobRow extends Booking {
-  vehicle: Vehicle
+export interface JobRow extends Omit<Booking, 'buyer_id'> {
+  vehicle: Pick<Vehicle, 'make' | 'model' | 'year' | 'colour'>
   buyer_name: string
 }
 
-export async function fetchInspectorJobs(inspectorId: string): Promise<JobRow[]> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('*, vehicles(*), profiles!bookings_buyer_id_fkey(name)')
-    .eq('inspector_id', inspectorId)
-    .order('created_at', { ascending: false })
+/** The signed-in inspector's own PAID jobs (view inspector_jobs; unpaid bookings are never shown to inspectors). */
+export async function fetchInspectorJobs(_inspectorId?: string): Promise<JobRow[]> {
+  const { data, error } = await supabase.from('inspector_jobs').select('*').order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []).map((row: unknown) => {
-    const r = row as Booking & { vehicles: Vehicle; profiles: { name: string } | null }
-    return { ...r, vehicle: r.vehicles, buyer_name: r.profiles?.name ?? 'Customer' } as JobRow
+  return (data ?? []).map((r: Record<string, unknown>) => {
+    const { make, model, year, colour, buyer_first_name, ...b } = r as Record<string, any>
+    return { ...b, vehicle: { make, model, year, colour }, buyer_name: buyer_first_name ?? 'Customer' } as JobRow
   })
-}
-
-export async function submitInspection(params: {
-  bookingId: string; vin: string; inspectorId: string
-  findings: Record<string, FindingStatus>
-  notes: Record<string, string>
-  score: number
-  fullPrice: number
-}): Promise<Inspection> {
-  const { bookingId, vin, inspectorId, findings, notes, score, fullPrice } = params
-  const reportPrice = Math.round(fullPrice * 0.18)   // resale price, matches R349-on-R1950 ratio from the design
-  const payerCut = Math.round(reportPrice * 0.515)   // ~R180 on a R349 resale, per the approved copy
-  const inspectorCut = reportPrice - payerCut
-
-  const { data: inspection, error } = await supabase.from('inspections').insert({
-    booking_id: bookingId, vin, inspector_id: inspectorId, score,
-    verdict: buildVerdict(score, findings),
-    full_price: fullPrice, report_price: reportPrice,
-    payer_cut: payerCut, inspector_cut: inspectorCut,
-  }).select().single()
-  if (error) throw error
-
-  const findingRows = Object.entries(findings).map(([area, status]) => ({
-    inspection_id: inspection.id, area, status, note: notes[area] || null,
-  }))
-  const { error: findErr } = await supabase.from('inspection_findings').insert(findingRows)
-  if (findErr) throw findErr
-
-  await supabase.from('bookings').update({
-    status: 'done', completed_at: new Date().toISOString(),
-  }).eq('id', bookingId)
-
-  // Best-effort: bump the inspector's completed-jobs counter.
-  await supabase.rpc('increment_jobs_completed', { p_inspector_id: inspectorId })
-
-  return inspection as Inspection
 }
 
 // ---------------------------------------------------------------------------
@@ -412,29 +386,12 @@ export async function fetchDetailedReport(inspectionId: string): Promise<ReportV
   }
 }
 
-function buildVerdict(score: number, findings: Record<string, FindingStatus>): string {
-  const warns = Object.entries(findings).filter(([, s]) => s === 'warn').map(([a]) => a)
-  const fails = Object.entries(findings).filter(([, s]) => s === 'fail').map(([a]) => a)
-  if (fails.length) return `Below-average condition. Fail on ${fails.join(', ')} — recommend further diagnosis before purchase.`
-  if (warns.length) return `${score >= 80 ? 'Above-average' : 'Fair'} condition for its age and mileage. Advisory on ${warns.join(', ')} should be actioned soon. Recommend purchase with negotiation.`
-  return 'Above-average condition. No material issues found. Recommend purchase.'
-}
-
 // ---------------------------------------------------------------------------
 // Report purchases (resale / passive income)
 // ---------------------------------------------------------------------------
 
-export async function purchaseReport(inspectionId: string, _buyerId?: string): Promise<{ order_id: string; amount: number; action: string; fields: Record<string,string> }> {
-  const { data: session } = await supabase.auth.getSession()
-  if (!session.session?.access_token) throw new Error('Please sign in again.')
-
-  const { data, error } = await supabase.functions.invoke('create-report-payment', {
-    body: { inspection_id: inspectionId },
-  })
-  if (error) throw error
-  if (!data?.order_id || !data?.action || !data?.fields) throw new Error(data?.error ?? 'Payment could not be started')
-  return data
-}
+/** Asks the server for a signed PayFast checkout for this report (price comes from the database). */
+export const purchaseReport = (inspectionId: string) => invokePayment('create-report-payment', { inspection_id: inspectionId })
 
 export async function fetchBuyerEarnings(buyerId: string) {
   const { data, error } = await supabase

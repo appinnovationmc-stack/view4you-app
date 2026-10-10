@@ -225,7 +225,7 @@ describe('report submit, access, preview and resale purchase', () => {
   })
   it('a non-purchaser sees only the preview (no notes, no verdict, no checklist)', async () => {
     const pv = (await asUser(db, BUYER2, () => db.query<any>('select public.report_preview($1) as p', ['RPT001GP']))).rows[0].p
-    expect(pv).toMatchObject({ score: 85, report_price: 90, owned: false, verdict: null })
+    expect(pv).toMatchObject({ score: 85, report_price: 90, payer_cut: 46, owned: false, verdict: null })
     expect(pv.areas[0].note).toBeNull()
     expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(0)
     expect((await asUser(db, BUYER2, () => db.query('select id from public.inspection_findings'))).rows.length).toBe(0)

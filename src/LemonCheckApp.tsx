@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import * as Data from './lib/data';
+import { redirectToPayFast } from './lib/payfastRedirect';
 import InspectionForm from './InspectionForm';
 import ReportView from './ReportView';
 
@@ -57,7 +58,7 @@ var ONBOARD = {
   buyer:[
     {icon:'search',title:'Search any car',       body:'Enter a South African VIN to see full inspection history, accident records, and eNaTIS data — before you commit to a single rand.'},
     {icon:'bolt',title:'Inspector in minutes', body:'Choose from certified inspectors near the car. They arrive within the hour — no waiting rooms, no scheduling delays.'},
-    {icon:'coins',title:'Earn while you sleep', body:'Once you commission an inspection, you earn R180 every time another buyer purchases that same report. Passively. Forever.'},
+    {icon:'coins',title:'Earn while you sleep', body:'Once you commission an inspection, you earn a share every time another buyer purchases that same report. The exact amount is shown on each report before anyone pays.'},
   ],
   insp:[
     {icon:'clipboard',title:'Accept nearby jobs',   body:'Inspection requests appear in real time. Accept the ones that fit your location and schedule — no commitment required.'},
@@ -965,7 +966,7 @@ function SearchScreen(props) {
               h('path',{d:'M35 34l7 7',stroke:C.t3,strokeWidth:2,strokeLinecap:'round'}),
               h('path',{d:'M24 27h8M28 23v8',stroke:C.t3,strokeWidth:1.5,strokeLinecap:'round',opacity:.4})),
             h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'No inspection found'),
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6,marginBottom:22,maxWidth:220,margin:'0 auto 22px'}}, 'Be the first to inspect this car — you\'ll earn R180 every time another buyer purchases your report.'),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6,marginBottom:22,maxWidth:220,margin:'0 auto 22px'}}, 'Be the first to inspect this car — you\'ll earn a share every time another buyer purchases your report.'),
             h(PBtn,{label:'Book an inspection',onClick:function(){nav('book');}}))),
     h(Nav,{sc:'search',nav:nav,role:'buyer'}));
 }
@@ -981,7 +982,8 @@ function SearchScreen(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function BookScreen(props) {
   var nav = props.nav, showToast = props.showToast;
-  var _step = useState('input'); var step = _step[0]; var setStep = _step[1];
+  var _pend = useState(readPendingBooking); var pendingInfo = _pend[0];
+  var _step = useState(pendingInfo ? 'status' : 'input'); var step = _step[0]; var setStep = _step[1];
   var _vin  = useState('');     var vin  = _vin[0];  var setVin  = _vin[1];
   var _make = useState('');     var make = _make[0]; var setMake = _make[1];
   var _model= useState('');     var model= _model[0];var setModel= _model[1];
@@ -997,7 +999,7 @@ function BookScreen(props) {
   var _card = useState('saved');var card = _card[0]; var setCard = _card[1];
   var _load = useState(false);  var loading=_load[0];var setLoading=_load[1];
   var _secs = useState(0);      var secs = _secs[0]; var setSecs = _secs[1];
-  var _bkid = useState(null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
+  var _bkid = useState(pendingInfo ? pendingInfo.id : null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
   var _rt = useState(null); var route = _rt[0]; var setRoute = _rt[1];
   var _ts = useState(0);    var totalSecs = _ts[0]; var setTotalSecs = _ts[1];
 
@@ -1020,30 +1022,21 @@ function BookScreen(props) {
   });
 
   function confirm() {
+    if (loading) return;
     setLoading(true);
     Data.createBooking({
-      buyerId: props.user.id, vin: vin, make: make, model: model, year: Number(year),
-      location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer, notes: notes, inspectorId: inspector.id, inspectionFee: inspector.price,
+      vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
+      location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
+      notes: notes, inspectorId: inspector.id,
     }).then(function(booking){
       setBookingId(booking.id);
-      var dest = geo || SA_DEFAULT;
-      // Start ~1.5–2.5 km away so the route is visible
-      var start = {
-        lat: dest.lat + 0.014,
-        lng: dest.lng - 0.011,
-      };
-      return fetchRoute(start, dest).then(function(r){
-        setRoute(r);
-        var duration = Math.max(90, Math.min(600, Math.round(r.durationS || (inspector.eta * 60) || 180)));
-        setTotalSecs(duration);
-        setSecs(duration);
-        setLoading(false);
-        setStep('tracking');
-        showToast(inspector.name + ' is on the way');
-        haptic('success');
-      });
+      savePendingBooking({id:booking.id, inspector:inspector.name, vehicle:year+' '+make+' '+model});
+      return Data.startBookingPayment(booking.id);
+    }).then(function(payment){
+      redirectToPayFast(payment); // leaves the app for PayFast's hosted page; we resume on the status screen
     }).catch(function(err){
-      console.error(err); setLoading(false); showToast('Booking failed. Try again.', true);
+      console.error(err); setLoading(false);
+      showToast((err && err.message) || 'Could not start payment. Try again.', true);
     });
   }
 
@@ -1207,119 +1200,76 @@ function BookScreen(props) {
       /* Payment */
       h(Card,{style:{marginBottom:12}},
         h('div',{style:{padding:'18px'}},
-          h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'Payment'),
-          ['saved','new'].map(function(opt){
-            var sel=card===opt;
-            return h('button',{key:opt,onClick:function(){setCard(opt);},
-              style:{width:'100%',background:sel?C.limeDim2:C.s2,border:'1px solid '+(sel?'var(--ink-dim2)':'var(--b)'),borderRadius:10,padding:'13px 14px',textAlign:'left',marginBottom:7,display:'flex',alignItems:'center',gap:10}},
-              h('div',{style:{width:18,height:18,borderRadius:9,border:'2px solid '+(sel?C.lime:'var(--w2)'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-                sel&&h('div',{style:{width:9,height:9,borderRadius:5,background:C.lime}})),
-              opt==='saved'
-                ?h('div',null,h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},'Visa ending 4242'),h('p',{style:{fontSize:11,color:C.t3,marginTop:1}},'Expires 12/27'))
-                :h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:600,color:C.t2}},'Add card via PayFast'));
-          }))),
+          h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:6}},'Payment'),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}},'You will be taken to PayFast to pay securely by card or EFT. LemonCheck never sees your card details. The inspector is only notified once PayFast confirms your payment.'))),
 
       /* Passive income note — shown after payment, not blocking it */
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. Earn R180 every time another buyer purchases it.')),
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You earn a share each time another buyer purchases it.')),
       h(PBtn,{label:loading?'Confirming…':'Pay '+R(inspector.price+175)+' via PayFast',onClick:confirm,loading:loading})));
 
-  /* ── TRACKING ── */
-  if (step==='tracking') {
-    var mins=Math.floor(secs/60), ss2=secs%60, arrived=secs===0;
-    var dest = geo || SA_DEFAULT;
-    var progress = totalSecs > 0 ? 1 - (secs / totalSecs) : 1;
-    if (progress < 0) progress = 0;
-    if (progress > 1) progress = 1;
-    var inspPos = route && route.coords
-      ? pointAlongRoute(route.coords, progress)
-      : { lat: dest.lat + (1 - progress) * 0.014, lng: dest.lng - (1 - progress) * 0.011 };
-    var remainingM = route && route.distanceM
-      ? Math.round(route.distanceM * (1 - progress))
-      : null;
+  /* ── STATUS (real booking state, polled from the server) ── */
+  return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
+}
 
-    return h('div',{style:{minHeight:'100vh',background:C.bg}},
-      h(MapView,{
-        height:'56vh',
-        center: inspPos,
-        zoom: 15,
-        userPos: dest,
-        markers: [{
-          lat: inspPos.lat,
-          lng: inspPos.lng,
-          color: C.lime,
-          label: inspector.init[0],
-          size: 48,
-          popup: inspector.name + (arrived ? ' · Arrived' : ' · En route'),
-        }],
-        routeCoords: route && route.coords ? route.coords : null,
-        routeTo: arrived ? null : dest,
-        fitKey: arrived ? 1 : 0,
-        fit: true,
-      },
-        /* Live nav HUD */
-        h('div',{style:{position:'absolute',top:14,left:14,right:14,display:'flex',flexDirection:'column',alignItems:'center',gap:8}},
-          h('div',{role:'timer','aria-live':'polite'},
-            arrived
-              ? h('div',{style:{background:C.green,color:'var(--on-status)',borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-body)',boxShadow:'0 4px 24px rgba(50,215,75,.45)'}},'Inspector arrived')
-              : h('div',{style:{background:'var(--s1)',color:C.t,borderRadius:99,padding:'10px 22px',fontWeight:800,fontSize:'var(--fs-headline)',border:'1px solid var(--b)',letterSpacing:'-.02em'}},
-                  mins + ':' + String(ss2).padStart(2,'0'))
-          ),
-          !arrived && h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'8px 14px',border:'1px solid var(--b)',display:'flex',gap:16,alignItems:'center'}},
-            h('div',null,
-              h('p',{style:{fontSize:10,color:C.t3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em'}},'Distance'),
-              h('p',{style:{fontSize:14,fontWeight:800,color:C.t}}, remainingM != null ? formatDistance(remainingM) : '…')
-            ),
-            h('div',{style:{width:1,height:28,background:'var(--b)'}}),
-            h('div',null,
-              h('p',{style:{fontSize:10,color:C.t3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.06em'}},'To'),
-              h('p',{style:{fontSize:14,fontWeight:700,color:C.t,maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, loc || 'Car location')
-            )
-          )
-        )
-      ),
-      h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16}},
-        h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
-        arrived
-          ? h('div',{style:{padding:'24px 20px 40px',textAlign:'center'}},
-              h('div',{style:{marginBottom:14,display:'flex',justifyContent:'center'}},Ic('check',48,C.green)),
-              h('p',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em',marginBottom:8}},'Inspector arrived'),
-              h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,marginBottom:24}},'Your inspection is underway.'),
-              h(PBtn,{label:'Back to home',onClick:function(){nav('home');}}))
-          : h('div',{style:{padding:'18px 18px 36px'}},
-              h('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:18}},
-                h(Av,{label:inspector.init,size:50}),
-                h('div',{style:{flex:1}},
-                  h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:3}},inspector.name),
-                  h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'En route to '+loc),
-                  h('div',{style:{display:'flex',gap:5,marginTop:8}},
-                    h(Tag,{label:'★ '+inspector.rating.toFixed(2),bg:C.s3,c:C.t2}),
-                    h(Tag,{label:inspector.cert,bg:C.s3,c:C.t2})))),
-              h('div',{style:{background:C.s1,borderRadius:'var(--r)',padding:'14px',marginBottom:18,border:'1px solid var(--b)'}},
-                h('p',{style:{fontSize:10,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}},'Will cover'),
-                h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}},
-                  ['Engine','Transmission','Brakes','Tyres','Body & Paint','Interior','Electricals','Suspension'].map(function(a){
-                    return h('div',{key:a,style:{display:'flex',alignItems:'center',gap:7}},
-                      h('div',{style:{width:6,height:6,borderRadius:3,background:C.green,flexShrink:0}}),
-                      h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2}},a));
-                  }))),
-              h('div',{style:{display:'flex',gap:8}},
-                h('button',{onClick:function(){setStep('input');},style:{flex:'0 0 95px',background:C.redDim,color:C.red,border:'1px solid rgba(255,69,58,.2)',borderRadius:'var(--r)',padding:'16px',fontSize:'var(--fs-caption)',fontWeight:700}},'Cancel'),
-                h('button',{style:{flex:1,background:C.s2,color:C.t,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'16px',fontSize:'var(--fs-caption)',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',gap:7}},
-                  h('svg',{width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-                    h('path',{d:'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.15 14 19.79 19.79 0 011.08 5.42 2 2 0 013.07 3h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 10a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 17z'})),
-                  'Call '+inspector.name.split(' ')[0])))));
+var PENDING_KEY='lc_pending_booking';
+function readPendingBooking(){ try { var r=localStorage.getItem(PENDING_KEY); return r?JSON.parse(r):null; } catch(e){ return null; } }
+function savePendingBooking(v){ try { localStorage.setItem(PENDING_KEY, JSON.stringify(v)); } catch(e){} }
+function clearPendingBooking(){ try { localStorage.removeItem(PENDING_KEY); } catch(e){} }
+
+function BookingStatus(props) {
+  var nav=props.nav, showToast=props.showToast, bookingId=props.bookingId, info=props.info||{};
+  var _b=useState(null); var booking=_b[0]; var setBooking=_b[1];
+  var _e=useState(null); var loadErr=_e[0]; var setLoadErr=_e[1];
+  var _w=useState(false); var busy=_w[0]; var setBusy=_w[1];
+  var _t0=useRef(Date.now());
+
+  useEffect(function(){
+    var stop=false, timer=null;
+    function tick(){
+      Data.fetchBooking(bookingId).then(function(b){
+        if (stop) return;
+        setBooking(b); setLoadErr(null);
+        if (b && (b.status==='done' || b.status==='cancelled')) return; // terminal: stop polling
+        timer=setTimeout(tick, 4000);
+      }).catch(function(e){ if (stop) return; setLoadErr(e); timer=setTimeout(tick, 8000); });
+    }
+    tick();
+    return function(){ stop=true; if (timer) clearTimeout(timer); };
+  }, [bookingId]);
+
+  var name=(info.inspector||'Your inspector');
+  var unpaid = booking && booking.status==='pending' && !booking.paid;
+  var slow = unpaid && (Date.now()-_t0.current) > 60000;
+  var view;
+  if (!booking) view={t:loadErr?'Could not load booking':'Checking your booking…', d:loadErr?'Check your connection. We will keep trying.':'', spin:!loadErr};
+  else if (unpaid) view={t:'Waiting for payment', d:'We are waiting for PayFast to confirm your payment. This usually takes a few seconds. If you closed the payment page, you can try again.', spin:true};
+  else if (booking.status==='pending') view={t:'Payment confirmed', d:'Waiting for '+name+' to accept your booking.', spin:true};
+  else if (booking.status==='accepted') view={t:'Booking accepted', d:name+' accepted your booking for the '+(info.vehicle||'vehicle')+'.', ok:true};
+  else if (booking.status==='en_route') view={t:'Inspector on the way', d:name+' is on the way to the vehicle.', ok:true};
+  else if (booking.status==='in_progress') view={t:'Inspection underway', d:name+' has started the inspection.', ok:true};
+  else if (booking.status==='done') view={t:'Inspection complete', d:'Your report is ready. Search the VIN to open it.', ok:true};
+  else view={t:'Booking cancelled', d:'This booking was cancelled or declined. If you paid, contact support so the payment can be reviewed.'};
+
+  function retryPay(){
+    setBusy(true);
+    Data.startBookingPayment(bookingId).then(redirectToPayFast).catch(function(e){ setBusy(false); showToast(e.message||'Could not start payment.',true); });
   }
+  function cancel(){
+    setBusy(true);
+    Data.cancelBooking(bookingId).then(function(){ clearPendingBooking(); nav('home'); }).catch(function(e){ setBusy(false); showToast(e.message||'Could not cancel.',true); });
+  }
+  function leave(){ if (booking && (booking.status==='done'||booking.status==='cancelled')) clearPendingBooking(); nav('home'); }
 
-  /* Done state */
-  if (bookingId) { Data.markBookingPaid(bookingId).catch(function(e){ console.error(e); }); }
   return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center'},className:'fu'},
-    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:24,border:'1px solid rgba(50,215,75,.2)'}},Ic('check',40,C.green)),
-    h('p',{style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.035em',marginBottom:10}},'Inspection complete'),
-    h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:24,maxWidth:260}},'Your report will be ready within 30 minutes.'),
-    h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'Your report is live. You\'ll earn R180 every time another buyer purchases it.')),
-    h(PBtn,{label:'Back to home',onClick:function(){nav('home');}}));
+    h('div',{style:{width:80,height:80,borderRadius:40,background:view.ok?C.greenDim:C.s2,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:24,border:'1px solid var(--b)'}},
+      view.spin?h(Spin,{size:30}):view.ok?Ic('check',40,C.green):Ic('shield',34,C.t3)),
+    h('p',{role:'status','aria-live':'polite',style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.035em',marginBottom:10}},view.t),
+    h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:24,maxWidth:300}},view.d),
+    unpaid&&slow&&h('div',{style:{width:'100%',display:'flex',flexDirection:'column',gap:8,marginBottom:12}},
+      h(PBtn,{label:busy?'Please wait…':'Try payment again',onClick:retryPay,loading:busy}),
+      h(GBtn,{label:'Cancel booking',onClick:cancel})),
+    h(PBtn,{label:'Back to home',onClick:leave}));
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1354,20 +1304,8 @@ function ReportScreen(props) {
 
   function pay(){
     setPl(true);
-    Data.purchaseReport(insp.id, props.user.id).then(function(payment){
-      var form=document.createElement('form');
-      form.method='POST';
-      form.action=payment.action;
-      form.style.display='none';
-      Object.keys(payment.fields||{}).forEach(function(key){
-        var input=document.createElement('input');
-        input.type='hidden';
-        input.name=key;
-        input.value=payment.fields[key];
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
+    Data.purchaseReport(insp.id).then(function(payment){
+      redirectToPayFast(payment);
     }).catch(function(err){
       console.error(err); setPl(false);
       showToast(String(err && err.message || 'Payment could not be started.'), true);
@@ -1455,21 +1393,8 @@ function AlertsScreen(props) {
         grouped bar chart showing inspection + resale split
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function EarnScreen(props) {
-  var nav=props.nav;
+  var nav=props.nav, showToast=props.showToast;
   var total=TXNS.reduce(function(a,t){return a+t.amount;},0);
-  /* FIX: stacked bars — inspection fee + resale */
-  var week=[
-    {insp:0,   resale:0  },
-    {insp:1950,resale:180},
-    {insp:2100,resale:180},
-    {insp:0,   resale:0  },
-    {insp:1800,resale:0  },
-    {insp:1950,resale:180},
-    {insp:2200,resale:180},
-  ];
-  var days=['M','T','W','T','F','S','S'];
-  var maxW=Math.max.apply(null,week.map(function(w){return w.insp+w.resale;}));
-
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}},
       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}},'Passive income '+new Date().getFullYear()),
@@ -1483,38 +1408,13 @@ function EarnScreen(props) {
         }))),
 
     h('div',{style:{padding:'0 20px'},className:'fu'},
-      /* FIX: Grouped bar chart */
-      h(Card,{style:{marginBottom:10}},
-        h('div',{style:{padding:'18px'}},
-          h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:14}},'This week'),
-          h('div',{style:{display:'flex',alignItems:'flex-end',gap:5,height:72,marginBottom:8}},
-            week.map(function(w,i){
-              var total=w.insp+w.resale;
-              var inspH=total>0?Math.round((w.insp/maxW)*60)+4:4;
-              var resaleH=w.resale>0?Math.round((w.resale/maxW)*60):0;
-              return h('div',{key:i,style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}},
-                h('div',{style:{width:'100%',display:'flex',flexDirection:'column',alignItems:'stretch',gap:1}},
-                  w.resale>0&&h('div',{style:{height:resaleH,background:C.green,borderRadius:'3px 3px 0 0',opacity:.75}}),
-                  h('div',{style:{height:total>0?inspH:4,background:total>0?'linear-gradient(180deg,var(--accent-2),var(--accent))':'var(--w06)',borderRadius:w.resale>0?0:'3px 3px 0 0'}})),
-                h('p',{style:{fontSize:10,fontWeight:600,color:C.t3,letterSpacing:'.02em'}},days[i]));
-            })),
-          /* Legend */
-          h('div',{style:{display:'flex',gap:16,marginBottom:10}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:5,background:'linear-gradient(180deg,var(--accent-2),var(--accent))'}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Inspection')),
-            h('div',{style:{display:'flex',alignItems:'center',gap:5}},h('div',{style:{width:10,height:10,borderRadius:2,background:C.green,opacity:.75}}),h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Resale'))),
-          h(Hr,{my:10}),
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Week total'),
-            h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},
-              R(week.reduce(function(a,w){return a+w.insp+w.resale;},0)))))),
-
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:10}},'How passive income works'),
           h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:10,padding:'12px',marginBottom:10}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.65}},'When you commission an inspection, you earn 18% (R180) every time another buyer purchases that report.')),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.65}},'When you commission an inspection, you earn a share of the report price every time another buyer purchases that report. Amounts below are what has actually been paid to you.')),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'3 resales on Corolla'),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},TXNS.length+' resale'+(TXNS.length===1?'':'s')+' so far'),
             h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.lime,letterSpacing:'-.03em'}},R(total))))),
 
       h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em',marginBottom:8}},'Transactions'),
@@ -1526,7 +1426,7 @@ function EarnScreen(props) {
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},t.car+' · '+t.date)),
             h('p',{style:{fontSize:'var(--fs-body)',fontWeight:800,color:C.green,letterSpacing:'-.02em'}},'+'+R(t.amount)));
         })),
-      h(GBtn,{label:'Withdraw to bank account',onClick:function(){}})),
+      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ showToast('Withdrawals are not available in the app yet. Earnings are recorded here.', true); }})),
     h(Nav,{sc:'earn',nav:nav,role:'buyer'}));
 }
 
@@ -1535,12 +1435,23 @@ function EarnScreen(props) {
    FIX: safe-top, lime on pay amounts, green for status tags,
         online/offline toggle, proper caption sizes
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function mapJobRows(rows){
+  return rows.map(function(j){
+    return {id:j.id, vin:j.vin, make:j.vehicle.make, model:j.vehicle.model, year:j.vehicle.year, colour:j.vehicle.colour,
+      customer:j.buyer_name, location:j.location,
+      date:new Date(j.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}),
+      status: j.status==='done' ? 'done' : j.status==='pending' ? 'pending' : j.status==='cancelled' ? 'cancelled' : 'active',
+      rawStatus: j.status, pay:j.inspection_fee, notes:j.notes||''};
+  });
+}
+
 function InspHomeScreen(props) {
   var nav=props.nav, user=props.user, setJob=props.setJob;
   var showToast=props.showToast; var _dvi = useState(0); var setDataVersion=_dvi[1];
   var _on=useState(!!(user && user.online)); var online=_on[0]; var setOnline=_on[1];
   var pending=JOBS.filter(function(j){return j.status==='pending';});
   var done   =JOBS.filter(function(j){return j.status==='done';});
+  var active =JOBS.filter(function(j){return j.status==='active';});
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 20px',background:'var(--hero)'}},
@@ -1550,7 +1461,7 @@ function InspHomeScreen(props) {
           h('p',{style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.04em'}},user.first)),
         h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
           /* Online/Offline toggle */
-          h('button',{onClick:function(){ haptic('selection'); setOnline(function(v){ var nv=!v; Data.setOnlineStatus(user.id, nv).catch(function(e){console.error(e);}); return nv; }); },
+          h('button',{onClick:function(){ haptic('selection'); var nv=!online; setOnline(nv); Data.setOnlineStatus(nv).catch(function(e){ console.error(e); setOnline(!nv); showToast((e&&e.message)||'Could not change status. Your account may still be awaiting approval.',true); }); },
             'aria-pressed':online,'aria-label':online?'Go offline':'Go online',
             style:{display:'flex',alignItems:'center',gap:7,background:online?C.greenDim:C.s2,border:'1px solid '+(online?'rgba(50,215,75,.25)':'var(--b)'),borderRadius:99,padding:'7px 12px',transition:'all .2s'}},
             h('div',{style:{width:7,height:7,borderRadius:4,background:online?C.green:C.t3,animation:online?'pg 2s infinite':'none'}}),
@@ -1591,16 +1502,29 @@ function InspHomeScreen(props) {
                 h('div',{style:{display:'flex',gap:8}},
                   h('button',{onClick:function(){
                     haptic('error');
-                    Data.declineBooking(job.id,user.id).then(function(){ showToast('Request declined.'); return Data.fetchInspectorJobs(user.id); }).then(function(rows){
-                      JOBS=rows.map(function(j){ return {id:j.id,vin:j.vin,make:j.vehicle.make,model:j.vehicle.model,year:j.vehicle.year,colour:j.vehicle.colour,customer:j.buyer_name,location:j.location,date:new Date(j.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}),status:j.status==='done'?'done':'pending',pay:j.inspection_fee,notes:j.notes||''}; });
+                    Data.declineBooking(job.id).then(function(){ showToast('Request declined.'); return Data.fetchInspectorJobs(user.id); }).then(function(rows){
+                      JOBS=mapJobRows(rows);
                       setDataVersion(function(x){return x+1;});
                     }).catch(function(e){console.error(e);showToast('Could not decline request.',true);});
                   },style:{flex:'0 0 82px',background:C.redDim,color:C.red,border:'1px solid rgba(255,69,58,.18)',borderRadius:'var(--r)',padding:'13px',fontSize:'var(--fs-caption)',fontWeight:700}},'Decline'),
                   h(PBtn,{label:'Accept',onClick:function(){
                     setJob(job);
-                    Data.acceptBooking(job.id,user.id).then(function(){ nav('ijob'); }).catch(function(e){ console.error(e); showToast(e.message||'Could not accept request.',true); });
+                    Data.acceptBooking(job.id).then(function(){ job.status='active'; job.rawStatus='accepted'; nav('ijob'); }).catch(function(e){ console.error(e); showToast(e.message||'Could not accept request.',true); });
                   },style:{flex:1,padding:'13px'}}))));
           }),
+
+      active.length>0&&h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em',marginBottom:8}},'In progress'),
+      active.map(function(job){
+        return h(Card,{key:job.id,style:{marginBottom:10,overflow:'hidden'}},
+          h('div',{style:{padding:'16px 18px'}},
+            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:3}},job.year+' '+job.make+' '+job.model),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:12}},job.location+' · '+(job.rawStatus==='en_route'?'On your way':job.rawStatus==='in_progress'?'Inspection started':'Accepted')),
+            h('div',{style:{display:'flex',gap:8}},
+              job.rawStatus==='accepted'&&h('button',{onClick:function(){
+                Data.advanceBooking(job.id,'en_route').then(function(){ job.rawStatus='en_route'; setDataVersion(function(x){return x+1;}); showToast('Customer notified'); }).catch(function(e){ showToast(e.message||'Could not update status.',true); });
+              },style:{flex:'0 0 120px',background:C.s2,color:C.t,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'13px',fontSize:'var(--fs-caption)',fontWeight:700}},"I'm on my way"),
+              h(PBtn,{label:'Open inspection',onClick:function(){ setJob(job); nav('ijob'); },style:{flex:1,padding:'13px'}}))));
+      }),
 
       h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em',marginBottom:8}},'Completed'),
       h(Card,{style:{overflow:'hidden'}},
@@ -1734,7 +1658,7 @@ function JobScreen(props) {
    INSPECTOR EARNINGS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function InspEarnScreen(props) {
-  var nav=props.nav, user=props.user;
+  var nav=props.nav, user=props.user, showToast=props.showToast;
   // Build a real weekly series from completed jobs + resale TXNS (no demo numbers)
   var week=[{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0}];
   var now = new Date();
@@ -1793,7 +1717,7 @@ function InspEarnScreen(props) {
               h('p',{style:{fontSize:'var(--fs-body)',fontWeight:600,color:C.t}},'Passive earnings'),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},TXNS.length+' resale'+(TXNS.length===1?'':'s'))),
             h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.green,letterSpacing:'-.03em'}},R(resaleTotal))))),
-      h(GBtn,{label:'Withdraw to bank account',onClick:function(){}})),
+      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ showToast('Withdrawals are not available in the app yet. Earnings are recorded here.', true); }})),
     h(Nav,{sc:'iearnings',nav:nav,role:'insp'}));
 }
 
@@ -1879,7 +1803,7 @@ function App() {
         setShowOnb(false); // skip onboarding on restore
         if (r === 'buyer') {
           loadBuyerData(profile);
-          setScreen('home');
+          setScreen(readPendingBooking() ? 'book' : 'home'); // returning from PayFast resumes the booking status
         } else {
           loadInspectorData(profile);
           setScreen('ijobs');
@@ -1934,14 +1858,7 @@ function App() {
       Data.fetchInspectorJobs(profile.id), Data.fetchNotifications(profile.id),
       Data.fetchInspectorEarnings(profile.id),
     ]).then(function(res){
-      JOBS = res[0].map(function(j){
-        return {
-          id:j.id, vin:j.vin, make:j.vehicle.make, model:j.vehicle.model, year:j.vehicle.year,
-          colour:j.vehicle.colour, customer:j.buyer_name, location:j.location,
-          date:new Date(j.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}),
-          status: j.status==='done'?'done':'pending', pay:j.inspection_fee, notes:j.notes||'',
-        };
-      });
+      JOBS = mapJobRows(res[0]);
       NOTIFS_INIT = res[1].map(mapNotif);
       TXNS = res[2].map(function(e){ return {id:e.id, buyer:'Buyer', car:'', date:new Date(e.purchased_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}), amount:e.inspector_earning}; });
       var doneTotal = JOBS.filter(function(j){return j.status==='done';}).reduce(function(a,j){return a+j.pay;},0);
@@ -1974,7 +1891,7 @@ function App() {
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
-      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'YOUR REAL NAME'));
+      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'LEMONCHECK'));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));
