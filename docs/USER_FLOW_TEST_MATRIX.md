@@ -24,4 +24,4 @@ Legend: **DB** = covered by automated tests on real Postgres (PGlite) · **Unit*
 | Notifications | both | DB |
 | Withdraw to bank | both | **Not built** (button explains this) |
 | Live inspector GPS tracking | buyer | **Not built** |
-| Admin: approve inspector, mark refund | operator | DB (SQL functions); no admin UI |
+| Admin: sign in, approve / suspend inspector, cancel booking, record refund, audit log, read-only role | operator | DB (29 tests) · UI against mocked backend · **Manual against real Supabase** |

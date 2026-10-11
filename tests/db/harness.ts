@@ -1,4 +1,4 @@
-// PGlite harness: stub -> live baseline -> forward migrations 20261009*.
+// PGlite harness: stub -> live baseline -> forward migrations >= 20261009.
 // TEST-ONLY. Never points at a real database.
 import { PGlite } from '@electric-sql/pglite'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -15,7 +15,7 @@ export async function makeDb(opts: { migrations: boolean }): Promise<Db> {
   await db.exec(read('baseline/lemoncheck_live_baseline_2026-10-07.sql'))
   if (opts.migrations) {
     const files = readdirSync(join(root, 'migrations'))
-      .filter((f) => f.startsWith('20261009') && f.endsWith('.sql'))
+      .filter((f) => f >= '20261009' && f.endsWith('.sql'))
       .sort()
     for (const f of files) await db.exec(read(`migrations/${f}`))
   }

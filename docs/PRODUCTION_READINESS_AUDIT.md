@@ -22,6 +22,7 @@ Branch `fix/lemoncheck-production-readiness`. Live state observed read-only on 2
 ## What was built
 * `20261009000100_lemoncheck_access_lockdown.sql` — removes client write access to privileged tables, adds `profiles.approved`, `bookings.payment_status/amount_due`, directory + job views.
 * `20261009000200_lemoncheck_booking_state_machine.sql` — `create_booking` (price computed on the server), race-safe `accept_booking`, `decline_booking`, `advance_booking`, `cancel_booking`, `set_online`.
+* `20261011000100_lemoncheck_admin_console.sql` + `admin/` web app: operator console (see `docs/ADMIN_CONSOLE.md`).
 * `20261009000300_lemoncheck_payments_and_reports.sql` — `payment_events` audit table, idempotent `apply_payfast_itn` (service role only), `submit_detailed_report` (idempotent, server-priced), `report_preview`, `admin_approve_inspector`, `admin_mark_booking_refunded`.
 * Edge functions: `create-booking-payment`, `create-report-payment`, `payfast-itn` (shared code in `_shared/`): server-side signed checkout, ITN signature, source IP, merchant, amount, currency, order reference, server confirmation, idempotency.
 * App: PayFast redirect, live booking status screen (polls the booking row), inspector accept/decline/progress, real earnings only.
@@ -44,5 +45,5 @@ Run `npm test` (vitest, PGlite = real Postgres in WASM, with stubbed Supabase ro
 ## Open decisions for the owner
 * Resale split. Currently 18% of the inspection fee, ~51.5% to the commissioning buyer, remainder to the inspector, platform keeps 0%. Lives in `lc_report_split()` only.
 * Travel fee (R100) and platform fee (R75) are constants in `lc_travel_fee()` / `lc_platform_fee()`.
-* Payout process (withdrawals are not in the app), refund process (`admin_mark_booking_refunded`), privacy policy and terms.
+* Payout process (withdrawals are not in the app), privacy policy and terms. Refunds are handled in the admin console (`docs/ADMIN_CONSOLE.md`); the money itself is still refunded by hand in PayFast.
 * Enable leaked-password protection in the Supabase dashboard.

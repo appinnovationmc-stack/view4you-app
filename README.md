@@ -21,3 +21,6 @@ npx cap open android        # Android Studio → Run on a connected phone
 Debug APK from the command line: `cd android && ./gradlew assembleDebug` (needs the Android SDK).
 See `docs/RELEASE_CHECKLIST.md` before connecting it to the live Supabase project, and
 `docs/PRODUCTION_READINESS_AUDIT.md` for what has and has not been verified.
+
+## Admin console
+Operator web app in `admin/` (`npm run dev:admin`, `npm run build:admin`). Setup and access rules: `docs/ADMIN_CONSOLE.md`.
