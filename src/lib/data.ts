@@ -431,3 +431,64 @@ export async function markAllNotificationsRead(userId: string) {
   const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false)
   if (error) throw error
 }
+
+// ---------------------------------------------------------------------------
+// Earnings ledger, bank details and withdrawals (db: 20261012000200)
+// ---------------------------------------------------------------------------
+
+export interface LedgerEntry { id: number; kind: string; amount: number; note: string | null; created_at: string }
+export interface MyEarnings { balance: number; pending_withdrawal: number; available: number; min_payout: number; entries: LedgerEntry[] }
+export interface PayoutAccount { account_holder: string; bank_name: string; branch_code: string; account_type: string; account_last4: string }
+export interface MyWithdrawal {
+  id: string; amount: number; status: 'requested' | 'paid' | 'rejected' | 'cancelled'
+  requested_at: string; processed_at: string | null; reference: string | null; reject_reason: string | null
+}
+
+async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(fn, args)
+  if (error) throw new Error(error.message)
+  return data as T
+}
+
+export const fetchMyEarnings = () => rpc<MyEarnings>('my_earnings')
+export const fetchMyPayoutAccount = () => rpc<PayoutAccount | null>('my_payout_account')
+export const fetchMyWithdrawals = () => rpc<MyWithdrawal[]>('my_withdrawals')
+export const requestWithdrawal = (amount: number) => rpc<string>('request_withdrawal', { p_amount: amount })
+export const cancelMyWithdrawal = (id: string) => rpc<void>('cancel_my_withdrawal', { p_id: id })
+export const savePayoutAccount = (a: { holder: string; bank: string; number: string; branch: string; type: string }) =>
+  rpc<void>('set_my_payout_account', { p_holder: a.holder, p_bank: a.bank, p_number: a.number, p_branch: a.branch, p_type: a.type })
+
+// ---------------------------------------------------------------------------
+// Support tickets (db: 20261012000400)
+// ---------------------------------------------------------------------------
+
+export interface MyTicket { id: string; subject: string; status: 'open' | 'answered' | 'resolved'; booking_id: string | null; created_at: string; updated_at: string; messages: number }
+export interface TicketMessage { id: number; from_staff: boolean; body: string; created_at: string }
+
+export const fetchMyTickets = () => rpc<MyTicket[]>('my_tickets')
+export const fetchMyTicketThread = (ticketId: string) => rpc<TicketMessage[]>('my_ticket_thread', { p_ticket: ticketId })
+export const openTicket = (subject: string, body: string, bookingId?: string | null) =>
+  rpc<string>('open_ticket', { p_subject: subject, p_body: body, p_booking_id: bookingId ?? null })
+export const replyMyTicket = (ticketId: string, body: string) => rpc<void>('reply_my_ticket', { p_ticket: ticketId, p_body: body })
+
+// ---------------------------------------------------------------------------
+// Inspector documents (db: 20261012000300). Files live in the private inspector-docs bucket under <user id>/.
+// ---------------------------------------------------------------------------
+
+export type DocKind = 'id' | 'licence' | 'proof_of_address' | 'other'
+export interface MyDocument { id: string; kind: DocKind; file_name: string; status: 'pending' | 'approved' | 'rejected'; reject_reason: string | null; created_at: string }
+
+export const DOC_MAX_BYTES = 10 * 1024 * 1024
+const DOC_TYPES: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+
+export const fetchMyDocuments = () => rpc<MyDocument[]>('my_documents')
+
+export async function uploadMyDocument(userId: string, kind: DocKind, file: File): Promise<string> {
+  const ext = DOC_TYPES[file.type]
+  if (!ext) throw new Error('Upload a PDF, JPG, PNG or WebP file')
+  if (file.size > DOC_MAX_BYTES) throw new Error('That file is over 10 MB')
+  const path = `${userId}/${kind}-${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('inspector-docs').upload(path, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  return rpc<string>('register_my_document', { p_kind: kind, p_path: path, p_file_name: file.name })
+}

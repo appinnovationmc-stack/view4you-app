@@ -4,6 +4,7 @@ import * as Data from './lib/data';
 import { redirectToPayFast } from './lib/payfastRedirect';
 import InspectionForm from './InspectionForm';
 import ReportView from './ReportView';
+import { WithdrawScreen, SupportScreen, DocumentsScreen } from './AccountScreens';
 
 var h = React.createElement;
 
@@ -1426,7 +1427,9 @@ function EarnScreen(props) {
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},t.car+' · '+t.date)),
             h('p',{style:{fontSize:'var(--fs-body)',fontWeight:800,color:C.green,letterSpacing:'-.02em'}},'+'+R(t.amount)));
         })),
-      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ showToast('Withdrawals are not available in the app yet. Earnings are recorded here.', true); }})),
+      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ nav('withdraw'); }}),
+      h('div',{style:{height:10}}),
+      h(GBtn,{label:'Help & support',onClick:function(){ nav('support'); }})),
     h(Nav,{sc:'earn',nav:nav,role:'buyer'}));
 }
 
@@ -1717,7 +1720,9 @@ function InspEarnScreen(props) {
               h('p',{style:{fontSize:'var(--fs-body)',fontWeight:600,color:C.t}},'Passive earnings'),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},TXNS.length+' resale'+(TXNS.length===1?'':'s'))),
             h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.green,letterSpacing:'-.03em'}},R(resaleTotal))))),
-      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ showToast('Withdrawals are not available in the app yet. Earnings are recorded here.', true); }})),
+      h(GBtn,{label:'Withdraw to bank account',onClick:function(){ nav('withdraw'); }}),
+      h('div',{style:{height:10}}),
+      h(GBtn,{label:'Help & support',onClick:function(){ nav('support'); }})),
     h(Nav,{sc:'iearnings',nav:nav,role:'insp'}));
 }
 
@@ -1755,6 +1760,10 @@ function InspProfileScreen(props) {
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:r[3]?C.lime:C.t,letterSpacing:'-.01em'}},r[1]),
                 h('p',{style:{fontSize:11,color:C.t3,marginTop:2}},r[2])));
           }))),
+      h(GBtn,{label:'My documents',onClick:function(){ nav('documents'); }}),
+      h('div',{style:{height:10}}),
+      h(GBtn,{label:'Help & support',onClick:function(){ nav('support'); }}),
+      h('div',{style:{height:10}}),
       h(GBtn,{label:'Log out',onClick:logout,danger:true})),
     h(Nav,{sc:'iprofile',nav:nav,role:'insp'}));
 }
@@ -1886,7 +1895,9 @@ function App() {
   }
 
   var nc = notifs.filter(function(n){ return !n.read; }).length;
+  var ui = {C:C, Card:Card, PBtn:PBtn, GBtn:GBtn, BackBtn:BackBtn, Spin:Spin, R:R};
   var sh = {nav:nav, navBack:navBack, showToast:showToast, user:user, logout:logout};
+  var homeOf = role === 'insp' ? 'iearnings' : 'earn';
 
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
@@ -1908,9 +1919,12 @@ function App() {
     ijob:      function(){ return h(InspectionForm, {job:job||JOBS[0], nav:nav, showToast:showToast, onSubmitted:function(){ if (user) loadInspectorData(user); }}); },
     iearnings: function(){ return h(InspEarnScreen,sh); },
     iprofile:  function(){ return h(InspProfileScreen,sh); },
+    withdraw:  function(){ return h(WithdrawScreen,  Object.assign({},sh,{ui:ui,backTo:homeOf})); },
+    support:   function(){ return h(SupportScreen,   Object.assign({},sh,{ui:ui,backTo:role === 'insp' ? 'iprofile' : 'earn'})); },
+    documents: function(){ return h(DocumentsScreen, Object.assign({},sh,{ui:ui,backTo:'iprofile'})); },
   };
 
-  var isModal = ['book','report','ijob'].indexOf(screen) !== -1;
+  var isModal = ['book','report','ijob','withdraw','support','documents'].indexOf(screen) !== -1;
   var animCls = isModal ? 'sheet-up' : 'screen-push';
   return h('div',null,
     h(Toast,{t:toast}),
