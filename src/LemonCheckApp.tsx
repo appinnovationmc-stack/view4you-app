@@ -370,8 +370,8 @@ function Logo(props) {
     h('rect',{width:64,height:64,rx:14,fill:'url(#cvg)'}),
     h('g',{transform:'translate(1 1) scale(0.62)'},
       h('g',{transform:'translate(1.5 8.3)'},
-        h('path',{d:'M24 54 L41 72 L66 24',fill:'none',stroke:'#FFFFFF',strokeWidth:11,strokeLinecap:'round',strokeLinejoin:'round'}),
-        h('circle',{cx:72,cy:12.4,r:6,fill:'#3DDC97'}))));
+        h('path',{className:'cv-tick',d:'M24 54 L41 72 L66 24',fill:'none',stroke:'#FFFFFF',strokeWidth:11,strokeLinecap:'round',strokeLinejoin:'round'}),
+        h('circle',{className:'cv-spark',cx:72,cy:12.4,r:6,fill:'#3DDC97'}))));
 }
 function inkNow() {
   try { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#000'; } catch(e) { return '#000'; }
@@ -379,7 +379,7 @@ function inkNow() {
 
 function Spin(props) {
   var sz = (props && props.size) || 18;
-  return h('div', {style:{width:sz,height:sz,border:'2px solid '+(props.track||'var(--w1)'),borderTop:'2px solid '+(props.col||C.t),borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
+  return h('div', {style:{width:sz,height:sz,border:'2px solid '+(props.track||'var(--w1)'),borderTop:'2px solid '+(props.col||'var(--cv-green)'),borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
 }
 
 /* FIX: Skeleton shimmer replaces universal spinner for data loading */
@@ -566,6 +566,7 @@ function NBadge(props) {
 /* REDESIGN-HELPERS-START */
 var APP_NAME = 'CheckVertical';
 var APP_TAGLINE = 'Discovery awaits.';
+function Wordmark() { return h('span',{className:'cv-word'},'Check',h('b',null,'Vertical')); }
 
 /* Circle arrow detail (reference 1) */
 function ArrowDot(props) {
@@ -587,7 +588,7 @@ function Onboarding(props) {
 
   return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
         h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#fff')),
         h('h1',{className:'lc-title'}, cur.title),
@@ -657,7 +658,7 @@ function AuthScreen(props) {
 
   if (!pickedRole) return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in fu'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{style:{flex:1}}),
       h('h1',{className:'lc-title',style:{fontSize:30}}, 'Car inspections,', h('br'), 'on demand.'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
@@ -1980,7 +1981,7 @@ function App() {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
       h(Logo,{size:56}),
-      h('p', {style:{color:C.t,fontSize:20,fontWeight:300,letterSpacing:'-.01em',margin:0}}, 'Check', h('b',{style:{fontWeight:700}},'Vertical')),
+      h('p', {style:{color:C.t,fontSize:22,margin:0}}, h(Wordmark)),
       h('p', {style:{color:C.t2,fontSize:13,fontWeight:400,margin:0}}, APP_TAGLINE));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
