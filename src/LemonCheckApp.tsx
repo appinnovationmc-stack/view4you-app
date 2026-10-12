@@ -47,6 +47,7 @@ var AREAS = ['Engine','Transmission','Brakes','Tyres','Suspension','Electricals'
    real data with zero changes to screen bodies themselves. */
 var INSPECTORS = [];
 var VEHICLES = {};
+var PENDING_VIN = null; /* set when a car is tapped on Home; Search picks it up and runs the real lookup */
 var SA_HIST = {};
 var JOBS = [];
 var TXNS = [];
@@ -701,6 +702,7 @@ function HomeScreen(props) {
   var nav = props.nav, user = props.user, notifs = props.notifs;
   var unread = notifs.filter(function(n){ return !n.read; }).length;
   var total  = TXNS.reduce(function(a,t){ return a+t.amount; }, 0);
+  var myCars = Object.keys(VEHICLES).map(function(k){ return VEHICLES[k]; });
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'calc(var(--nav) + 16px)'}},
     h('div',{style:{padding:'var(--safe-top) 22px 20px'}},
@@ -746,15 +748,22 @@ function HomeScreen(props) {
       /* My cars */
       h('div',{className:'fu d2'},
         h(SecTitle,{title:'My Cars',action:'+ Add',onAct:function(){nav('search');}}),
-        h(Card,{onClick:function(){nav('report');},style:{marginBottom:8,borderRadius:'var(--rx)'}},
-          h('div',{style:{padding:'20px 22px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
-            h('div',{style:{flex:1,marginRight:14}},
-              h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, '2019 Toyota Corolla'),
-              h('p',{className:'lc-cap',style:{marginBottom:12}}, 'ABC123GP \u00b7 87 500 km'),
-              h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
-                h(Tag,{label:'1 inspection',bg:C.greenDim,c:C.green}),
-                h(Tag,{label:'Score 82',    bg:C.greenDim,c:C.green}))),
-            h(Ring,{score:82,size:68}))))),
+        myCars.length === 0
+          ? h(Card,{style:{marginBottom:8,borderRadius:'var(--rx)'}},
+              h('div',{style:{padding:'20px 22px'}},
+                h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, 'No cars yet'),
+                h('p',{className:'lc-cap'}, 'Cars you buy a report for or book an inspection on will show up here.')))
+          : myCars.map(function(c){
+              var score = c.inspections && c.inspections[0] ? c.inspections[0].score : null;
+              return h(Card,{key:c.vin,onClick:function(){ PENDING_VIN = c.vin; nav('search'); },style:{marginBottom:8,borderRadius:'var(--rx)'}},
+                h('div',{style:{padding:'20px 22px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
+                  h('div',{style:{flex:1,marginRight:14}},
+                    h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, [c.year,c.make,c.model].filter(Boolean).join(' ')),
+                    h('p',{className:'lc-cap',style:{marginBottom:score!=null?12:0}}, c.vin),
+                    score!=null && h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
+                      h(Tag,{label:'Score '+score,bg:C.greenDim,c:C.green}))),
+                  score!=null && h(Ring,{score:score,size:68})));
+            }))),
     h(Nav,{sc:'home',nav:nav,role:'buyer',nc:unread}));
 }
 
@@ -814,6 +823,8 @@ function SearchScreen(props) {
       setHist(adapted); setHload(false); setTab('history');
     }).catch(function(err){ console.error(err); setHist({found:false}); setHload(false); setTab('history'); showToast('History lookup failed.', true); });
   }
+
+  React.useEffect(function(){ if (PENDING_VIN) { var v = PENDING_VIN; PENDING_VIN = null; doSearch(v); } }, []);
 
   var insp = result && result.inspections[0];
 
@@ -1291,9 +1302,13 @@ function ReportScreen(props) {
   var _tab=useState('overview'); var tab=_tab[0];var setTab=_tab[1];
   var _detail=useState(null); var detail=_detail[0];var setDetail=_detail[1];
   var _dl=useState(false); var dl=_dl[0];var setDl=_dl[1];
-  if (!car) return null;
-  var insp=car.inspections[0];
-  if (!insp) return null;
+  var insp = car && car.inspections && car.inspections[0];
+  if (!car || !insp || insp.findings === undefined) {
+    return h('div',{style:{minHeight:'100vh',background:C.bg,padding:'var(--safe-top) 20px 0'}},
+      h(BackBtn,{onClick:function(){nav('search');},mb:18}),
+      h('p',{style:{color:C.t,fontSize:'var(--fs-headline)',fontWeight:500,marginBottom:6}}, 'Report not loaded'),
+      h('p',{className:'lc-cap'}, 'Search the car by VIN to open its report.'));
+  }
   var m=sm(insp.score);
 
   function loadDetailed() {
