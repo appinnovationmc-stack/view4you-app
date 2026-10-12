@@ -1,4 +1,4 @@
-// Starts a PayFast payment for buying an existing LemonCheck report. The price is the report_price stored by the
+// Starts a PayFast payment for buying an existing CheckVertical report. The price is the report_price stored by the
 // server when the inspector submitted the report; the request only names the inspection.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { adminClient, checkoutResponse, cors, json, requireUser } from '../_shared/edge.ts'
@@ -22,6 +22,6 @@ Deno.serve(async (req) => {
   const order = Array.isArray(data) ? data[0] : data
   return checkoutResponse({
     ref: orderRef('report', order.id), amountRand: Number(order.amount),
-    itemName: 'LemonCheck vehicle report', itemDescription: 'LemonCheck report', user: auth.user,
+    itemName: 'CheckVertical vehicle report', itemDescription: 'CheckVertical report', user: auth.user,
   })
 })

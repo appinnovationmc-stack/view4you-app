@@ -1,6 +1,6 @@
 # Admin console
 
-A separate web app for LemonCheck operators (`admin/`). It is **not** part of the phone app: it builds to `dist-admin/` and is never copied into Android.
+A separate web app for CheckVertical operators (`admin/`). It is **not** part of the phone app: it builds to `dist-admin/` and is never copied into Android.
 
 ## What it does
 | Section | Purpose |

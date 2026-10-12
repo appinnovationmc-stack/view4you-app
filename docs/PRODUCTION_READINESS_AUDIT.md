@@ -1,4 +1,4 @@
-# LemonCheck — production readiness audit
+# CheckVertical — production readiness audit
 
 Branch `fix/lemoncheck-production-readiness`. Live state observed read-only on 2026-10-07; snapshot in
 `supabase/baseline/lemoncheck_live_baseline_2026-10-07.sql`. Nothing in this document has been applied to the live project.

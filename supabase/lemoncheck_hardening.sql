@@ -1,4 +1,4 @@
--- LemonCheck production hardening
+-- CheckVertical production hardening
 -- Apply after schema.sql, report_schema.sql and submit_report_rpc.sql.
 -- This file is safe to re-run.
 
@@ -119,7 +119,7 @@ begin
   if v_buyer is not null then
     insert into public.notifications(user_id,type,icon,title,body)
     values(
-      v_buyer,'sys','🍋','Your LemonCheck report is ready',
+      v_buyer,'sys','🍋','Your CheckVertical report is ready',
       'Your inspection report ' || coalesce(new.report_number,'') || ' is now available.'
     );
   end if;
@@ -158,7 +158,7 @@ begin
   if v_inspector is not null and v_inspector <> new.buyer_id then
     insert into public.notifications(user_id,type,icon,title,body)
     values(v_inspector,'earn','💰','Report resale earned',
-      'Your LemonCheck report for ' || v_vin || ' generated R' || new.inspector_earning || '.');
+      'Your CheckVertical report for ' || v_vin || ' generated R' || new.inspector_earning || '.');
   end if;
 
   return new;

@@ -1,5 +1,5 @@
 -- ============================================================================
--- LemonCheck — seed data (demo vehicles matching the original design mock)
+-- CheckVertical — seed data (demo vehicles matching the original design mock)
 -- Run AFTER schema.sql.
 --
 -- profiles, inspections, bookings, notifications, and report_purchases all

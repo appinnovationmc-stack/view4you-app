@@ -22,6 +22,6 @@ Deno.serve(async (req) => {
   const row = Array.isArray(data) ? data[0] : data
   return checkoutResponse({
     ref: orderRef('booking', row.booking_id), amountRand: Number(row.amount_due),
-    itemName: 'LemonCheck vehicle inspection', itemDescription: `Inspection booking for ${row.vin}`, user: auth.user,
+    itemName: 'CheckVertical vehicle inspection', itemDescription: `Inspection booking for ${row.vin}`, user: auth.user,
   })
 })

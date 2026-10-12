@@ -1,4 +1,4 @@
--- LemonCheck detailed report tables. Run AFTER schema.sql.
+-- CheckVertical detailed report tables. Run AFTER schema.sql.
 -- ASSUMPTIONS (check against your inspections table): inspections.id is uuid,
 -- and inspections.inspector_id = auth.uid() for the inspector who owns the job.
 

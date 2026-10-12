@@ -17,7 +17,7 @@ function Login({ notice }: { notice?: string }) {
   return (
     <div className="login">
       <form onSubmit={(e) => void submit(e)}>
-        <div><h1>LemonCheck Admin</h1><p className="muted">Operator sign in</p></div>
+        <div><h1>CheckVertical Admin</h1><p className="muted">Operator sign in</p></div>
         {notice && <div className="banner bad">{notice}</div>}
         <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
@@ -50,7 +50,7 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
   return (
     <div className="shell">
       <nav className="side" aria-label="Sections">
-        <div className="brand">LemonCheck<small>Admin console</small></div>
+        <div className="brand">CheckVertical<small>Admin console</small></div>
         {nav.map((n) => (
           <button key={n.id} className="nav" aria-current={page === n.id ? 'page' : undefined} onClick={() => go(n.id)}>
             {n.label}{n.badge ? <span className="count">{n.badge}</span> : null}

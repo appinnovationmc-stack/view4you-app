@@ -367,9 +367,13 @@ function Ic(name, size, col) {
 }
 function Logo(props) {
   var s = props.size || 44;
-  return h('div',{style:{width:s,height:s,borderRadius:Math.round(s*0.32),background:'rgba(255,255,255,.28)',border:'1px solid rgba(255,255,255,.55)',
-    WebkitBackdropFilter:'blur(14px)',backdropFilter:'blur(14px)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-    Ic('shield', Math.round(s*0.52), '#000'));
+  return h('svg',{width:s,height:s,viewBox:'0 0 64 64','aria-hidden':'true',style:{flexShrink:0,borderRadius:Math.round(s*0.22)}},
+    h('defs',null,h('radialGradient',{id:'cvg',cx:'30%',cy:'22%',r:'95%'},h('stop',{offset:0,stopColor:'#1D1E22'}),h('stop',{offset:1,stopColor:'#08080A'}))),
+    h('rect',{width:64,height:64,rx:14,fill:'url(#cvg)'}),
+    h('g',{transform:'translate(1 1) scale(0.62)'},
+      h('g',{transform:'translate(1.5 8.3)'},
+        h('path',{className:'cv-tick',d:'M24 54 L41 72 L66 24',fill:'none',stroke:'#FFFFFF',strokeWidth:11,strokeLinecap:'round',strokeLinejoin:'round'}),
+        h('circle',{className:'cv-spark',cx:72,cy:12.4,r:6,fill:'#3DDC97'}))));
 }
 function inkNow() {
   try { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#000'; } catch(e) { return '#000'; }
@@ -377,7 +381,7 @@ function inkNow() {
 
 function Spin(props) {
   var sz = (props && props.size) || 18;
-  return h('div', {style:{width:sz,height:sz,border:'2px solid '+(props.track||'var(--w1)'),borderTop:'2px solid '+(props.col||C.t),borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
+  return h('div', {style:{width:sz,height:sz,border:'2px solid '+(props.track||'var(--w1)'),borderTop:'2px solid '+(props.col||'var(--cv-green)'),borderRadius:'50%',animation:'sp .65s linear infinite',flexShrink:0}});
 }
 
 /* FIX: Skeleton shimmer replaces universal spinner for data loading */
@@ -562,7 +566,9 @@ function NBadge(props) {
 }
 
 /* REDESIGN-HELPERS-START */
-var APP_NAME = 'LemonCheck';
+var APP_NAME = 'CheckVertical';
+var APP_TAGLINE = 'Discovery awaits.';
+function Wordmark() { return h('span',{className:'cv-word'},'Check',h('b',null,'Vertical')); }
 
 /* Circle arrow detail (reference 1) */
 function ArrowDot(props) {
@@ -584,7 +590,7 @@ function Onboarding(props) {
 
   return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
         h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#fff')),
         h('h1',{className:'lc-title'}, cur.title),
@@ -654,7 +660,7 @@ function AuthScreen(props) {
 
   if (!pickedRole) return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in fu'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), APP_NAME),
+      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{style:{flex:1}}),
       h('h1',{className:'lc-title',style:{fontSize:30}}, 'Car inspections,', h('br'), 'on demand.'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
@@ -1337,7 +1343,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
           h(Av,{label:'LC',size:42}),
           h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'LemonCheck Inspector'),
+            h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'CheckVertical Inspector'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
           h(Tag,{label:'Inspection complete',bg:C.greenDim,c:C.green}))),
       h(Card,{style:{marginBottom:10}},
@@ -1353,7 +1359,7 @@ function ReportScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,marginBottom:8}},'Detailed report'),
           h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.6}},
-            'The full LemonCheck report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
+            'The full CheckVertical report contains the complete 115-point inspection, measurements, tyre data, notes and inspection photographs.'),
           dl && h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:10}},'Checking report access…'))),
       h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',background:'var(--bg)',padding:'12px 20px',paddingBottom:'max(20px,var(--safe-bot))',borderTop:'1px solid var(--b)',zIndex:100}},
         h(PBtn,{label:paid?'Opening report…':'Unlock full report  ·  '+R(insp.reportPrice),onClick:pay,loading:pl||paid,disabled:dl}))));
@@ -1902,7 +1908,9 @@ function App() {
   if (booting || screen === 'boot') {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
-      h('p', {style:{color:C.t2,fontSize:13,fontWeight:600,letterSpacing:'.12em'}}, 'LEMONCHECK'));
+      h(Logo,{size:56}),
+      h('p', {style:{color:C.t,fontSize:22,margin:0}}, h(Wordmark)),
+      h('p', {style:{color:C.t2,fontSize:13,fontWeight:400,margin:0}}, APP_TAGLINE));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));
