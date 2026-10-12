@@ -4,6 +4,15 @@ import * as api from './api'
 import { AuditPage, BookingsPage, InspectorsPage, OverviewPage, PaymentsPage, type Page } from './pages'
 import { PayoutsPage, ReportsPage, SettingsPage, SupportPage } from './pages2'
 import { ErrorBanner, useLoad } from './ui'
+import logoLight from '../../src/assets/brand/logo-light-bg.svg'
+import logoDark from '../../src/assets/brand/logo-dark-bg.svg'
+
+function Logo({ className }: { className: string }) {
+  return (<>
+    <img className={`${className} logo-for-light`} src={logoLight} alt="CheckVertical" />
+    <img className={`${className} logo-for-dark`} src={logoDark} alt="CheckVertical" />
+  </>)
+}
 
 function Login({ notice }: { notice?: string }) {
   const [email, setEmail] = useState('')
@@ -17,7 +26,7 @@ function Login({ notice }: { notice?: string }) {
   return (
     <div className="login">
       <form onSubmit={(e) => void submit(e)}>
-        <div><h1>CheckVertical Admin</h1><p className="muted">Operator sign in</p></div>
+        <div><Logo className="logo-login" /><h1>Admin console</h1><p className="muted">Operator sign in</p></div>
         {notice && <div className="banner bad">{notice}</div>}
         <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
@@ -50,7 +59,7 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
   return (
     <div className="shell">
       <nav className="side" aria-label="Sections">
-        <div className="brand">CheckVertical<small>Admin console</small></div>
+        <div className="brand"><Logo className="logo-side" /><small>Admin console</small></div>
         {nav.map((n) => (
           <button key={n.id} className="nav" aria-current={page === n.id ? 'page' : undefined} onClick={() => go(n.id)}>
             {n.label}{n.badge ? <span className="count">{n.badge}</span> : null}

@@ -7,6 +7,7 @@ export default defineConfig({
   root: 'admin',
   envDir: '..',
   base: './',
+  publicDir: '../public',
   plugins: [react()],
   build: { outDir: '../dist-admin', emptyOutDir: true },
   server: { port: 5174 },
