@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import * as api from './api'
 import { Empty, ErrorBanner, Pill, PromptModal, money, useLoad, when } from './ui'
+import { DailyChart, Funnel } from './charts'
+import { DocumentsModal, ReassignModal } from './pages2'
 
-export type Page = 'overview' | 'inspectors' | 'bookings' | 'payments' | 'audit'
+export type Page = 'overview' | 'inspectors' | 'bookings' | 'reports' | 'payments' | 'payouts' | 'support' | 'settings' | 'audit'
 interface PageProps { canWrite: boolean; go: (p: Page, filter?: string) => void; initialFilter?: string }
 
 const Head = ({ title, sub, onReload, loading }: { title: string; sub?: string; onReload: () => void; loading: boolean }) => (
@@ -35,12 +37,17 @@ export function OverviewPage({ go }: PageProps) {
             {stat('Refund amount owed', money(o.refunds_due_amount), { alert: o.refunds_due > 0, to: 'payments' })}
             {stat('Payment problems (7 days)', o.payment_problems_7d, { alert: o.payment_problems_7d > 0, to: 'payments' })}
             {stat('Bookings awaiting payment', o.bookings_awaiting_payment, { to: 'bookings', filter: 'unpaid' })}
+            {stat('Withdrawals to pay', o.withdrawals_requested, { alert: o.withdrawals_requested > 0, to: 'payouts' })}
+            {stat('Amount to pay out', money(o.withdrawals_requested_amount), { alert: o.withdrawals_requested > 0, to: 'payouts' })}
+            {stat('Documents to review', o.documents_pending, { alert: o.documents_pending > 0, to: 'inspectors' })}
+            {stat('Tickets waiting on us', o.tickets_open, { alert: o.tickets_open > 0, to: 'support' })}
           </div>
           <div className="cards">
             {stat('Approved inspectors', o.inspectors_approved)}
             {stat('Inspectors online', o.inspectors_online)}
             {stat('Buyers', o.buyers)}
             {stat('Reports', o.reports)}
+            {stat('Reports taken down', o.reports_taken_down, { to: 'reports' })}
             {stat('Paid bookings (total)', money(o.paid_bookings_amount))}
           </div>
           <div className="panel">
@@ -49,6 +56,52 @@ export function OverviewPage({ go }: PageProps) {
               ? <p className="muted">No bookings yet.</p>
               : <div className="row">{Object.entries(o.bookings_by_status).map(([s, n]) =>
                   <span key={s}><Pill value={s} /> <strong>{n}</strong></span>)}</div>}
+          </div>
+        </>
+      )}
+      <AnalyticsSection />
+    </>
+  )
+}
+
+function AnalyticsSection() {
+  const [days, setDays] = useState(30)
+  const { data: a, error, loading } = useLoad(() => api.analytics(days), [days])
+  const day = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+  const count = (n: number) => Math.round(n).toLocaleString('en-ZA')
+  return (
+    <>
+      <div className="head" style={{ marginTop: 8 }}>
+        <div><h2 style={{ marginBottom: 2 }}>Trends</h2><p className="muted">Revenue is what buyers paid, not company profit.</p></div>
+        <select aria-label="Period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option>
+        </select>
+      </div>
+      <ErrorBanner message={error} />
+      {loading && !a && <p className="muted">Loading…</p>}
+      {a && (
+        <>
+          <div className="charts">
+            <div className="panel"><DailyChart title="Bookings per day" kind="bar" format={count} points={a.series.map((d) => ({ label: day(d.day), value: d.bookings }))} /></div>
+            <div className="panel"><DailyChart title="Booking revenue per day" kind="line" format={money} points={a.series.map((d) => ({ label: day(d.day), value: d.booking_revenue }))} /></div>
+            <div className="panel"><DailyChart title="Reports sold per day" kind="bar" series={2} format={count} points={a.series.map((d) => ({ label: day(d.day), value: d.report_sales }))} /></div>
+            <div className="panel"><DailyChart title="Report revenue per day" kind="line" series={2} format={money} points={a.series.map((d) => ({ label: day(d.day), value: d.report_revenue }))} /></div>
+          </div>
+          <div className="charts">
+            <div className="panel">
+              <h2>Booking funnel</h2>
+              <Funnel steps={[{ label: 'Created', value: a.funnel.created }, { label: 'Paid', value: a.funnel.paid },
+                              { label: 'Accepted', value: a.funnel.accepted }, { label: 'Completed', value: a.funnel.completed }]} />
+              <p className="muted" style={{ marginTop: 8 }}>{a.funnel.cancelled} cancelled in this period.</p>
+            </div>
+            <div className="panel">
+              <h2>Inspectors and buyers</h2>
+              <p>{a.inspectors.worked_in_period} of {a.inspectors.approved} approved inspectors finished a job; {a.inspectors.online_now} online now.</p>
+              <p style={{ marginTop: 6 }}>{a.repeat_buyers.repeat} of {a.repeat_buyers.buyers} buyers who have paid have booked more than once (all time).</p>
+              <h2 style={{ marginTop: 14 }}>Top inspectors</h2>
+              {a.top_inspectors.length === 0 ? <p className="muted">No finished jobs in this period.</p>
+                : <ol className="plain">{a.top_inspectors.map((t) => <li key={t.name}><strong>{t.name}</strong> · {t.jobs} {t.jobs === 1 ? 'job' : 'jobs'} · rating {Number(t.rating).toFixed(2)}</li>)}</ol>}
+            </div>
           </div>
         </>
       )}
@@ -61,6 +114,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
   const [status, setStatus] = useState<'all' | 'pending' | 'approved'>(initialFilter === 'pending' ? 'pending' : 'all')
   const { data, error, loading, reload } = useLoad(() => api.listInspectors(status), [status])
   const [suspend, setSuspend] = useState<api.InspectorRow | null>(null)
+  const [docsFor, setDocsFor] = useState<api.InspectorRow | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const approve = async (r: api.InspectorRow) => {
@@ -79,7 +133,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
       <div className="tablewrap">
         {data && data.length === 0 ? <Empty>No inspectors match.</Empty> : (
           <table>
-            <thead><tr><th>Name</th><th>Contact</th><th>Certification</th><th>Region</th><th>Jobs</th><th>Rating</th><th>Price</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Contact</th><th>Certification</th><th>Region</th><th>Jobs</th><th>Rating</th><th>Price</th><th>Status</th><th>Documents</th><th>Joined</th><th></th></tr></thead>
             <tbody>
               {data?.map((r) => (
                 <tr key={r.id}>
@@ -91,6 +145,10 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
                   <td>{Number(r.rating).toFixed(2)}</td>
                   <td>{money(r.price)}</td>
                   <td>{r.approved ? <Pill value="approved" /> : <Pill value="pending" label="awaiting approval" />}{r.online && <> <Pill value="applied" label="online" /></>}</td>
+                  <td>
+                    <button className="btn sm" onClick={() => setDocsFor(r)}>View</button>
+                    <div className="muted">{Number(r.docs_approved)} approved · {Number(r.docs_pending)} to review{Number(r.docs_rejected) > 0 ? ` · ${Number(r.docs_rejected)} rejected` : ''}</div>
+                  </td>
                   <td>{when(r.created_at)}</td>
                   <td>
                     {canWrite && (r.approved
@@ -103,6 +161,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
           </table>
         )}
       </div>
+      {docsFor && <DocumentsModal inspector={docsFor} canWrite={canWrite} onClose={() => setDocsFor(null)} onChanged={reload} />}
       {suspend && (
         <PromptModal title={`Suspend ${suspend.name}?`} danger multiline label="Reason" confirmLabel="Suspend"
           description="They go offline immediately and cannot receive new jobs. Jobs already accepted are not cancelled."
@@ -123,6 +182,7 @@ export function BookingsPage({ canWrite, initialFilter }: PageProps) {
   const [q, setQ] = useState('')
   const { data, error, loading, reload } = useLoad(() => api.listBookings({ status, payment, search: q }), [status, payment, q])
   const [cancel, setCancel] = useState<api.BookingRow | null>(null)
+  const [reassign, setReassign] = useState<api.BookingRow | null>(null)
   return (
     <>
       <Head title="Bookings" onReload={reload} loading={loading} sub="Newest first. Showing up to 200." />
@@ -152,14 +212,17 @@ export function BookingsPage({ canWrite, initialFilter }: PageProps) {
                   <td>{money(b.amount_due)}</td>
                   <td><Pill value={b.status} /></td>
                   <td><Pill value={b.payment_status} /></td>
-                  <td>{canWrite && b.status !== 'done' && b.status !== 'cancelled' &&
-                    <button className="btn sm danger" onClick={() => setCancel(b)}>Cancel</button>}</td>
+                  <td>{canWrite && b.status !== 'done' && b.status !== 'cancelled' && <div className="row">
+                    {(b.payment_status === 'paid' || b.payment_status === 'legacy_unverified') &&
+                      <button className="btn sm" onClick={() => setReassign(b)}>Reassign</button>}
+                    <button className="btn sm danger" onClick={() => setCancel(b)}>Cancel</button></div>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+      {reassign && <ReassignModal booking={reassign} onClose={() => setReassign(null)} onDone={reload} />}
       {cancel && (
         <PromptModal title={`Cancel booking for ${cancel.vin}?`} danger multiline label="Reason" confirmLabel="Cancel booking"
           description={cancel.payment_status === 'paid' || cancel.payment_status === 'legacy_unverified'

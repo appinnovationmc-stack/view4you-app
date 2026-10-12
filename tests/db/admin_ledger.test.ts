@@ -5,7 +5,7 @@ import { makeDb, addUser, asUser, asAnon, attempt, uid, type Db } from './harnes
 let db: Db
 const BUYER = uid(1), TRACKER = uid(2), INSP = uid(3), INSP2 = uid(4), ADMIN = uid(90), SUPPORT = uid(91)
 const VIN = 'LED111GP'
-let inspectionId = '', purchaseId = ''
+let inspectionId = ''
 
 const call = (who: string, sql: string, args: unknown[] = []) => asUser(db, who, () => db.query<any>(sql, args))
 const bal = async (who: string) => Number((await db.query<any>('select public.lc_balance($1)::int b', [who])).rows[0].b)
@@ -84,9 +84,9 @@ describe('credits', () => {
     expect((await attempt(() => db.query(`insert into public.ledger_entries (user_id, kind, amount, ref_type, ref_id) values ($1,'job_fee',500,'inspection',$2)`, [INSP, inspectionId]))).ok).toBe(false)
   })
   it('a purchase credits the inspector and the tracker with the stored shares, not the buyer', async () => {
-    purchaseId = (await db.query<any>(
+    await db.query(
       `insert into public.report_purchases (inspection_id, buyer_id, amount_paid, payer_earning, inspector_earning)
-       values ($1,$2,90,46,44) returning id`, [inspectionId, INSP2])).rows[0].id
+       values ($1,$2,90,46,44)`, [inspectionId, INSP2])
     expect(await bal(INSP)).toBe(544)
     expect(await bal(TRACKER)).toBe(46)
     expect(await bal(INSP2)).toBe(0)

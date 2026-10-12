@@ -206,7 +206,7 @@ describe('analytics and overview', () => {
                     values ($1,$2,$3,'Sandton','pending',500,675,false,'unpaid')`, [BUYER, INSP2, VIN])
     const a = (await call(ADMIN, 'select public.admin_analytics(14) as a')).rows[0].a
     expect(a.series.length).toBe(14)
-    expect(a.series.map((d: any) => d.day)).toEqual([...a.series.map((d: any) => d.day)].sort())
+    expect(a.series.map((d: any) => d.day)).toEqual(a.series.map((d: any) => d.day).sort())
     const today = a.series[13]
     expect(today).toMatchObject({ bookings: 2, paid_bookings: 1, booking_revenue: 675, report_sales: 1, report_revenue: 90 })
     expect(a.series.slice(0, 13).every((d: any) => d.bookings === 0 && d.report_sales === 0)).toBe(true)

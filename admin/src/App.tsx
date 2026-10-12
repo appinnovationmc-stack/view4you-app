@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { supabase } from './supabase'
 import * as api from './api'
 import { AuditPage, BookingsPage, InspectorsPage, OverviewPage, PaymentsPage, type Page } from './pages'
+import { PayoutsPage, ReportsPage, SettingsPage, SupportPage } from './pages2'
 import { ErrorBanner, useLoad } from './ui'
 
 function Login({ notice }: { notice?: string }) {
@@ -36,9 +37,13 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
   const o = overview.data
   const nav: { id: Page; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'inspectors', label: 'Inspectors', badge: o?.inspectors_pending_approval },
+    { id: 'inspectors', label: 'Inspectors', badge: (o?.inspectors_pending_approval ?? 0) + (o?.documents_pending ?? 0) },
     { id: 'bookings', label: 'Bookings' },
+    { id: 'reports', label: 'Reports' },
     { id: 'payments', label: 'Refunds & payments', badge: (o?.refunds_due ?? 0) + (o?.payment_problems_7d ?? 0) },
+    { id: 'payouts', label: 'Payouts', badge: o?.withdrawals_requested },
+    { id: 'support', label: 'Support', badge: o?.tickets_open },
+    { id: 'settings', label: 'Settings' },
     { id: 'audit', label: 'Audit log' },
   ]
   const props = { canWrite, go, initialFilter: filter }
@@ -60,7 +65,11 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
         {page === 'overview' && <OverviewPage {...props} />}
         {page === 'inspectors' && <InspectorsPage {...props} />}
         {page === 'bookings' && <BookingsPage {...props} />}
+        {page === 'reports' && <ReportsPage canWrite={canWrite} />}
         {page === 'payments' && <PaymentsPage {...props} />}
+        {page === 'payouts' && <PayoutsPage canWrite={canWrite} />}
+        {page === 'support' && <SupportPage />}
+        {page === 'settings' && <SettingsPage canWrite={canWrite} />}
         {page === 'audit' && <AuditPage />}
       </main>
     </div>
