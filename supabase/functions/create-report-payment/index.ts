@@ -15,7 +15,7 @@ Deno.serve(async(req)=>{
  const o=Array.isArray(order)?order[0]:order;
  const merchantId=Deno.env.get("PAYFAST_MERCHANT_ID"),merchantKey=Deno.env.get("PAYFAST_MERCHANT_KEY"),returnUrl=Deno.env.get("PAYFAST_RETURN_URL"),cancelUrl=Deno.env.get("PAYFAST_CANCEL_URL"),notifyUrl=Deno.env.get("PAYFAST_NOTIFY_URL");
  if(!merchantId||!merchantKey||!returnUrl||!cancelUrl||!notifyUrl)return new Response(JSON.stringify({error:"PayFast is not configured"}),{status:503,headers:{...cors,"Content-Type":"application/json"}});
- const fields:Record<string,string>={merchant_id:merchantId,merchant_key:merchantKey,return_url:returnUrl,cancel_url:cancelUrl,notify_url:notifyUrl,name_first:ud.user.user_metadata?.first_name??"",email_address:ud.user.email??"",m_payment_id:String(o.id),amount:Number(o.amount).toFixed(2),item_name:"LemonCheck vehicle report",item_description:"LemonCheck report"};
+ const fields:Record<string,string>={merchant_id:merchantId,merchant_key:merchantKey,return_url:returnUrl,cancel_url:cancelUrl,notify_url:notifyUrl,name_first:ud.user.user_metadata?.first_name??"",email_address:ud.user.email??"",m_payment_id:String(o.id),amount:Number(o.amount).toFixed(2),item_name:"CheckVertical vehicle report",item_description:"CheckVertical report"};
  const raw=Object.entries(fields).filter(([_,v])=>v!=="").map(([k,v])=>k+"="+enc(v)).join("&")+(Deno.env.get("PAYFAST_PASSPHRASE")?"&passphrase="+enc(Deno.env.get("PAYFAST_PASSPHRASE")!):"");
  fields.signature=await md5(raw);
  return new Response(JSON.stringify({order_id:o.id,amount:o.amount,action:Deno.env.get("PAYFAST_SANDBOX")==="true"?"https://sandbox.payfast.co.za/eng/process":"https://www.payfast.co.za/eng/process",fields}),{headers:{...cors,"Content-Type":"application/json"}});

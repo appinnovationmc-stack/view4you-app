@@ -1,4 +1,4 @@
-// Your Real Name domain types — mirror supabase/schema.sql exactly.
+// CheckVertical domain types — mirror supabase/schema.sql exactly.
 
 export type UserRole = 'buyer' | 'inspector'
 

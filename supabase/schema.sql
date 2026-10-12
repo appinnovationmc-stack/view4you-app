@@ -1,5 +1,5 @@
 -- ============================================================================
--- LemonCheck — full schema (replaces View4You's schema entirely)
+-- CheckVertical — full schema (replaces View4You's schema entirely)
 -- Two-sided marketplace: buyers (vehicle history + inspection reports) and
 -- inspectors (accept jobs, submit findings, earn per-inspection + resale cut).
 -- Apply in Supabase SQL editor, or via `supabase db push` if using the CLI.

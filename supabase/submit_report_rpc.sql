@@ -1,4 +1,4 @@
--- LemonCheck: atomic save of a detailed inspection report.
+-- CheckVertical: atomic save of a detailed inspection report.
 -- Run AFTER schema.sql and report_schema.sql.
 --
 -- Why an RPC: inspections has UNIQUE(booking_id) and no UPDATE/DELETE policy, so a

@@ -2,7 +2,7 @@
    GLASS — the single stylesheet for the whole app.
    Reference: frosted grey mesh, white Poppins text, underline
    fields, black + white pill buttons. One look, no theme switch.
-   (Replaces lemoncheck.css, modern.css and redesign.css.)
+   (Replaces the old lemoncheck.css, modern.css and redesign.css.)
    ============================================================ */
 :root {
   color-scheme: light;
