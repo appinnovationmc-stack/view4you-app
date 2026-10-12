@@ -850,12 +850,7 @@ function SearchScreen(props) {
         h('button',{className:'lc-go',onClick:function(){doSearch();},disabled:loading||!vin.trim(),'aria-label':'Search VIN'},
           loading ? h(Spin,{size:16,col:'var(--on-ink)'}) : h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.2,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},h('path',{d:'M5 12h14M13 6l6 6-6 6'})))),
 
-      /* Quick-try chips */
-      h('div',{className:'lc-chips'},
-        h('span',{className:'lc-cap'}, 'Try'),
-        ['ABC123GP','XYZ789WC','DEF456GP'].map(function(v){
-          return h('button',{key:v,className:'lc-chip',onClick:function(){doSearch(v);}}, v);
-        }))),
+      null),
 
     /* FIX: Skeleton while loading, not just a spinner */
     loading && h('div',{style:{padding:'14px 20px'}}, h(SkeletonVehicleCard)),
