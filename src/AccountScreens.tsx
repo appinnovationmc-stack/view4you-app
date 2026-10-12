@@ -147,6 +147,48 @@ export function WithdrawScreen(props) {
       }))));
 }
 
+
+/* -------------------------------------------------------------------- FAQ */
+var FAQ = [
+  ['General', [
+    ['What types of vehicles do you inspect?',
+     'Passenger cars (sedans, hatchbacks, SUVs, coupes, convertibles), luxury and performance vehicles including electric vehicles, and company or rental fleet vehicles that need regular safety and reliability checks.'],
+    ['How long does an inspection take?',
+     'A condition report takes about 45 to 60 minutes on site.'],
+    ['Is this a full mechanical evaluation?',
+     'No. The report focuses on roadworthy-relevant condition and a high-level cosmetic assessment. It is not a full mechanical evaluation and is not designed to test how the engine and gearbox perform over time.'],
+  ]],
+  ['What is in a report', [
+    ['What does the condition report include?',
+     'Brake performance test, shock absorber test, slip and alignment test, tyre specifications and measurements, a component-by-component checklist with the inspector’s notes, photos of the vehicle that highlight anything needing repair or maintenance, a cosmetic description, and a roadworthy result (pass or fail).'],
+    ['Who sees my report?',
+     'Only you, the inspector who wrote it and anyone who buys it. A buyer sees the score, price and area results first and unlocks the full detail after paying.'],
+  ]],
+  ['Understanding ratings', [
+    ['What do the condition ratings mean?',
+     'Every report gets a score out of 100 and a rating. Good (80 to 100): above average condition for its age, with no significant faults found. Fair (60 to 79): average condition. Some items need attention or monitoring and may need repair soon. Poor (below 60): below average. Several faults were found and the vehicle needs reconditioning, so allow for repair costs when you negotiate.'],
+    ['What does the roadworthy result mean?',
+     'It is separate from the score. Pass means the inspector found no roadworthy-relevant faults at inspection time. Fail means one or more roadworthy-relevant faults must be repaired before the vehicle can legally be driven. A vehicle can score well and still fail on a single critical item such as brakes or tyres.'],
+    ['Is a Pass the same as an official roadworthy certificate?',
+     'No. It is an inspector’s assessment on the day, not a certificate issued by a testing station. You still need an official roadworthy certificate to transfer or license a vehicle.'],
+  ]],
+];
+
+function FaqList(props) {
+  var ui = props.ui, C = ui.C;
+  return h('div', { style: { marginBottom: 18 } },
+    h('p', { style: { fontSize: 18, fontWeight: 800, color: C.t, letterSpacing: '-.02em', margin: '6px 0 10px' } }, 'Frequently asked questions'),
+    FAQ.map(function (g) {
+      return h('div', { key: g[0], style: { marginBottom: 12 } },
+        h('p', { className: 'lc-cap', style: { margin: '0 0 6px' } }, g[0]),
+        h(ui.Card, null, g[1].map(function (qa, i) {
+          return h('details', { key: qa[0], style: { padding: '14px 18px', borderBottom: i < g[1].length - 1 ? '1px solid var(--b)' : 'none' } },
+            h('summary', { style: { cursor: 'pointer', fontWeight: 600, color: C.t, lineHeight: 1.4 } }, qa[0]),
+            h('p', { style: { color: C.t2, fontSize: 'var(--fs-body)', lineHeight: 1.6, marginTop: 8 } }, qa[1]));
+        })));
+    }));
+}
+
 /* ----------------------------------------------------------------- SUPPORT */
 var TK = { open: ['Open', 'warn'], answered: ['Answered', 'good'], resolved: ['Resolved', 'neutral'] };
 
@@ -160,7 +202,9 @@ export function SupportScreen(props) {
   if (ticketId) return h(TicketThread, { ui: ui, id: ticketId, showToast: props.showToast, onBack: function () { setTicketId(null); reload(); } });
   if (creating) return h(NewTicket, { ui: ui, showToast: props.showToast, onBack: function () { setCreating(false); },
     onCreated: function (id) { setCreating(false); setTicketId(id); } });
-  return h(Page, { ui: ui, title: 'Support', sub: 'Questions about a booking, a payment or your account? We reply here.', onBack: back },
+  return h(Page, { ui: ui, title: 'Help', sub: 'Answers to common questions, or send us a request and we reply here.', onBack: back },
+    h(FaqList, { ui: ui }),
+    h('p', { style: { fontSize: 18, fontWeight: 800, color: C.t, letterSpacing: '-.02em', margin: '6px 0 10px' } }, 'Still need help?'),
     h(ui.PBtn, { label: 'New support request', onClick: function () { setCreating(true); }, style: { marginBottom: 14 } }),
     st.loading && !st.data && h(ui.Spin, { size: 24 }),
     st.error && h(ErrorBox, { ui: ui, msg: st.error, retry: reload }),
