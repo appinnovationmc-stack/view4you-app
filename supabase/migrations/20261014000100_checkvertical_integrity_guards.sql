@@ -11,6 +11,8 @@ declare
   v_i public.inspections%rowtype;
   v_items integer;
   v_distinct_items integer;
+  v_missing_items integer;
+  v_unknown_items integer;
   v_findings integer;
   v_distinct_areas integer;
   v_pass integer;
@@ -28,9 +30,140 @@ begin
   select count(*), count(distinct section || '.' || component)
     into v_items, v_distinct_items
     from public.report_items where inspection_id = v_i.id;
-  -- Current inspection template has 115 distinct checklist components.
+  -- Validate the exact server-owned checklist key set, not just the client-provided row count.
   if v_items <> 115 or v_distinct_items <> 115 then
     raise exception 'Report rejected: all 115 unique checklist items must be submitted (received %, unique %)', v_items, v_distinct_items
+      using errcode = '22023';
+  end if;
+  with expected(section, component) as (
+    values
+      ('drive_system','ball_joint'),
+      ('drive_system','bell_housing'),
+      ('drive_system','bonnet_cable'),
+      ('drive_system','bonnet_stay'),
+      ('drive_system','bonnet_hinges'),
+      ('drive_system','underbody'),
+      ('drive_system','subframe'),
+      ('drive_system','control_arm'),
+      ('drive_system','exhaust'),
+      ('drive_system','smoke_emission'),
+      ('drive_system','chassis'),
+      ('drive_system','shock_mounting'),
+      ('drive_system','stabilizer'),
+      ('drive_system','bushings'),
+      ('drive_system','links'),
+      ('drive_system','tie_rods'),
+      ('drive_system','wheel_bearings'),
+      ('drive_system','axles'),
+      ('drive_system','shocks'),
+      ('drive_system','gearbox'),
+      ('drive_system','steering_rack'),
+      ('drive_system','engine_mountings'),
+      ('drive_system','fuel_system'),
+      ('drive_system','radiator'),
+      ('drive_system','radiator_cradle'),
+      ('drive_system','coolant_hoses'),
+      ('drive_system','brake_lines'),
+      ('drive_system','handbrake'),
+      ('drive_system','brake_calipers'),
+      ('drive_system','cv_joints'),
+      ('drive_system','drive_shaft'),
+      ('drive_system','link_rod_covers'),
+      ('engine','belts'),
+      ('engine','idle'),
+      ('engine','alternator'),
+      ('engine','battery'),
+      ('engine','coolant'),
+      ('engine','oil'),
+      ('engine','cables'),
+      ('engine','pipes_wiring'),
+      ('engine','brake_fluid'),
+      ('engine','oil_cap'),
+      ('engine','expansion_bottle'),
+      ('engine','fan'),
+      ('engine','firewall'),
+      ('engine','induction_pipe'),
+      ('engine','engine'),
+      ('exterior','body_panels'),
+      ('exterior','crumple_zones'),
+      ('exterior','bumpers'),
+      ('exterior','door_hinges'),
+      ('exterior','door_handles'),
+      ('exterior','lid_hinges'),
+      ('exterior','wipers'),
+      ('exterior','side_windows'),
+      ('exterior','windscreen'),
+      ('exterior','back_window'),
+      ('exterior','window_rubbers'),
+      ('exterior','headlights'),
+      ('exterior','main_beams'),
+      ('exterior','dim_lights'),
+      ('exterior','park_lights'),
+      ('exterior','fog_lights'),
+      ('exterior','indicators'),
+      ('exterior','side_repeaters'),
+      ('exterior','side_mirrors'),
+      ('exterior','tail_lights'),
+      ('exterior','reflectors'),
+      ('exterior','brake_lights'),
+      ('exterior','reverse_lights'),
+      ('exterior','plate_lights'),
+      ('exterior','tailgate'),
+      ('interior','main_key'),
+      ('interior','spare_key'),
+      ('interior','locking'),
+      ('interior','steering_lock'),
+      ('interior','interior_lights'),
+      ('interior','hooter'),
+      ('interior','fuel_gauge'),
+      ('interior','wiper_stalk'),
+      ('interior','washer'),
+      ('interior','headlight_controls'),
+      ('interior','interior_mirror'),
+      ('interior','mirror_adjust'),
+      ('interior','instrument_cluster'),
+      ('interior','warning_lights'),
+      ('interior','audio_nav'),
+      ('interior','aircon'),
+      ('interior','seats'),
+      ('interior','power_windows'),
+      ('interior','roof_lining'),
+      ('interior','seatbelts'),
+      ('interior','sun_visors'),
+      ('interior','pedals'),
+      ('test_drive','starting'),
+      ('test_drive','idle_speed'),
+      ('test_drive','braking'),
+      ('test_drive','suspension'),
+      ('test_drive','steering'),
+      ('test_drive','stability'),
+      ('test_drive','handling'),
+      ('test_drive','performance'),
+      ('test_drive','heating'),
+      ('test_drive','gear_selection'),
+      ('test_drive','instrument_panel'),
+      ('test_drive','noises'),
+      ('wheels','wheel_nuts'),
+      ('wheels','fl_rim'),
+      ('wheels','fr_rim'),
+      ('wheels','rl_rim'),
+      ('wheels','rr_rim'),
+      ('wheels','fl_tyre'),
+      ('wheels','fr_tyre'),
+      ('wheels','rl_tyre'),
+      ('wheels','rr_tyre')
+  )
+  select
+    (select count(*) from expected e where not exists (
+      select 1 from public.report_items ri
+       where ri.inspection_id = v_i.id and ri.section = e.section and ri.component = e.component
+    )),
+    (select count(*) from public.report_items ri where ri.inspection_id = v_i.id and not exists (
+      select 1 from expected e where e.section = ri.section and e.component = ri.component
+    ))
+  into v_missing_items, v_unknown_items;
+  if v_missing_items > 0 or v_unknown_items > 0 then
+    raise exception 'Report rejected: checklist keys are incomplete or unrecognised (missing %, unknown %)', v_missing_items, v_unknown_items
       using errcode = '22023';
   end if;
 
