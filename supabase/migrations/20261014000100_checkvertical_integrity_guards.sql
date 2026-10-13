@@ -314,7 +314,7 @@ declare
 begin
   if v_uid is null then raise exception 'Not signed in' using errcode = '28000'; end if;
   select * into i from public.inspections
-   where vin = upper(btrim(p_vin)) order by created_at desc limit 1;
+   where vin = upper(btrim(p_vin)) and taken_down_at is null order by created_at desc limit 1;
   if not found then return null; end if;
   v_owned := public.can_read_report(i.id);
   return jsonb_build_object(
