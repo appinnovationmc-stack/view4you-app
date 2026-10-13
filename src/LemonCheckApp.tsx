@@ -911,12 +911,12 @@ function SearchScreen(props) {
                   h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'SA Vehicle History'),
                   h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginBottom:20}}, 'This screen shows only records stored in CheckVertical. External eNaTIS, TransUnion AutoInfo and SAPS lookups are not connected.'),
                   h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20,textAlign:'left'}},
-                    ['Accident history','Finance & liens','Owner changes','Roadworthy history','SAPS stolen check','Odometer verify'].map(function(f){
+                    ['Stored accident entries','Stored finance flag','Stored owner changes','Inspection findings','Stored theft flag','Odometer entries'].map(function(f){
                       return h('div',{key:f,style:{background:C.s2,borderRadius:8,padding:'10px',display:'flex',alignItems:'center',gap:7,border:'1px solid var(--b)'}},
                         h('div',{style:{width:6,height:6,borderRadius:3,background:C.green,flexShrink:0}}),
                         h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2}}, f));
                     })),
-                  h(PBtn,{label:'Run history check  ·  R249',onClick:runHist})),
+                  h(PBtn,{label:'Check stored history records',onClick:runHist})),
                 h('div',{style:{padding:'10px 18px',background:C.s2,borderTop:'1px solid var(--b)'}},
                   h('p',{style:{fontSize:11,color:C.t3,textAlign:'center'}}, 'CheckVertical records only; external registry and police-record checks are not connected. Missing records do not mean the vehicle is clear.'))),
 
@@ -1112,7 +1112,7 @@ function BookScreen(props) {
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
         h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
 
     h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
