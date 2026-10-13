@@ -331,6 +331,7 @@ begin
     'inspection_id', i.id,
     'report_number', i.report_number,
     'score', i.score,
+    'full_price', i.full_price,
     'report_price', i.report_price,
     'payer_cut', i.payer_cut,
     'inspected_at', coalesce(i.submitted_at, i.created_at),
