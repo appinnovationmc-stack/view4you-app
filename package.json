@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "dev:admin": "vite --config vite.admin.config.ts",
-    "build:admin": "tsc -p tsconfig.admin.json && vite build --config vite.admin.config.ts"
+    "build:admin": "tsc -p tsconfig.admin.json && vite build --config vite.admin.config.ts",
+    "dev:fleet": "vite --config vite.fleet.config.ts",
+    "build:fleet": "tsc -p tsconfig.fleet.json && vite build --config vite.fleet.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -18,6 +20,7 @@
     "@capacitor/ios": "^8.5.0",
     "@supabase/supabase-js": "^2.117.3",
     "@tailwindcss/vite": "^4.3.3",
+    "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"
@@ -25,6 +28,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.0",
     "@electric-sql/pglite": "^0.5.8",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

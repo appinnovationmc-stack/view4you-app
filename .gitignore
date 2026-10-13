@@ -38,3 +38,6 @@ android/app/src/main/assets/capacitor.plugins.json
 
 # Admin console build output
 dist-admin/
+
+# Fleet portal build output
+dist-fleet/
