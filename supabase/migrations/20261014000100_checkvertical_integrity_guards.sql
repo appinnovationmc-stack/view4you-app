@@ -23,6 +23,7 @@ declare
   v_critical_poor integer;
   v_measurement_faults integer;
   v_tyre_faults integer;
+  v_missing_tread integer;
   v_has_roadworthy_fault boolean;
 begin
   select * into v_i from public.inspections where id = new.id;
@@ -221,6 +222,15 @@ begin
   select count(*) into v_tyre_faults
     from public.report_tyres
    where inspection_id = v_i.id and position <> 'Spare' and tread_mm is not null and tread_mm < 1.0;
+  select 4 - count(distinct position) into v_missing_tread
+    from public.report_tyres
+   where inspection_id = v_i.id
+     and position in ('Front Left','Front Right','Rear Left','Rear Right')
+     and tread_mm is not null and tread_mm >= 0;
+  if v_missing_tread > 0 then
+    raise exception 'Report rejected: tread depth is required for all four road tyres'
+      using errcode = '22023';
+  end if;
 
   v_has_roadworthy_fault := v_critical_poor > 0 or v_measurement_faults > 0 or v_tyre_faults > 0;
 
