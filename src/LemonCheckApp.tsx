@@ -968,8 +968,8 @@ function SearchScreen(props) {
                 h('svg',{width:56,height:56,viewBox:'0 0 56 56',fill:'none',style:{margin:'0 auto 12px',display:'block'}},
                   h('rect',{x:4,y:4,width:48,height:48,rx:12,fill:C.s2,stroke:'var(--b)',strokeWidth:.75}),
                   h('path',{d:'M20 20l16 16M36 20L20 36',stroke:C.t3,strokeWidth:2,strokeLinecap:'round'})),
-                h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,marginBottom:6}}, 'No records found'),
-                h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}}, 'No CheckVertical history records are currently available for this VIN. This is not an external registry check and does not mean the vehicle is clear.'))))
+                h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,marginBottom:6}}, hist.error?'History lookup unavailable':'No CheckVertical records available'),
+                h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}}, hist.error?'The history data source could not be verified. Please retry later.':'No records are stored in CheckVertical for this VIN. External registry checks are not connected; missing data does not mean the vehicle is clear.'))))
 
         /* FIX: Better empty state for no VIN match */
         : h('div',{style:{textAlign:'center',padding:'44px 0'},className:'fi'},
@@ -1097,7 +1097,7 @@ function BookScreen(props) {
         h('textarea',{value:notes,onChange:function(e){setNotes(e.target.value);},placeholder:'Warning lights, concerns, anything the inspector should know…',rows:3,'aria-label':'Notes'})),
       h(PBtn,{label:'Find nearby inspectors',onClick:function(){
         setChoosing(true);
-        setTimeout(function(){ setChoosing(false); setStep('choose'); }, 900);
+        setChoosing(false); setStep('choose');
       },loading:choosing,disabled:!ready||choosing})));
 
   /* ── CHOOSE INSPECTOR ── */
@@ -1107,24 +1107,12 @@ function BookScreen(props) {
       center: geo || SA_DEFAULT,
       zoom: 13,
       userPos: geo || SA_DEFAULT,
-      markers: sorted.slice(0, 6).map(function(insp, i){
-        var base = geo || SA_DEFAULT;
-        // scatter nearby pins around user (~0.5–2 km)
-        var offsetLat = (Math.sin(i * 2.1) * 0.012) + (i * 0.002);
-        var offsetLng = (Math.cos(i * 1.7) * 0.014) - (i * 0.0015);
-        return {
-          lat: base.lat + offsetLat,
-          lng: base.lng + offsetLng,
-          color: C.lime,
-          label: insp.init[0],
-          popup: insp.name + ' · ' + insp.eta + ' min · ' + R(insp.price),
-        };
-      }),
+      markers: [],
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
         h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Your area')))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
 
     h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
@@ -1153,13 +1141,13 @@ function BookScreen(props) {
               h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
                 /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},R(insp.price))),
+                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},insp.price == null ? 'Fee at checkout' : R(insp.price))),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
                 h('span',{style:{color:C.t,fontSize:12}},'★'),
                 h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
                 h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+insp.jobs+' jobs')),
               h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-                h(Tag,{label:'ETA '+insp.eta+' min',bg:C.greenDim,c:C.green}),
+                h(Tag,{label:insp.eta == null ? 'ETA unavailable' : 'ETA '+insp.eta+' min',bg:insp.eta == null ? C.s3 : C.greenDim,c:insp.eta == null ? C.t3 : C.green}),
                 insp.top&&h(Tag,{label:'Top rated',bg:C.limeDim,c:C.lime}),
                 h(Tag,{label:insp.spec,bg:C.s3,c:C.t3}))));
         }),
@@ -1193,7 +1181,7 @@ function BookScreen(props) {
               h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+inspector.jobs+' inspections')),
             h('div',{style:{display:'flex',gap:5}},
               h(Tag,{label:inspector.cert,bg:C.s3,c:C.t2}),
-              h(Tag,{label:'ETA '+inspector.eta+' min',bg:C.greenDim,c:C.green}))))),
+              h(Tag,{label:inspector.eta == null ? 'ETA unavailable' : 'ETA '+inspector.eta+' min',bg:inspector.eta == null ? C.s3 : C.greenDim,c:inspector.eta == null ? C.t3 : C.green}))))),
 
       /* Summary + price — collapsed into one card */
       h(Card,{style:{marginBottom:10}},
@@ -1203,12 +1191,12 @@ function BookScreen(props) {
           notes&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4,fontStyle:'italic'}},'Note: '+notes),
           h(Hr,{my:12}),
           /* Price breakdown */
-          [{l:'Inspection fee',v:R(inspector.price)},{l:'Travel',v:R(100)},{l:'Platform',v:R(75)}].map(function(row){
+          ([{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(100)},{l:'Platform',v:R(75)}]).map(function(row){
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
           h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},R(inspector.price+175))))),
+            h('span',null,'Total'),h('span',{style:{color:C.lime}},inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+175))))),
 
       /* Payment */
       h(Card,{style:{marginBottom:12}},
@@ -1219,7 +1207,7 @@ function BookScreen(props) {
       /* Passive income note — shown after payment, not blocking it */
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
         h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You earn a share each time another buyer purchases it.')),
-      h(PBtn,{label:loading?'Confirming…':'Pay '+R(inspector.price+175)+' via PayFast',onClick:confirm,loading:loading})));
+      h(PBtn,{label:loading?'Confirming…':(inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+175)+' via PayFast'),onClick:confirm,loading:loading})));
 
   /* ── STATUS (real booking state, polled from the server) ── */
   return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
@@ -1856,7 +1844,7 @@ function App() {
     return Math.round(hrs/24)+'d ago';
   }
   function mapNotif(n){ return {id:n.id, type:n.type, icon:n.icon, title:n.title, body:n.body, time:timeAgo(n.created_at), read:n.read}; }
-  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Certified', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes||15, price:p.price||1800, spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init}; }
+  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init}; }
 
   function loadBuyerData(profile){
     Promise.all([
