@@ -1,6 +1,8 @@
 // Behaviour of the server-side booking / payment / report flows (migrated schema only).
 import { describe, it, expect, beforeAll } from 'vitest'
 import { makeDb, addUser, asUser, asService, attempt, uid, type Db } from './harness'
+import { CHECKLIST } from '../../src/lib/reportTemplate'
+import { AREAS } from '../../src/lib/reportMapping'
 
 let db: Db
 const BUYER = uid(1), BUYER2 = uid(2), INSP = uid(3), INSP2 = uid(4), NEWINSP = uid(5)
@@ -14,11 +16,14 @@ const itn = (kind: string, id: string, pf: string | null, status: string, amount
     'select public.apply_payfast_itn($1,$2,$3,$4,$5,$6::jsonb) as r', [kind, id, pf, status, amount, '{}'])).then(x => x.rows[0].r)
 const bookingRow = async (id: string) => (await db.query<any>('select * from public.bookings where id=$1', [id])).rows[0]
 
-const ITEMS = [{ section: 'engine', component: 'oil', condition: 'good', explanation: null, roadworthy_relevant: false }]
-const FINDINGS = [{ area: 'Engine', status: 'pass', note: 'secret note' }]
-const submit = (who: string, bookingId: string, score = 85) => asUser(db, who, () => db.query<any>(
+const ITEMS = CHECKLIST.flatMap(section => section.rows.map(([component, , roadworthy]) => ({
+  section: section.key, component, condition: 'good', explanation: null, roadworthy_relevant: !!roadworthy,
+})))
+const FINDINGS = AREAS.map(area => ({ area, status: 'pass', note: 'secret note' }))
+const TYRES = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right'].map(position => ({ position, tread_mm: 5.5 }))
+const submit = (who: string, bookingId: string, score = 100) => asUser(db, who, () => db.query<any>(
   'select * from public.submit_detailed_report($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb)',
-  [bookingId, score, 'Good car', 120000, 'pass', '[]', '[]', JSON.stringify(FINDINGS), JSON.stringify(ITEMS), '[]', '[]']))
+  [bookingId, score, 'Good car', 120000, 'pass', '[]', '[]', JSON.stringify(FINDINGS), JSON.stringify(ITEMS), '[]', JSON.stringify(TYRES)]))
 
 async function paidBooking(buyer = BUYER, inspector = INSP, vin = 'AAA111GP') {
   const b = (await callBook(buyer, bookingArgs(inspector, vin))).rows[0]
@@ -225,7 +230,7 @@ describe('report submit, access, preview and resale purchase', () => {
   })
   it('a non-purchaser sees only the preview (no notes, no verdict, no checklist)', async () => {
     const pv = (await asUser(db, BUYER2, () => db.query<any>('select public.report_preview($1) as p', ['RPT001GP']))).rows[0].p
-    expect(pv).toMatchObject({ score: 85, report_price: 90, payer_cut: 46, owned: false, verdict: null })
+    expect(pv).toMatchObject({ score: 100, report_price: 90, payer_cut: 46, owned: false, verdict: null })
     expect(pv.areas[0].note).toBeNull()
     expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(0)
     expect((await asUser(db, BUYER2, () => db.query('select id from public.inspection_findings'))).rows.length).toBe(0)
@@ -237,7 +242,7 @@ describe('report submit, access, preview and resale purchase', () => {
     expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(0)
     expect(await itn('report', order.id, 'rp2', 'COMPLETE', 90)).toBe('applied')
     expect(await itn('report', order.id, 'rp2', 'COMPLETE', 90)).toBe('duplicate')
-    expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(1)
+    expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(115)
     const pv = (await asUser(db, BUYER2, () => db.query<any>('select public.report_preview($1) as p', ['RPT001GP']))).rows[0].p
     expect(pv.owned).toBe(true); expect(pv.verdict).toBe('Good car')
     const rp = (await db.query<any>('select amount_paid, payer_earning, inspector_earning from public.report_purchases where inspection_id=$1', [inspectionId])).rows
