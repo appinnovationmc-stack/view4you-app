@@ -125,8 +125,9 @@ export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[
     const name = labelFor(i.section, i.component)
     const known = CHECKLIST.some(s => s.key === i.section && s.rows.some(r => r[0] === i.component))
     if (!known) { faults.push(`Unknown checklist item: ${i.section}.${i.component}`); continue }
-    if (i.condition === 'poor') (i.roadworthy_relevant ? faults : warnings).push(`${name}: ${i.explanation || 'poor condition'}`)
-    else if (i.condition === 'fair' && i.roadworthy_relevant) warnings.push(`${name}: ${i.explanation || 'fair condition'}`)
+    const safetyCritical = CHECKLIST.find(s => s.key === i.section)?.rows.find(r => r[0] === i.component)?.[2] === true
+    if (i.condition === 'poor') (safetyCritical || i.roadworthy_relevant ? faults : warnings).push(`${name}: ${i.explanation || 'poor condition'}`)
+    else if (i.condition === 'fair' && (safetyCritical || i.roadworthy_relevant)) warnings.push(`${name}: ${i.explanation || 'fair condition'}`)
   }
   if (seen.size !== items.length) faults.push('Duplicate checklist items detected')
   for (const t of tests) {
