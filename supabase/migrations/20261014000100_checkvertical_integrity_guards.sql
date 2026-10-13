@@ -18,6 +18,7 @@ declare
   v_pass integer;
   v_warn integer;
   v_expected_score integer;
+  v_new_score integer;
   v_critical_missing integer;
   v_critical_poor integer;
   v_measurement_faults integer;
@@ -222,15 +223,62 @@ begin
    where inspection_id = v_i.id and position <> 'Spare' and tread_mm is not null and tread_mm < 1.0;
 
   v_has_roadworthy_fault := v_critical_poor > 0 or v_measurement_faults > 0 or v_tyre_faults > 0;
-  if v_has_roadworthy_fault and v_i.roadworthy_status::text <> 'fail' then
-    update public.inspections
-       set roadworthy_status = 'fail',
-           verdict = case
-             when coalesce(verdict, '') ilike '%roadworthy issues found%' then verdict
-             else concat_ws(' ', nullif(verdict, ''), 'Roadworthy issues found by server-side validation.')
-           end
-     where id = v_i.id;
+
+  -- Reconcile summary area statuses from safety-critical detail, regardless of client-supplied area summaries.
+  with critical_area(section, component, area) as (
+    values
+      ('drive_system','exhaust','Exhaust'), ('drive_system','smoke_emission','Exhaust'),
+      ('drive_system','chassis','Suspension'), ('drive_system','tie_rods','Suspension'),
+      ('drive_system','wheel_bearings','Suspension'), ('drive_system','shocks','Suspension'),
+      ('drive_system','steering_rack','Suspension'), ('drive_system','fuel_system','Engine'),
+      ('drive_system','brake_lines','Brakes'), ('drive_system','handbrake','Brakes'),
+      ('drive_system','brake_calipers','Brakes'), ('engine','brake_fluid','Brakes'),
+      ('exterior','crumple_zones','Body & Paint'), ('exterior','windscreen','Body & Paint'),
+      ('exterior','wipers','Electricals'), ('exterior','headlights','Lights'),
+      ('exterior','main_beams','Lights'), ('exterior','dim_lights','Lights'),
+      ('exterior','park_lights','Lights'), ('exterior','indicators','Lights'),
+      ('exterior','side_mirrors','Lights'), ('exterior','tail_lights','Lights'),
+      ('exterior','reflectors','Lights'), ('exterior','brake_lights','Lights'),
+      ('exterior','plate_lights','Lights'), ('interior','steering_lock','Electricals'),
+      ('interior','hooter','Electricals'), ('interior','warning_lights','Electricals'),
+      ('interior','seatbelts','Interior'), ('interior','pedals','Brakes'),
+      ('test_drive','braking','Brakes'), ('test_drive','steering','Suspension'),
+      ('wheels','wheel_nuts','Tyres'), ('wheels','fl_tyre','Tyres'),
+      ('wheels','fr_tyre','Tyres'), ('wheels','rl_tyre','Tyres'), ('wheels','rr_tyre','Tyres')
+  )
+  update public.inspection_findings f
+     set status = 'fail'
+    from public.report_items ri, critical_area ca
+   where ri.inspection_id = v_i.id and ri.condition::text = 'poor'
+     and ca.section = ri.section and ca.component = ri.component
+     and f.inspection_id = v_i.id and f.area = ca.area and f.status::text <> 'fail';
+
+  if v_measurement_faults > 0 then
+    update public.inspection_findings set status = 'fail'
+     where inspection_id = v_i.id and area = 'Brakes' and status::text <> 'fail';
   end if;
+  if v_tyre_faults > 0 then
+    update public.inspection_findings set status = 'fail'
+     where inspection_id = v_i.id and area = 'Tyres' and status::text <> 'fail';
+  end if;
+
+  select round((((count(*) filter (where status::text = 'pass') * 10
+                       + count(*) filter (where status::text = 'warn') * 5)::numeric) / 12) * 10)::integer
+    into v_new_score
+    from public.inspection_findings where inspection_id = v_i.id;
+
+  update public.inspections
+     set score = v_new_score,
+         roadworthy_status = case when v_has_roadworthy_fault then 'fail' else roadworthy_status end,
+         verdict = case
+           when v_has_roadworthy_fault and coalesce(verdict, '') not ilike '%roadworthy issues found%'
+             then concat_ws(' ', nullif(verdict, ''), 'Roadworthy issues found by server-side validation.')
+           else verdict
+         end
+   where id = v_i.id
+     and (score is distinct from v_new_score
+       or (v_has_roadworthy_fault and roadworthy_status::text <> 'fail')
+       or (v_has_roadworthy_fault and coalesce(verdict, '') not ilike '%roadworthy issues found%'));
   return null;
 end;
 $$;
