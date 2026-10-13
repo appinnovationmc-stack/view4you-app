@@ -299,8 +299,10 @@ $$;
 revoke all on function public.cv_validate_inspection_integrity() from public, anon, authenticated;
 
 drop trigger if exists cv_validate_inspection_integrity on public.inspections;
+-- Fire only on insert or when integrity-relevant columns change, so unrelated updates
+-- (takedown, reassign, payout/status bookkeeping) on legacy submitted reports are not blocked.
 create constraint trigger cv_validate_inspection_integrity
-after insert or update on public.inspections
+after insert or update of submitted_at, score, roadworthy_status, verdict on public.inspections
 deferrable initially deferred
 for each row execute function public.cv_validate_inspection_integrity();
 

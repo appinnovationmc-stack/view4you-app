@@ -108,3 +108,18 @@ describe('vehicle ownership', () => {
     expect(r.rows[0].first_tracked_by).toBe(BUYER)
   })
 })
+
+describe('integrity trigger scope', () => {
+  it('unrelated updates on a legacy submitted report are not blocked', async () => {
+    // Legacy shape: submitted, only 1 item, no findings. Must not break takedown-style updates.
+    await db.query(`update public.inspections set submitted_at = null where id=$1`, [uid(200)])
+    await db.query(`update public.inspections set submitted_at = now() where id=$1`, [uid(200)]).then(
+      () => { throw new Error('expected integrity rejection when (re)submitting an incomplete report') },
+      () => {},
+    )
+    await db.query(`update public.inspections set verdict = verdict where id=$1`, [uid(200)]).catch(() => {})
+    await db.query(`update public.inspections set full_price = full_price where id=$1`, [uid(200)])
+    const r = await db.query<any>(`select id from public.inspections where id=$1`, [uid(200)])
+    expect(r.rows.length).toBe(1)
+  })
+})
