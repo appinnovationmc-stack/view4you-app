@@ -2,7 +2,7 @@
 
 ## 1. Staging first
 - [ ] Create a Supabase branch or a separate project. Do NOT start on production.
-- [ ] Apply migrations in order: `20261009000100`, `20261009000200`, `20261009000300`, `20261011000100` (forward-only; no data is deleted).
+- [ ] Inventory every file under `supabase/migrations/` and apply all pending migrations in filename order to staging. The list in this document is historical and is not a complete inventory. Include `20261014000100_checkvertical_integrity_guards.sql` and every later migration present in the release commit. Review each migration before applying; do not blindly replay migrations already recorded by Supabase.
 - [ ] `supabase functions deploy create-booking-payment create-report-payment` and `supabase functions deploy payfast-itn --no-verify-jwt`. PayFast cannot send a JWT, so `payfast-itn` authenticates by signature, source IP and server confirmation instead. The other two keep JWT verification on.
 - [ ] Remove the old `payfast-report-itn` function once `payfast-itn` is live and PayFast notifies the new URL.
 - [ ] Set secrets (see `.env.example`): merchant id/key, passphrase, `PAYFAST_SANDBOX=true`, return/cancel/notify URLs.
