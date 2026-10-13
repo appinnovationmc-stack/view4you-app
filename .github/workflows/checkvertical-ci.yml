@@ -1,0 +1,38 @@
+name: CheckVertical CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "fix/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkvertical-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run automated tests
+        run: npm test
+      - name: Build customer app
+        run: npm run build
+      - name: Build admin console
+        run: npm run build:admin
+      - name: Build fleet portal
+        run: npm run build:fleet

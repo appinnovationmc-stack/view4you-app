@@ -93,7 +93,7 @@ export async function fetchVehicleWithLatestInspection(vin: string): Promise<{
   const { data: pv, error: pvErr } = await supabase.rpc('report_preview', { p_vin: vin })
   if (pvErr) throw pvErr
   const p = pv as null | {
-    inspection_id: string; report_number: string | null; score: number; report_price: number; payer_cut: number
+    inspection_id: string; report_number: string | null; score: number; full_price: number; report_price: number; payer_cut: number
     inspected_at: string; roadworthy_status: 'pass' | 'fail' | null; inspector_name: string | null
     owned: boolean; verdict: string | null
     areas: { area: string; status: FindingStatus; note: string | null }[]
@@ -104,7 +104,7 @@ export async function fetchVehicleWithLatestInspection(vin: string): Promise<{
     vehicle: vehicle as Vehicle,
     inspection: {
       id: p.inspection_id, booking_id: '', vin, inspector_id: '', score: p.score, verdict: p.verdict,
-      full_price: 0, report_price: p.report_price, payer_cut: p.payer_cut, inspector_cut: 0,
+      full_price: p.full_price, report_price: p.report_price, payer_cut: p.payer_cut, inspector_cut: 0,
       created_at: p.inspected_at, report_number: p.report_number, roadworthy_status: p.roadworthy_status,
       findings: p.areas.map((a, i) => ({ id: String(i), inspection_id: p.inspection_id, area: a.area, status: a.status, note: a.note })),
       inspector_name: p.inspector_name ?? 'Inspector',
@@ -118,15 +118,18 @@ export async function fetchVehicleHistory(vin: string): Promise<{
   accidents: VehicleAccident[]
   odometer: OdometerReading[]
 }> {
-  const [{ data: history }, { data: accidents }, { data: odometer }] = await Promise.all([
+  const [historyResult, accidentResult, odometerResult] = await Promise.all([
     supabase.from('vehicle_history').select('*').eq('vin', vin).maybeSingle(),
     supabase.from('vehicle_accidents').select('*').eq('vin', vin).order('date'),
     supabase.from('vehicle_odometer_readings').select('*').eq('vin', vin).order('date', { ascending: false }),
   ])
+  // A query/RLS/schema failure must not be presented as a clean history.
+  const queryError = historyResult.error ?? accidentResult.error ?? odometerResult.error
+  if (queryError) throw new Error(`Vehicle history could not be verified: ${queryError.message}`)
   return {
-    history: (history as VehicleHistory) ?? null,
-    accidents: (accidents as VehicleAccident[]) ?? [],
-    odometer: (odometer as OdometerReading[]) ?? [],
+    history: (historyResult.data as VehicleHistory) ?? null,
+    accidents: (accidentResult.data as VehicleAccident[]) ?? [],
+    odometer: (odometerResult.data as OdometerReading[]) ?? [],
   }
 }
 

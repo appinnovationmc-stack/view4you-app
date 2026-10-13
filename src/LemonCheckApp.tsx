@@ -58,14 +58,14 @@ var INSP_USER = null;
 /* Onboarding copy per role */
 var ONBOARD = {
   buyer:[
-    {icon:'search',title:'Search any car',       body:'Enter a South African VIN to see full inspection history, accident records, and eNaTIS data — before you commit to a single rand.'},
-    {icon:'bolt',title:'Inspector in minutes', body:'Choose from certified inspectors near the car. They arrive within the hour — no waiting rooms, no scheduling delays.'},
+    {icon:'search',title:'Search any car',       body:'Search a VIN for CheckVertical inspection reports and any vehicle-history records currently available in this app. Missing data is not proof that a vehicle is clear.'},
+    {icon:'bolt',title:'Inspector in minutes', body:'Choose an available inspector. Availability and arrival times depend on the inspector and must be confirmed for your booking.'},
     {icon:'coins',title:'Earn while you sleep', body:'Once you commission an inspection, you earn a share every time another buyer purchases that same report. The exact amount is shown on each report before anyone pays.'},
   ],
   insp:[
     {icon:'clipboard',title:'Accept nearby jobs',   body:'Inspection requests appear in real time. Accept the ones that fit your location and schedule — no commitment required.'},
     {icon:'wrench',title:'Complete the checklist',body:'Work through the full checklist on your phone: condition buttons, brake and tyre readings, photos. Submit on-site when done.'},
-    {icon:'shield',title:'Earn twice per job',   body:'Collect R1,800–R2,100 per inspection, plus R70 every time your report is resold. Passive income that compounds over time.'},
+    {icon:'shield',title:'Earn twice per job',   body:'Inspection fees and report-resale payouts vary by the server-set price and current payout rules. Review the amount shown in-app; earnings are not guaranteed.'},
   ],
 };
 
@@ -809,19 +809,19 @@ function SearchScreen(props) {
   function runHist() {
     setHload(true);
     Data.fetchVehicleHistory(vin).then(function(row){
-      if (!row.history) { setHist({found:false}); setHload(false); setTab('history'); return; }
+      if (!row.history && row.accidents.length === 0 && row.odometer.length === 0) { setHist({found:false}); setHload(false); setTab('history'); return; }
       var adapted = {
-        found: true, src: row.history.source, owners: row.history.owners,
-        reg: row.history.first_registered, province: row.history.province,
-        stolen: row.history.stolen, taxi: row.history.taxi_history,
-        cc: row.history.colour_changes, finance: row.history.outstanding_finance,
-        fb: row.history.finance_house || '',
+        found: true, src: row.history?.source || 'CheckVertical records', owners: row.history?.owners ?? 'Not available',
+        reg: row.history?.first_registered || 'Not available', province: row.history?.province || 'Not available',
+        stolen: row.history?.stolen ?? null, taxi: row.history?.taxi_history ?? null,
+        cc: row.history?.colour_changes ?? null, finance: row.history?.outstanding_finance ?? false,
+        fb: row.history?.finance_house || '',
         accidents: row.accidents.map(function(a){ return {date:new Date(a.date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}), sev:a.severity, desc:a.description}; }),
         odo: row.odometer.map(function(o){ return {date:new Date(o.date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}), km:o.km}; }),
       };
       SA_HIST[vin] = adapted;
       setHist(adapted); setHload(false); setTab('history');
-    }).catch(function(err){ console.error(err); setHist({found:false}); setHload(false); setTab('history'); showToast('History lookup failed.', true); });
+    }).catch(function(err){ console.error(err); setHist({found:false,error:true}); setHload(false); setTab('history'); showToast('History lookup unavailable. No clean result was returned.', true); });
   }
 
   React.useEffect(function(){ if (PENDING_VIN) { var v = PENDING_VIN; PENDING_VIN = null; doSearch(v); } }, []);
@@ -909,16 +909,16 @@ function SearchScreen(props) {
                     h('circle',{cx:28,cy:28,r:8,stroke:C.blue,strokeWidth:1.5,fill:'none'}),
                     h('path',{d:'M34 34l6 6',stroke:C.blue,strokeWidth:2,strokeLinecap:'round'})),
                   h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em',marginBottom:6}}, 'SA Vehicle History'),
-                  h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginBottom:20}}, 'Records from eNaTIS, TransUnion AutoInfo and SAPS.'),
+                  h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginBottom:20}}, 'This screen shows only records stored in CheckVertical. External eNaTIS, TransUnion AutoInfo and SAPS lookups are not connected.'),
                   h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:20,textAlign:'left'}},
-                    ['Accident history','Finance & liens','Owner changes','Roadworthy history','SAPS stolen check','Odometer verify'].map(function(f){
+                    ['Stored accident entries','Stored finance flag','Stored owner changes','Inspection findings','Stored theft flag','Odometer entries'].map(function(f){
                       return h('div',{key:f,style:{background:C.s2,borderRadius:8,padding:'10px',display:'flex',alignItems:'center',gap:7,border:'1px solid var(--b)'}},
                         h('div',{style:{width:6,height:6,borderRadius:3,background:C.green,flexShrink:0}}),
                         h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2}}, f));
                     })),
-                  h(PBtn,{label:'Run history check  ·  R249',onClick:runHist})),
+                  h(PBtn,{label:'Check stored history records',onClick:runHist})),
                 h('div',{style:{padding:'10px 18px',background:C.s2,borderTop:'1px solid var(--b)'}},
-                  h('p',{style:{fontSize:11,color:C.t3,textAlign:'center'}}, 'Data from eNaTIS, TransUnion & SAPS. Verify independently.'))),
+                  h('p',{style:{fontSize:11,color:C.t3,textAlign:'center'}}, 'CheckVertical records only; external registry and police-record checks are not connected. Missing records do not mean the vehicle is clear.'))),
 
               hist && hist.found && h('div',null,
                 /* Flags */
@@ -934,7 +934,7 @@ function SearchScreen(props) {
                       h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em'}}, 'Overview'),
                       h(Tag,{label:hist.src,bg:C.blueDim,c:C.blue})),
                     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-                      [{l:'First registered',v:hist.reg},{l:'Province',v:hist.province},{l:'Owner changes',v:String(hist.owners)},{l:'Colour changes',v:hist.cc===0?'None':String(hist.cc)},{l:'Stolen',v:hist.stolen?'YES':'Clear'},{l:'Taxi history',v:hist.taxi?'Yes':'None'}]
+                      [{l:'First registered',v:hist.reg},{l:'Province',v:hist.province},{l:'Owner changes',v:String(hist.owners)},{l:'Colour changes',v:hist.cc===0?'None recorded':(hist.cc==null?'Not available':String(hist.cc))},{l:'Stolen',v:hist.stolen===true?'YES':(hist.stolen===false?'No flag in stored records':'Not checked')},{l:'Taxi history',v:hist.taxi===true?'Yes':(hist.taxi===false?'No stored flag':'Not available')}]
                       .map(function(x){
                         return h('div',{key:x.l,style:{background:C.s2,borderRadius:8,padding:'10px',border:'1px solid var(--b)'}},
                           h('p',{style:{fontSize:10,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}}, x.l),
@@ -943,7 +943,7 @@ function SearchScreen(props) {
                   h('div',{style:{padding:'18px',borderTop:'1px solid var(--b)'}},
                     h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,marginBottom:10,letterSpacing:'-.01em'}}, 'Accidents'),
                     hist.accidents.length===0
-                      ? h('p',{style:{fontSize:'var(--fs-caption)',color:C.green,fontWeight:600}}, 'None recorded')
+                      ? h('p',{style:{fontSize:'var(--fs-caption)',color:C.green,fontWeight:600}}, 'No records stored in CheckVertical')
                       : hist.accidents.map(function(a,i){
                           return h('div',{key:i,style:{background:a.sev==='Major'?C.redDim:C.amberDim,borderRadius:10,padding:'12px',marginBottom:i<hist.accidents.length-1?8:0,border:'1px solid '+(a.sev==='Major'?'rgba(255,69,58,.2)':'rgba(255,159,10,.2)')}},
                             h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}},
@@ -968,8 +968,8 @@ function SearchScreen(props) {
                 h('svg',{width:56,height:56,viewBox:'0 0 56 56',fill:'none',style:{margin:'0 auto 12px',display:'block'}},
                   h('rect',{x:4,y:4,width:48,height:48,rx:12,fill:C.s2,stroke:'var(--b)',strokeWidth:.75}),
                   h('path',{d:'M20 20l16 16M36 20L20 36',stroke:C.t3,strokeWidth:2,strokeLinecap:'round'})),
-                h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,marginBottom:6}}, 'No records found'),
-                h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}}, 'This VIN has no history in eNaTIS or TransUnion.'))))
+                h('p',{style:{fontWeight:700,fontSize:'var(--fs-headline)',color:C.t,marginBottom:6}}, hist.error?'History lookup unavailable':'No CheckVertical records available'),
+                h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}}, hist.error?'The history data source could not be verified. Please retry later.':'No records are stored in CheckVertical for this VIN. External registry checks are not connected; missing data does not mean the vehicle is clear.'))))
 
         /* FIX: Better empty state for no VIN match */
         : h('div',{style:{textAlign:'center',padding:'44px 0'},className:'fi'},
@@ -1097,7 +1097,7 @@ function BookScreen(props) {
         h('textarea',{value:notes,onChange:function(e){setNotes(e.target.value);},placeholder:'Warning lights, concerns, anything the inspector should know…',rows:3,'aria-label':'Notes'})),
       h(PBtn,{label:'Find nearby inspectors',onClick:function(){
         setChoosing(true);
-        setTimeout(function(){ setChoosing(false); setStep('choose'); }, 900);
+        setChoosing(false); setStep('choose');
       },loading:choosing,disabled:!ready||choosing})));
 
   /* ── CHOOSE INSPECTOR ── */
@@ -1107,24 +1107,12 @@ function BookScreen(props) {
       center: geo || SA_DEFAULT,
       zoom: 13,
       userPos: geo || SA_DEFAULT,
-      markers: sorted.slice(0, 6).map(function(insp, i){
-        var base = geo || SA_DEFAULT;
-        // scatter nearby pins around user (~0.5–2 km)
-        var offsetLat = (Math.sin(i * 2.1) * 0.012) + (i * 0.002);
-        var offsetLng = (Math.cos(i * 1.7) * 0.014) - (i * 0.0015);
-        return {
-          lat: base.lat + offsetLat,
-          lng: base.lng + offsetLng,
-          color: C.lime,
-          label: insp.init[0],
-          popup: insp.name + ' · ' + insp.eta + ' min · ' + R(insp.price),
-        };
-      }),
+      markers: [],
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
         h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},loc || 'Your area')))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
 
     h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
@@ -1153,13 +1141,13 @@ function BookScreen(props) {
               h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
                 /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},R(insp.price))),
+                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},insp.price == null ? 'Fee at checkout' : R(insp.price))),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
                 h('span',{style:{color:C.t,fontSize:12}},'★'),
                 h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
                 h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+insp.jobs+' jobs')),
               h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-                h(Tag,{label:'ETA '+insp.eta+' min',bg:C.greenDim,c:C.green}),
+                h(Tag,{label:insp.eta == null ? 'ETA unavailable' : 'ETA '+insp.eta+' min',bg:insp.eta == null ? C.s3 : C.greenDim,c:insp.eta == null ? C.t3 : C.green}),
                 insp.top&&h(Tag,{label:'Top rated',bg:C.limeDim,c:C.lime}),
                 h(Tag,{label:insp.spec,bg:C.s3,c:C.t3}))));
         }),
@@ -1193,7 +1181,7 @@ function BookScreen(props) {
               h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+inspector.jobs+' inspections')),
             h('div',{style:{display:'flex',gap:5}},
               h(Tag,{label:inspector.cert,bg:C.s3,c:C.t2}),
-              h(Tag,{label:'ETA '+inspector.eta+' min',bg:C.greenDim,c:C.green}))))),
+              h(Tag,{label:inspector.eta == null ? 'ETA unavailable' : 'ETA '+inspector.eta+' min',bg:inspector.eta == null ? C.s3 : C.greenDim,c:inspector.eta == null ? C.t3 : C.green}))))),
 
       /* Summary + price — collapsed into one card */
       h(Card,{style:{marginBottom:10}},
@@ -1203,12 +1191,12 @@ function BookScreen(props) {
           notes&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4,fontStyle:'italic'}},'Note: '+notes),
           h(Hr,{my:12}),
           /* Price breakdown */
-          [{l:'Inspection fee',v:R(inspector.price)},{l:'Travel',v:R(100)},{l:'Platform',v:R(75)}].map(function(row){
+          ([{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(100)},{l:'Platform',v:R(75)}]).map(function(row){
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
           h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},R(inspector.price+175))))),
+            h('span',null,'Total'),h('span',{style:{color:C.lime}},inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+175))))),
 
       /* Payment */
       h(Card,{style:{marginBottom:12}},
@@ -1219,7 +1207,7 @@ function BookScreen(props) {
       /* Passive income note — shown after payment, not blocking it */
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
         h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You earn a share each time another buyer purchases it.')),
-      h(PBtn,{label:loading?'Confirming…':'Pay '+R(inspector.price+175)+' via PayFast',onClick:confirm,loading:loading})));
+      h(PBtn,{label:loading?'Confirming…':(inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+175)+' via PayFast'),onClick:confirm,loading:loading})));
 
   /* ── STATUS (real booking state, polled from the server) ── */
   return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
@@ -1600,7 +1588,7 @@ function JobScreen(props) {
       'Score: ',h('strong',{style:{color:m.col,fontWeight:800}},score+'/100'),
       '. Payment of ',h('strong',{style:{color:C.lime}},R(job.pay)),' within 24 hrs.'),
     h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'You earn R70 every time this report is resold. Passively, forever.')),
+      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'Resale payouts depend on the current server-set report price and payout rules. Check your earnings ledger for recorded amounts.')),
     h(PBtn,{label:'Back to jobs',onClick:function(){nav('ijobs');}}));
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:110}},
@@ -1660,7 +1648,7 @@ function JobScreen(props) {
         })),
 
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.5}},'After submission you earn R70 every time this report is resold.'))),
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.5}},'Resale payouts depend on the current server-set report price and payout rules. Check your earnings ledger for recorded amounts.'))),
 
     /* Fixed bottom — safe-bot */
     h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
@@ -1730,7 +1718,7 @@ function InspEarnScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:10}},'Resale income'),
           h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:10,padding:'12px',marginBottom:10}},
-            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'You earn R70 (20%) every time a buyer purchases a report from one of your inspections.')),
+            h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your share of report resales is calculated by the server and may vary by report price. Check the earnings ledger for recorded amounts.')),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('div',null,
               h('p',{style:{fontSize:'var(--fs-body)',fontWeight:600,color:C.t}},'Passive earnings'),
@@ -1768,8 +1756,8 @@ function InspProfileScreen(props) {
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'How you earn'),
-          [['wrench','Per inspection','R1,800–R2,100 per inspection',false],
-           ['shield','Resale cut','+R70 every time your report is rebought',true]].map(function(r,i){
+          [['wrench','Per inspection','Fee shown on each booking',false],
+           ['shield','Resale cut','Calculated per report resale',true]].map(function(r,i){
             return h('div',{key:r[1],style:{display:'flex',gap:12,alignItems:'center',padding:'12px',background:r[3]?C.limeDim2:C.s2,borderRadius:10,marginBottom:i===0?8:0,border:'1px solid '+(r[3]?'var(--ink-dim2)':'var(--b)')}},
               h('span',{style:{flexShrink:0,display:'flex'}},Ic(r[0],20,C.t)),
               h('div',null,
@@ -1856,7 +1844,7 @@ function App() {
     return Math.round(hrs/24)+'d ago';
   }
   function mapNotif(n){ return {id:n.id, type:n.type, icon:n.icon, title:n.title, body:n.body, time:timeAgo(n.created_at), read:n.read}; }
-  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Certified', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes||15, price:p.price||1800, spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init}; }
+  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init}; }
 
   function loadBuyerData(profile){
     Promise.all([
