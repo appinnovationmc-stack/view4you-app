@@ -28,6 +28,9 @@ declare
 begin
   select * into v_i from public.inspections where id = new.id;
   if not found then return null; end if;
+  -- Legacy/admin test fixtures and historical imports may have no submission timestamp.
+  -- The report RPC sets submitted_at; integrity enforcement applies to submitted reports.
+  if v_i.submitted_at is null then return null; end if;
 
   select count(*), count(distinct section || '.' || component)
     into v_items, v_distinct_items
