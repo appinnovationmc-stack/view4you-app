@@ -111,11 +111,24 @@ export interface Verdict { roadworthy: 'pass' | 'fail'; faults: string[]; warnin
 
 export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[]): Verdict {
   const faults: string[] = [], warnings: string[] = []
+  const critical = CHECKLIST.flatMap(section => section.rows
+    .filter(([, , roadworthy]) => !!roadworthy)
+    .map(([component]) => ({ section: section.key, component })))
+  const seen = new Set(items.map(i => `${i.section}.${i.component}`))
+  // A report must never infer "pass" from a missing or N/A safety check.
+  for (const key of critical) {
+    const item = items.find(i => i.section === key.section && i.component === key.component)
+    const name = labelFor(key.section, key.component)
+    if (!item || item.condition === 'na') faults.push(`${name}: safety check not assessed`)
+  }
   for (const i of items) {
     const name = labelFor(i.section, i.component)
+    const known = CHECKLIST.some(s => s.key === i.section && s.rows.some(r => r[0] === i.component))
+    if (!known) { faults.push(`Unknown checklist item: ${i.section}.${i.component}`); continue }
     if (i.condition === 'poor') (i.roadworthy_relevant ? faults : warnings).push(`${name}: ${i.explanation || 'poor condition'}`)
     else if (i.condition === 'fair' && i.roadworthy_relevant) warnings.push(`${name}: ${i.explanation || 'fair condition'}`)
   }
+  if (seen.size !== items.length) faults.push('Duplicate checklist items detected')
   for (const t of tests) {
     const d = t.diff_pct ?? 0
     if (t.test === 'brake' && t.position !== 'Parking Brake' && d > LIMITS.brakeImbalancePct) faults.push(`Brake imbalance on ${t.position} (${d}%)`)
