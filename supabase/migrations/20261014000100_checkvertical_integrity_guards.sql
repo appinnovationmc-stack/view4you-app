@@ -290,7 +290,7 @@ begin
          end
    where id = v_i.id
      and (score is distinct from v_new_score
-       or (v_has_roadworthy_fault and roadworthy_status::text <> 'fail')
+       or (v_has_roadworthy_fault and roadworthy_status::text is distinct from 'fail')
        or (v_has_roadworthy_fault and coalesce(verdict, '') not ilike '%roadworthy issues found%'));
   return null;
 end;
