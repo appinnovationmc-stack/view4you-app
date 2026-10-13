@@ -22,6 +22,10 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      VITE_SUPABASE_URL: https://pxofttvtlkqaziqrvfmd.supabase.co
+      # Supabase publishable key: intended for client apps; database access must be protected by RLS.
+      VITE_SUPABASE_ANON_KEY: sb_publishable_ja6URzj6NAsiL5yCGkuUZQ_4cZyIYar
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -31,18 +35,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      - name: Verify required public app configuration
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: |
-          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
-            echo "::error::Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as GitHub Actions repository secrets before building."
-            exit 1
-          fi
-          echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
 
       - name: Install Java
         uses: actions/setup-java@v4
