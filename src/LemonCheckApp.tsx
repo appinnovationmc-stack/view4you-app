@@ -1288,7 +1288,7 @@ function BookScreen(props) {
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
           h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal))))),
+            h('span',null,'Total'),h('span',{style:{color:C.lime}},tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal)))))),
 
       /* Payment */
       h(Card,{style:{marginBottom:12}},
