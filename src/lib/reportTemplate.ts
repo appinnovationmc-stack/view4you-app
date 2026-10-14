@@ -71,6 +71,29 @@ export const CHECKLIST: Section[] = [
   ]},
 ]
 
+const BASIC_SCOPE: Record<string, string[]> = {
+  drive_system: ['ball_joint','underbody','subframe','control_arm','exhaust','smoke_emission','chassis','tie_rods','wheel_bearings','shocks','gearbox','steering_rack','engine_mountings','fuel_system','radiator','coolant_hoses','brake_lines','handbrake','brake_calipers'],
+  engine: ['belts','alternator','battery','coolant','oil','brake_fluid','fan','engine'],
+  exterior: ['body_panels','crumple_zones','bumpers','wipers','windscreen','headlights','main_beams','dim_lights','park_lights','indicators','side_mirrors','tail_lights','reflectors','brake_lights','reverse_lights','plate_lights'],
+  interior: ['locking','steering_lock','hooter','instrument_cluster','warning_lights','seatbelts','pedals'],
+  test_drive: ['starting','braking','steering','gear_selection','noises'],
+  wheels: ['wheel_nuts','fl_tyre','fr_tyre','rl_tyre','rr_tyre'],
+}
+
+/** Basic focuses on visible condition and essential safety. Standard/Comprehensive use the full checklist. */
+export function checklistForTier(tierName?: string | null): Section[] {
+  if ((tierName || '').toLowerCase() !== 'basic') return CHECKLIST
+  return CHECKLIST.map(section => ({
+    ...section,
+    rows: section.rows.filter(([key]) => (BASIC_SCOPE[section.key] || []).includes(key)),
+  })).filter(section => section.rows.length > 0)
+}
+
+export function minimumEvidencePhotos(tierName?: string | null): number {
+  const tier = (tierName || '').toLowerCase()
+  return tier === 'comprehensive' ? 12 : tier === 'standard' ? 8 : 4
+}
+
 export const TYRE_POSITIONS = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right', 'Spare']
 
 // Measured tests: which positions exist, and the result strings ReportView colours by.
@@ -109,9 +132,9 @@ export const labelFor = (section: string, component: string) =>
 // ---- evaluation ----
 export interface Verdict { roadworthy: 'pass' | 'fail'; faults: string[]; warnings: string[] }
 
-export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[]): Verdict {
+export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[], checklist: Section[] = CHECKLIST): Verdict {
   const faults: string[] = [], warnings: string[] = []
-  const critical = CHECKLIST.flatMap(section => section.rows
+  const critical = checklist.flatMap(section => section.rows
     .filter(([, , roadworthy]) => !!roadworthy)
     .map(([component]) => ({ section: section.key, component })))
   const seen = new Set(items.map(i => `${i.section}.${i.component}`))
@@ -123,9 +146,9 @@ export function evaluate(items: ReportItem[], tests: Measurement[], tyres: Tyre[
   }
   for (const i of items) {
     const name = labelFor(i.section, i.component)
-    const known = CHECKLIST.some(s => s.key === i.section && s.rows.some(r => r[0] === i.component))
+    const known = checklist.some(s => s.key === i.section && s.rows.some(r => r[0] === i.component))
     if (!known) { faults.push(`Unknown checklist item: ${i.section}.${i.component}`); continue }
-    const safetyCritical = CHECKLIST.find(s => s.key === i.section)?.rows.find(r => r[0] === i.component)?.[2] === true
+    const safetyCritical = checklist.find(s => s.key === i.section)?.rows.find(r => r[0] === i.component)?.[2] === true
     if (i.condition === 'poor') (safetyCritical || i.roadworthy_relevant ? faults : warnings).push(`${name}: ${i.explanation || 'poor condition'}`)
     else if (i.condition === 'fair' && (safetyCritical || i.roadworthy_relevant)) warnings.push(`${name}: ${i.explanation || 'fair condition'}`)
   }
