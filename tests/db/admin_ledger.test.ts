@@ -83,19 +83,22 @@ describe('credits', () => {
     expect(e).toEqual([{ kind: 'job_fee', amount: 500, ref_type: 'inspection' }])
     expect((await attempt(() => db.query(`insert into public.ledger_entries (user_id, kind, amount, ref_type, ref_id) values ($1,'job_fee',500,'inspection',$2)`, [INSP, inspectionId]))).ok).toBe(false)
   })
-  it('a purchase credits the inspector and the tracker with the stored shares, not the buyer', async () => {
+  it('resale rewards are held and then credited to the first buyer, never the inspector', async () => {
     await db.query(
       `insert into public.report_purchases (inspection_id, buyer_id, amount_paid, payer_earning, inspector_earning)
        values ($1,$2,90,46,44)`, [inspectionId, INSP2])
     expect(await bal(INSP)).toBe(500)
-    expect(await bal(TRACKER)).toBe(54)
+    expect(await bal(TRACKER)).toBe(0)
     expect(await bal(INSP2)).toBe(0)
   })
-  it('the tracker buying their own tracked vehicle earns nothing from it', async () => {
+  it('the tracker buying their own tracked vehicle earns nothing; held reward releases once', async () => {
     await db.query(`insert into public.report_purchases (inspection_id, buyer_id, amount_paid, payer_earning, inspector_earning)
                     values ($1,$2,90,46,44)`, [inspectionId, TRACKER])
-    expect(await bal(TRACKER)).toBe(54)
+    expect(await bal(TRACKER)).toBe(0)
     expect(await bal(INSP)).toBe(500)
+    await db.query("update public.resale_rewards set release_at=now()-interval '1 minute' where inspection_id=$1",[inspectionId])
+    await db.query('select public.lc_release_resale_rewards()')
+    expect(await bal(TRACKER)).toBe(54)
   })
   it('the ledger is append-only for everyone, including the service role', async () => {
     for (const sql of [`update public.ledger_entries set amount = 1`, `delete from public.ledger_entries`]) {
@@ -147,7 +150,7 @@ describe('withdrawals', () => {
     wid = (await call(INSP, 'select public.request_withdrawal(200) as id')).rows[0].id
     const e = (await call(INSP, 'select public.my_earnings() as e')).rows[0].e
     expect(e).toMatchObject({ balance: 500, pending_withdrawal: 200, available: 300 })
-    expect((await attempt(() => call(INSP, 'select public.request_withdrawal(100)'))).error).toMatch(/already have a withdrawal/)
+    expect((await attempt(() => call(INSP, 'select public.request_withdrawal(200)'))).error).toMatch(/already have a withdrawal/)
     expect((await attempt(() => call(INSP, SET_ACC, ACCOUNT))).error).toMatch(/in progress/)
     expect((await call(INSP, 'select * from public.my_withdrawals()')).rows[0]).toMatchObject({ amount: 200, status: 'requested' })
   })
