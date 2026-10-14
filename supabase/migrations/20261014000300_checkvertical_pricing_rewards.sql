@@ -75,13 +75,13 @@ grant execute on function public.list_active_inspection_tiers() to authenticated
 
 create or replace function public.admin_list_tiers()
 returns setof public.inspection_tiers
-language plpgsql security definer set search_path = '' as $
+language plpgsql security definer set search_path = '' as $$
 begin
   perform public.lc_require_admin(true);
   perform public.lc_audit('tiers_listed','inspection_tier','all',
     jsonb_build_object('count',(select count(*) from public.inspection_tiers)));
   return query select * from public.inspection_tiers order by sort, buyer_price;
-end $;
+end $$;
 revoke all on function public.admin_list_tiers() from public, anon;
 grant execute on function public.admin_list_tiers() to authenticated, service_role;
 
@@ -376,10 +376,10 @@ for each row execute function public.cv_set_tier_report_price();
 -- Resale notifications are sent only when a held first-buyer reward is released.
 -- The legacy purchase trigger would notify immediately and could tell inspectors they earned a resale share.
 create or replace function public.notify_report_purchased()
-returns trigger language plpgsql security definer set search_path = '' as $
+returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   return new;
-end $;
+end $$;
 revoke all on function public.notify_report_purchased() from public, anon, authenticated;
 
 -- Each resale reserves the first buyer's capped share; nothing is credited until release_at.
