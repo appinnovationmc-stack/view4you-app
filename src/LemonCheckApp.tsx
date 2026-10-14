@@ -721,7 +721,7 @@ function AuthScreen(props) {
         h('p',{style:{fontSize:12,lineHeight:1.5,color:C.t3,marginBottom:12}},'Choose every tier you are equipped and confident to deliver. You can select up to three.'),
         signupTiers.map(function(t){
           var selected=selectedTierIds.indexOf(t.id)>=0;
-          var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded mechanical checks and road-test observations':'Full checklist, enhanced photo evidence and measured tests when suitable equipment is available';
+          var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded mechanical checks and road-test observations':'Full checklist, 12 evidence photos and measured tests using suitable equipment';
           return h('button',{key:t.id,type:'button',onClick:function(){toggleTier(t.id);},'aria-pressed':selected,
             style:{display:'flex',width:'100%',alignItems:'flex-start',gap:10,textAlign:'left',padding:12,marginBottom:8,borderRadius:12,border:'1px solid '+(selected?C.t:'var(--b)'),background:selected?C.s2:'transparent',color:C.t}},
             h('span',{style:{width:18,height:18,borderRadius:5,border:'1px solid '+(selected?C.t:'var(--b2)'),background:selected?C.t:'transparent',color:C.bg,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},selected?'✓':''),
@@ -2064,7 +2064,7 @@ function InspProfileScreen(props) {
             h('span',null,'I have suitable equipment for measured brake, suspension and alignment tests (required for Comprehensive).')),
           tierRows.map(function(t){
             var selected=myTierIds.indexOf(t.id)>=0;
-            var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded full checklist and road-test observations':'Full checklist and enhanced photo evidence; diagnostics only with suitable equipment';
+            var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded full checklist and road-test observations':'Full checklist, 12 evidence photos and measured tests using suitable equipment';
             return h('button',{key:t.id,type:'button',onClick:function(){toggleMyTier(t.id);},'aria-pressed':selected,
               style:{display:'flex',width:'100%',alignItems:'flex-start',gap:10,textAlign:'left',padding:12,marginBottom:8,borderRadius:12,border:'1px solid '+(selected?C.t:'var(--b)'),background:selected?C.s2:'transparent',color:C.t}},
               h('span',{style:{width:18,height:18,borderRadius:5,border:'1px solid '+(selected?C.t:'var(--b2)'),background:selected?C.t:'transparent',color:C.bg,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},selected?'✓':''),
