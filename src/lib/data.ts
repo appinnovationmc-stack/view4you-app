@@ -47,7 +47,8 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-  await supabase.auth.signOut()
+  // Local-only sign-out: do not revoke the user's other active sessions/devices.
+  await supabase.auth.signOut({ scope: 'local' })
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -243,7 +244,16 @@ export interface PayfastCheckout { order_ref: string; amount: number; action: st
 async function invokePayment(fn: string, body: Record<string, string>): Promise<PayfastCheckout> {
   const { data: session } = await supabase.auth.getSession()
   if (!session.session?.access_token) throw new Error('Please sign in again.')
-  const { data, error } = await supabase.functions.invoke(fn, { body })
+
+  let { data, error } = await supabase.functions.invoke(fn, { body })
+  // Refresh and retry exactly once for an expired access token. Never create a new booking here;
+  // the caller supplies the existing booking/report order id on retry.
+  const firstContext = error ? (error as { context?: Response }).context : undefined
+  if (error && firstContext?.status === 401) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+    if (refreshError || !refreshed.session?.access_token) throw new Error('Your session expired. Please sign in again.')
+    ;({ data, error } = await supabase.functions.invoke(fn, { body }))
+  }
   if (error) {
     // Edge Function errors carry the JSON body on error.context; surface the server's message when present.
     const ctx = (error as { context?: Response }).context
