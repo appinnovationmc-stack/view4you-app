@@ -37,7 +37,7 @@ const ADMIN_CALLS: [string, string, unknown[]][] = [
 ]
 const USER_CALLS: [string, string, unknown[]][] = [
   ['set account', SET_ACC, ACCOUNT], ['my account', 'select public.my_payout_account()', []], ['earnings', 'select public.my_earnings()', []],
-  ['withdrawals', 'select * from public.my_withdrawals()', []], ['request', 'select public.request_withdrawal(100)', []],
+  ['withdrawals', 'select * from public.my_withdrawals()', []], ['request', 'select public.request_withdrawal(200)', []],
   ['cancel', 'select public.cancel_my_withdrawal($1)', [uid(500)]],
 ]
 
@@ -87,15 +87,15 @@ describe('credits', () => {
     await db.query(
       `insert into public.report_purchases (inspection_id, buyer_id, amount_paid, payer_earning, inspector_earning)
        values ($1,$2,90,46,44)`, [inspectionId, INSP2])
-    expect(await bal(INSP)).toBe(544)
-    expect(await bal(TRACKER)).toBe(46)
+    expect(await bal(INSP)).toBe(500)
+    expect(await bal(TRACKER)).toBe(54)
     expect(await bal(INSP2)).toBe(0)
   })
   it('the tracker buying their own tracked vehicle earns nothing from it', async () => {
     await db.query(`insert into public.report_purchases (inspection_id, buyer_id, amount_paid, payer_earning, inspector_earning)
                     values ($1,$2,90,46,44)`, [inspectionId, TRACKER])
     expect(await bal(TRACKER)).toBe(46)
-    expect(await bal(INSP)).toBe(588)
+    expect(await bal(INSP)).toBe(500)
   })
   it('the ledger is append-only for everyone, including the service role', async () => {
     for (const sql of [`update public.ledger_entries set amount = 1`, `delete from public.ledger_entries`]) {
@@ -105,8 +105,8 @@ describe('credits', () => {
   })
   it('my_earnings reports balance, minimum and recent entries', async () => {
     const e = (await call(INSP, 'select public.my_earnings() as e')).rows[0].e
-    expect(e).toMatchObject({ balance: 588, pending_withdrawal: 0, available: 588, min_payout: 100 })
-    expect(e.entries.length).toBe(3)
+    expect(e).toMatchObject({ balance: 500, pending_withdrawal: 0, available: 500, min_payout: 200 })
+    expect(e.entries.length).toBe(1)
     expect(e.entries[0].kind).toMatch(/resale|job_fee/)
   })
 })
@@ -134,19 +134,19 @@ describe('withdrawals', () => {
       const r = await attempt(() => call(who, 'select public.request_withdrawal($1)', [amt]))
       expect(r.ok).toBe(false); expect(r.error).toMatch(re)
     }
-    await fail(TRACKER, 46, /minimum withdrawal is R100/)
+    await fail(TRACKER, 54, /minimum withdrawal is R200/)
     await db.query('update public.lc_settings set min_payout = 10')
     await fail(TRACKER, 46, /bank details/)
-    await fail(INSP, 589, /more than your available/)
+    await fail(INSP, 501, /more than your available/)
     await fail(INSP, null, /amount/i)
     await fail(INSP, 0, /amount/i)
-    await db.query('update public.lc_settings set min_payout = 100')
-    await fail(INSP, 99, /minimum/)
+    await db.query('update public.lc_settings set min_payout = 200')
+    await fail(INSP, 199, /minimum/)
   })
   it('creates one open request with a snapshot, reserves it, and blocks a second', async () => {
-    wid = (await call(INSP, 'select public.request_withdrawal(400) as id')).rows[0].id
+    wid = (await call(INSP, 'select public.request_withdrawal(200) as id')).rows[0].id
     const e = (await call(INSP, 'select public.my_earnings() as e')).rows[0].e
-    expect(e).toMatchObject({ balance: 588, pending_withdrawal: 400, available: 188 })
+    expect(e).toMatchObject({ balance: 500, pending_withdrawal: 200, available: 300 })
     expect((await attempt(() => call(INSP, 'select public.request_withdrawal(100)'))).error).toMatch(/already have a withdrawal/)
     expect((await attempt(() => call(INSP, SET_ACC, ACCOUNT))).error).toMatch(/in progress/)
     expect((await call(INSP, 'select * from public.my_withdrawals()')).rows[0]).toMatchObject({ amount: 400, status: 'requested' })
@@ -155,17 +155,17 @@ describe('withdrawals', () => {
     const r = (await call(ADMIN, `select * from public.admin_list_withdrawals('requested')`)).rows
     expect(r.length).toBe(1)
     expect(r[0]).toMatchObject({ amount: 400, status: 'requested' })
-    expect(Number(r[0].balance)).toBe(588)
+    expect(Number(r[0].balance)).toBe(500)
     expect(r[0].account).toMatchObject({ account_number: '62001234567', branch_code: '250655' })
     expect((await attempt(() => call(ADMIN, 'select public.admin_pay_withdrawal($1,$2)', [wid, ' ']))).ok).toBe(false)
     expect((await attempt(() => call(ADMIN, `select * from public.admin_list_withdrawals('bogus')`))).ok).toBe(false)
   })
   it('paying it writes a negative payout, notifies the user, audits, and cannot be repeated', async () => {
     await call(ADMIN, 'select public.admin_pay_withdrawal($1,$2)', [wid, 'FNB-REF-1'])
-    expect(await bal(INSP)).toBe(188)
-    expect((await db.query<any>(`select kind, amount from public.ledger_entries where ref_id=$1`, [wid])).rows).toEqual([{ kind: 'payout', amount: -400 }])
+    expect(await bal(INSP)).toBe(300)
+    expect((await db.query<any>(`select kind, amount from public.ledger_entries where ref_id=$1`, [wid])).rows).toEqual([{ kind: 'payout', amount: -200 }])
     const e = (await call(INSP, 'select public.my_earnings() as e')).rows[0].e
-    expect(e).toMatchObject({ balance: 188, pending_withdrawal: 0, available: 188 })
+    expect(e).toMatchObject({ balance: 300, pending_withdrawal: 0, available: 300 })
     expect((await db.query<any>(`select body from public.notifications where user_id=$1 and title='Withdrawal paid'`, [INSP])).rows[0].body).toContain('4567')
     expect((await db.query<any>(`select detail from public.admin_audit_log where action='withdrawal_paid'`)).rows[0].detail).toMatchObject({ amount: 400, reference: 'FNB-REF-1' })
     expect((await attempt(() => call(ADMIN, 'select public.admin_pay_withdrawal($1,$2)', [wid, 'again']))).error).toMatch(/already paid/)
@@ -173,22 +173,22 @@ describe('withdrawals', () => {
     expect((await call(INSP, 'select * from public.my_withdrawals()')).rows[0]).toMatchObject({ status: 'paid', reference: 'FNB-REF-1' })
   })
   it('rejecting leaves the balance untouched and tells the user why', async () => {
-    const id = (await call(INSP, 'select public.request_withdrawal(150) as id')).rows[0].id
+    const id = (await call(INSP, 'select public.request_withdrawal(200) as id')).rows[0].id
     expect((await attempt(() => call(ADMIN, 'select public.admin_reject_withdrawal($1,$2)', [id, '']))).ok).toBe(false)
     await call(ADMIN, 'select public.admin_reject_withdrawal($1,$2)', [id, 'bank details look wrong'])
-    expect(await bal(INSP)).toBe(188)
+    expect(await bal(INSP)).toBe(300)
     expect((await db.query<any>(`select body from public.notifications where user_id=$1 and title='Withdrawal not processed'`, [INSP])).rows[0].body).toContain('bank details look wrong')
   })
   it('the user can cancel an open request, and only their own', async () => {
-    const id = (await call(INSP, 'select public.request_withdrawal(120) as id')).rows[0].id
+    const id = (await call(INSP, 'select public.request_withdrawal(200) as id')).rows[0].id
     expect((await attempt(() => call(BUYER, 'select public.cancel_my_withdrawal($1)', [id]))).ok).toBe(false)
     await call(INSP, 'select public.cancel_my_withdrawal($1)', [id])
     expect((await call(INSP, 'select * from public.my_withdrawals()')).rows[0].status).toBe('cancelled')
     expect((await attempt(() => call(INSP, 'select public.cancel_my_withdrawal($1)', [id]))).ok).toBe(false)
   })
   it('paying is refused when the balance has dropped below the request', async () => {
-    const id = (await call(INSP, 'select public.request_withdrawal(180) as id')).rows[0].id
-    await call(ADMIN, 'select public.admin_add_adjustment($1,$2,$3)', [INSP, -100, 'chargeback'])
+    const id = (await call(INSP, 'select public.request_withdrawal(200) as id')).rows[0].id
+    await call(ADMIN, 'select public.admin_add_adjustment($1,$2,$3)', [INSP, -150, 'chargeback'])
     const r = await attempt(() => call(ADMIN, 'select public.admin_pay_withdrawal($1,$2)', [id, 'x']))
     expect(r.ok).toBe(false); expect(r.error).toMatch(/balance is now lower/)
     await call(ADMIN, 'select public.admin_reject_withdrawal($1,$2)', [id, 'balance changed'])
@@ -215,8 +215,8 @@ describe('adjustments', () => {
   it('balances and the ledger show the totals split by kind', async () => {
     const row = (await call(ADMIN, 'select * from public.admin_list_balances($1)', ['user 03'])).rows[0]
     expect(row).toMatchObject({ user_id: INSP })
-    expect(Number(row.paid_out)).toBe(400)
-    expect(Number(row.adjustments)).toBe(-100)
+    expect(Number(row.paid_out)).toBe(200)
+    expect(Number(row.adjustments)).toBe(-150)
     expect(Number(row.balance)).toBe(Number(row.earned) - 400 - 100)
     expect((await call(ADMIN, 'select * from public.admin_list_balances($1)', ['%'])).rows.length).toBe(0)
     const l = (await call(ADMIN, 'select * from public.admin_list_ledger($1)', [INSP])).rows
