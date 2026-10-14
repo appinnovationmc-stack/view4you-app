@@ -462,8 +462,11 @@ export async function fetchDetailedReport(inspectionId: string): Promise<ReportV
 
   const v = (insp as { vehicles: Vehicle | null }).vehicles
   const inspector = (insp as { profiles: { name: string } | null }).profiles
+  const tierRows = await fetchInspectionTiers().catch(() => [])
+  const tierName = tierRows.find(t => t.id === (insp as { tier_id?: string | null }).tier_id)?.name ?? 'Standard'
   return {
     reportNumber: insp.report_number ?? insp.id.slice(0, 8).toUpperCase(),
+    tierName,
     vehicle: {
       make: v?.make, model: v?.model, year: v?.year, vin: insp.vin,
       odometer_km: insp.odometer_km ?? undefined,
