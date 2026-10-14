@@ -14,7 +14,7 @@ const FINDINGS = AREAS.map(area => ({ area, status: 'pass', note: 'checked' }))
 const TYRES = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right'].map(position => ({ position, tread_mm: 5.5 }))
 const submit = (bookingId: string) => asUser(db, INSPECTOR, () => db.query<any>(
   'select * from public.submit_detailed_report($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb)',
-  [bookingId, 95, 'Test report', 85000, 'pass', '[]', '[]', JSON.stringify(FINDINGS), JSON.stringify(ITEMS), '[]', JSON.stringify(TYRES)]))
+  [bookingId, 100, 'Test report', 85000, 'pass', '[]', '[]', JSON.stringify(FINDINGS), JSON.stringify(ITEMS), '[]', JSON.stringify(TYRES)]))
 
 async function createTierReport(vin: string) {
   await db.query("update public.lc_settings set tiers_enabled=true, founding_limit=200 where id=1")
