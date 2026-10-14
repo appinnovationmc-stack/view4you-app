@@ -117,13 +117,21 @@ export function deriveFindings(items: ReportItem[], tests: Measurement[], tyres:
     else if (ty.tread_mm < LIMITS.treadWarnMm) raise('Tyres', 'warn', `${ty.position} tyre tread low (${ty.tread_mm} mm)`)
   }
 
-  return AREAS.map(area => ({ area, status: status.get(area)!, note: notes.get(area)!.join('; ') }))
+  // Only score areas that this tier actually assessed. An omitted Basic-tier area must
+  // never silently appear as a passing inspection result.
+  const assessed = new Set<Area>()
+  items.forEach(i => { const area = areaOf(i.section, i.component); if (area) assessed.add(area) })
+  tests.forEach(t => assessed.add(t.test === 'brake' ? 'Brakes' : 'Suspension'))
+  if (tyres.length) assessed.add('Tyres')
+  return AREAS.filter(area => assessed.has(area)).map(area => ({
+    area, status: status.get(area)!, note: notes.get(area)!.join('; '),
+  }))
 }
 
 /** Same formula the old 12-area screen used: pass=10, warn=5, fail=0, scaled to 0-100. */
 export function scoreFromFindings(findings: AreaFinding[]): number {
   const pts = findings.reduce((a, f) => a + (f.status === 'pass' ? 10 : f.status === 'warn' ? 5 : 0), 0)
-  return Math.round((pts / findings.length) * 10)
+  return findings.length ? Math.round((pts / findings.length) * 10) : 0
 }
 
 /** Plain-language verdict stored on the inspection; same wording rules as the legacy buildVerdict. */
