@@ -229,12 +229,6 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     setDraft(d => ({ ...d, tests: { ...d.tests, [k]: { ...(d.tests[k] as TestForm | undefined ?? { right: '', left: '' }), ...f } } }))
   const setTyre = (pos: string, f: Partial<TyreForm>) =>
     setDraft(d => ({ ...d, tyres: { ...d.tyres, [pos]: { ...emptyTyre(), ...d.tyres[pos], ...f } } }))
-  const markRestGood = (sectionKey: string) => setDraft(d => {
-    const next = { ...d.conds }
-    activeChecklist.find(s => s.key === sectionKey)?.rows.forEach(([key]) => { if (!next[rk(sectionKey, key)]) next[rk(sectionKey, key)] = 'good' })
-    return { ...d, conds: next }
-  })
-
   // ---- derived data ----
   const items: ReportItem[] = useMemo(() => activeChecklist.flatMap(s => s.rows.flatMap(([key, , rw]) => {
     const c = draft.conds[rk(s.key, key)]
@@ -490,14 +484,6 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           return (
             <Accordion key={s.key} title={s.title} meta={`${done}/${s.rows.length}`} metaColor={complete ? C.green : C.t3}
               open={open === s.key} onToggle={() => setOpen(o => (o === s.key ? null : s.key))}>
-              {!complete && (
-                <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--b)' }}>
-                  <button type="button" onClick={() => markRestGood(s.key)}
-                    style={{ background: C.greenDim, color: C.green, border: '1px solid rgba(50,215,75,.25)', borderRadius: 999, padding: '9px 16px', fontSize: 12, fontWeight: 500 }}>
-                    Mark everything not yet checked as Good
-                  </button>
-                </div>
-              )}
               {s.rows.map(([key, label, rw]) => (
                 <ItemRow key={key} k={rk(s.key, key)} label={label} rw={!!rw} priority={priorityForRow(s.key, key)} cond={draft.conds[rk(s.key, key)]}
                   note={draft.notes[rk(s.key, key)] ?? ''} onCond={setCond} onNote={setNote} />
