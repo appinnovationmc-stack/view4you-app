@@ -97,7 +97,7 @@ describe('CheckVertical fixed tiers and resale rewards', () => {
     await asService(db,() => db.query('select public.lc_release_resale_rewards()'))
     expect((await db.query<any>("select amount from public.ledger_entries where kind='resale_payer' and ref_id=$1",[purchase.id])).rows).toEqual([{amount:149}])
     expect((await db.query<any>('select released_at from public.resale_rewards where purchase_id=$1',[purchase.id])).rows[0].released_at).not.toBeNull()
-    expect((await db.query<any>("select count(*)::int n from public.notifications where user_id=$1 and type='reward'",[BUYER])).rows[0].n).toBe(1)
+    expect((await db.query<any>("select count(*)::int n from public.notifications where user_id=$1 and type='earn'",[BUYER])).rows[0].n).toBe(1)
   })
 
   it('does not reward a self-purchase and does not duplicate a purchase credit', async () => {
