@@ -436,6 +436,25 @@ exception when undefined_table or undefined_function or insufficient_privilege t
   raise notice 'pg_cron unavailable; schedule lc_release_resale_rewards from a service-role Edge Function.';
 end $$;
 
+create or replace function public.get_earn_back_progress(p_booking_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $
+declare v_booking public.bookings%rowtype; v_earned integer; v_pending integer; v_cap integer;
+begin
+  if auth.uid() is null then raise exception 'Sign in required' using errcode='28000'; end if;
+  select * into v_booking from public.bookings where id=p_booking_id and buyer_id=auth.uid();
+  if not found then raise exception 'Booking not found' using errcode='P0002'; end if;
+  v_cap := coalesce(v_booking.amount_due,0);
+  select coalesce(sum(rr.payer_amount) filter(where rr.released_at is not null),0),
+         coalesce(sum(rr.payer_amount) filter(where rr.released_at is null),0)
+    into v_earned,v_pending
+    from public.resale_rewards rr join public.inspections i on i.id=rr.inspection_id
+   where i.booking_id=p_booking_id and rr.first_buyer_id=auth.uid();
+  return jsonb_build_object('cap',v_cap,'earned',v_earned,'pending',v_pending,
+    'percent',case when v_cap<=0 then 0 else least(100,round(v_earned*100.0/v_cap)) end);
+end $;
+revoke all on function public.get_earn_back_progress(uuid) from public, anon;
+grant execute on function public.get_earn_back_progress(uuid) to authenticated, service_role;
+
 -- Net platform revenue, calculated from stored gross values; no historic rows are re-priced.
 create or replace view public.platform_revenue with (security_invoker=true) as
 select
