@@ -1013,6 +1013,7 @@ function BookScreen(props) {
   var _load = useState(false);  var loading=_load[0];var setLoading=_load[1];
   var _secs = useState(0);      var secs = _secs[0]; var setSecs = _secs[1];
   var _bkid = useState(pendingInfo ? pendingInfo.id : null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
+  var _bookingFingerprint = useState(''); var bookingFingerprint=_bookingFingerprint[0]; var setBookingFingerprint=_bookingFingerprint[1];
   var _rt = useState(null); var route = _rt[0]; var setRoute = _rt[1];
   var _ts = useState(0);    var totalSecs = _ts[0]; var setTotalSecs = _ts[1];
   var _vk = useState('private'); var venueKind = _vk[0]; var setVenueKind = _vk[1];
@@ -1065,15 +1066,22 @@ function BookScreen(props) {
   function confirm() {
     if (loading) return;
     setLoading(true);
-    Data.createBooking({
-      vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
-      location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
-      notes: notes, inspectorId: inspector.id, tierId: tierMode ? tierId : null,
-      venueKind: venueKind, venueName: venueKind==='private' ? '' : dealer.trim(),
-      auctionAt: venueKind==='auction' ? isoLocal(auctionAt) : null, lotNumber: venueKind==='auction' ? lot.trim() : '',
-      neededBy: venueKind==='auction' ? isoLocal(neededBy) : null, stationId: wantRw ? stationId : null,
-    }).then(function(booking){
+    var draftKey = JSON.stringify([vin.trim().toUpperCase(),make,model,Number(year),
+      [dealer.trim(),loc.trim()].filter(Boolean).join(' · ') || loc || dealer,notes,inspector.id,
+      tierMode ? tierId : null,venueKind,dealer.trim(),auctionAt,lot.trim(),neededBy,wantRw ? stationId : null]);
+    var bookingRequest = bookingId && bookingFingerprint===draftKey
+      ? Promise.resolve({id:bookingId})
+      : Data.createBooking({
+          vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
+          location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
+          notes: notes, inspectorId: inspector.id, tierId: tierMode ? tierId : null,
+          venueKind: venueKind, venueName: venueKind==='private' ? '' : dealer.trim(),
+          auctionAt: venueKind==='auction' ? isoLocal(auctionAt) : null, lotNumber: venueKind==='auction' ? lot.trim() : '',
+          neededBy: venueKind==='auction' ? isoLocal(neededBy) : null, stationId: wantRw ? stationId : null,
+        });
+    bookingRequest.then(function(booking){
       setBookingId(booking.id);
+      setBookingFingerprint(draftKey);
       savePendingBooking({id:booking.id, inspector:inspector.name, vehicle:year+' '+make+' '+model, venue:venueKind, venueName:dealer.trim(), lot:lot.trim()});
       return Data.startBookingPayment(booking.id);
     }).then(function(payment){
