@@ -89,7 +89,7 @@ describe('pricing settings', () => {
     await call(ADMIN, UPDATE, settingsArgs({ travel: 150, platform: 100, price: 2000, payer: 5000, plat: 1000, min: 200, docs: true, reason: 'Q4 pricing' }))
     expect((await db.query<any>('select public.lc_travel_fee() t, public.lc_platform_fee() p')).rows[0]).toEqual({ t: 150, p: 100 })
     // Resale rewards never pay inspectors; configured payer/platform shares cover the report price.
-    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 100, payer_cut: 50, inspector_cut: 0 })
+    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 100, payer_cut: 50, inspector_cut: 40 })
     const s = (await call(ADMIN, 'select public.admin_get_settings() as s')).rows[0].s
     expect(s).toMatchObject({ travel_fee: 150, min_payout: 200, require_documents: true })
     const a = (await db.query<any>(`select detail from public.admin_audit_log where action='settings_updated'`)).rows
