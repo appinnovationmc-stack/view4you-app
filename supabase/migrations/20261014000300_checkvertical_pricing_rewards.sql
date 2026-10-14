@@ -371,6 +371,15 @@ drop trigger if exists cv_set_tier_report_price on public.inspections;
 create trigger cv_set_tier_report_price before insert on public.inspections
 for each row execute function public.cv_set_tier_report_price();
 
+-- Resale notifications are sent only when a held first-buyer reward is released.
+-- The legacy purchase trigger would notify immediately and could tell inspectors they earned a resale share.
+create or replace function public.notify_report_purchased()
+returns trigger language plpgsql security definer set search_path = '' as $
+begin
+  return new;
+end $;
+revoke all on function public.notify_report_purchased() from public, anon, authenticated;
+
 -- Each resale reserves the first buyer's capped share; nothing is credited until release_at.
 create or replace function public.lc_credit_resale() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -445,7 +454,7 @@ begin
     on conflict (kind,ref_type,ref_id,user_id) where kind in ('job_fee','resale_inspector','resale_payer') do nothing;
     if found then
       insert into public.notifications(user_id,type,icon,title,body,read)
-      values (r.first_buyer_id,'reward','wallet','Your CheckVertical reward is ready',
+      values (r.first_buyer_id,'earn','wallet','Your CheckVertical reward is ready',
         'R'||r.payer_amount||' is now available toward your inspection cost.',false);
       v_count := v_count + 1;
     end if;
