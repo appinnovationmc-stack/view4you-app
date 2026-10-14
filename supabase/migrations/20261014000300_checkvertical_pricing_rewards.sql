@@ -390,6 +390,8 @@ declare
   v_price integer; v_share_bp integer; v_cap integer; v_earned integer; v_payer integer; v_platform integer;
   v_expiry integer; v_hold integer; v_founding_count integer; v_found_share integer; v_found_count integer;
 begin
+  -- Serialize resale allocations per report so concurrent purchases cannot exceed the payback cap.
+  perform pg_advisory_xact_lock(hashtext('checkvertical-resale:'||new.inspection_id::text));
   select i.* into v_inspection from public.inspections i where i.id=new.inspection_id;
   select b.* into v_booking from public.bookings b where b.id=v_inspection.booking_id;
   select first_tracked_by into v_tracker from public.vehicles where vin=v_inspection.vin;
