@@ -75,11 +75,13 @@ grant execute on function public.list_active_inspection_tiers() to authenticated
 
 create or replace function public.admin_list_tiers()
 returns setof public.inspection_tiers
-language plpgsql stable security definer set search_path = '' as $$
+language plpgsql security definer set search_path = '' as $
 begin
-  perform public.lc_require_admin(false);
+  perform public.lc_require_admin(true);
+  perform public.lc_audit('tiers_listed','inspection_tier','all',
+    jsonb_build_object('count',(select count(*) from public.inspection_tiers)));
   return query select * from public.inspection_tiers order by sort, buyer_price;
-end $$;
+end $;
 revoke all on function public.admin_list_tiers() from public, anon;
 grant execute on function public.admin_list_tiers() to authenticated, service_role;
 
