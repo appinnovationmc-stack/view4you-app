@@ -150,7 +150,7 @@ for each row execute function public.cv_guard_tiered_booking();
 create or replace function public.create_booking(
   p_vin text, p_make text, p_model text, p_year integer,
   p_location text, p_notes text, p_inspector_id uuid,
-  p_venue_kind text default 'private', p_venue_name text default null, p_auction_at timestamptz default null,
+  p_venue_kind text, p_venue_name text, p_auction_at timestamptz,
   p_lot_number text, p_needed_by timestamptz, p_station_id uuid, p_tier_id uuid
 ) returns public.bookings
 language plpgsql security definer set search_path = '' as $$
@@ -342,10 +342,8 @@ declare
   v_price integer; v_share_bp integer; v_cap integer; v_earned integer; v_payer integer; v_platform integer;
   v_expiry integer; v_hold integer; v_founding_count integer; v_found_share integer; v_found_count integer;
 begin
-  select i.*, b.* into v_inspection, v_booking
-    from public.inspections i
-    join public.bookings b on b.id=i.booking_id
-   where i.id=new.inspection_id;
+  select i.* into v_inspection from public.inspections i where i.id=new.inspection_id;
+  select b.* into v_booking from public.bookings b where b.id=v_inspection.booking_id;
   select first_tracked_by into v_tracker from public.vehicles where vin=v_inspection.vin;
   if v_tracker is null or v_tracker=new.buyer_id then return new; end if;
 
