@@ -1975,6 +1975,30 @@ function InspProfileScreen(props) {
   var _cr=useState([]); var myCreds=_cr[0]; var setMyCreds=_cr[1];
   useEffect(function(){ Data.fetchMyCredentials().then(function(l){ setMyCreds(l.filter(function(c){ return c.status==='approved'; })); }).catch(function(){}); },[]);
   var myBadges=myCreds.map(function(c){ return c.kind==='eov' ? {kind:'eov',grade:c.credential_grade} : {kind:'trade_qualified'}; });
+  var _tierRows=useState([]); var tierRows=_tierRows[0]; var setTierRows=_tierRows[1];
+  var _myTierIds=useState([]); var myTierIds=_myTierIds[0]; var setMyTierIds=_myTierIds[1];
+  var _tierSaving=useState(false); var tierSaving=_tierSaving[0]; var setTierSaving=_tierSaving[1];
+  var _tierNotice=useState(''); var tierNotice=_tierNotice[0]; var setTierNotice=_tierNotice[1];
+  useEffect(function(){
+    Promise.all([Data.fetchInspectionTiers(),Data.fetchMyInspectorTiers()]).then(function(res){
+      setTierRows(res[0]); setMyTierIds(res[1]);
+    }).catch(function(e){ setTierNotice((e&&e.message)||'Could not load service tiers.'); });
+  },[]);
+  function toggleMyTier(id){
+    setMyTierIds(function(current){
+      if(current.indexOf(id)>=0) return current.filter(function(x){return x!==id;});
+      if(current.length>=3) return current;
+      return current.concat([id]);
+    });
+  }
+  function saveMyTiers(){
+    if(!myTierIds.length){setTierNotice('Select at least one tier.');return;}
+    setTierSaving(true);setTierNotice('');
+    Data.setMyInspectorTiers(myTierIds).then(function(){
+      setTierNotice('Your service offerings have been saved.');
+    }).catch(function(e){setTierNotice((e&&e.message)||'Could not save service offerings.');})
+      .finally(function(){setTierSaving(false);});
+  }
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 0'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:22}},
@@ -2000,6 +2024,22 @@ function InspProfileScreen(props) {
             Data.updateMyProfile(patch).then(function(){ window.location.reload(); }).catch(function(e){ window.alert(e.message||'Could not save'); });
           }}),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginTop:12}},user.bio))),
+      h(Card,{style:{marginBottom:10}},
+        h('div',{style:{padding:'18px'}},
+          h('p',{style:{fontWeight:800,fontSize:'var(--fs-caption)',color:C.t,marginBottom:6}},'Inspection services you offer'),
+          h('p',{style:{fontSize:11,lineHeight:1.55,color:C.t3,marginBottom:12}},'Only select tiers you can deliver. Customers will only be matched to you for the services you select.'),
+          tierRows.map(function(t){
+            var selected=myTierIds.indexOf(t.id)>=0;
+            var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded full checklist and road-test observations':'Full checklist and enhanced photo evidence; diagnostics only with suitable equipment';
+            return h('button',{key:t.id,type:'button',onClick:function(){toggleMyTier(t.id);},'aria-pressed':selected,
+              style:{display:'flex',width:'100%',alignItems:'flex-start',gap:10,textAlign:'left',padding:12,marginBottom:8,borderRadius:12,border:'1px solid '+(selected?C.t:'var(--b)'),background:selected?C.s2:'transparent',color:C.t}},
+              h('span',{style:{width:18,height:18,borderRadius:5,border:'1px solid '+(selected?C.t:'var(--b2)'),background:selected?C.t:'transparent',color:C.bg,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},selected?'✓':''),
+              h('span',{style:{flex:1}},
+                h('b',{style:{display:'block',fontSize:13}},t.name+' · '+R(t.buyer_price)),
+                h('small',{style:{display:'block',fontSize:11,lineHeight:1.5,color:C.t3,marginTop:3}},detail)));
+          }),
+          h(PBtn,{label:tierSaving?'Saving…':'Save service offerings',onClick:saveMyTiers,disabled:tierSaving||!myTierIds.length}),
+          tierNotice && h('p',{style:{fontSize:11,color:tierNotice.indexOf('saved')>=0?C.green:C.t3,marginTop:10}},tierNotice))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'How you earn'),
