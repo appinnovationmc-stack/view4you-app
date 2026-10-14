@@ -651,6 +651,7 @@ function AuthScreen(props) {
   var _err = useState('');         var err = _err[0];          var setErr = _err[1];
   var _signupTiers = useState([]); var signupTiers = _signupTiers[0]; var setSignupTiers = _signupTiers[1];
   var _selectedTierIds = useState([]); var selectedTierIds = _selectedTierIds[0]; var setSelectedTierIds = _selectedTierIds[1];
+  var _canMeasure = useState(false); var canMeasure = _canMeasure[0]; var setCanMeasure = _canMeasure[1];
 
   useEffect(function(){
     if (pickedRole !== 'insp' || mode !== 'signup') return;
@@ -668,6 +669,12 @@ function AuthScreen(props) {
   }, [pickedRole, mode]);
 
   function toggleTier(id) {
+    var chosen = signupTiers.filter(function(t){return t.id===id;})[0];
+    if (chosen && chosen.name==='Comprehensive' && !canMeasure) {
+      setErr('Comprehensive requires suitable equipment for measured brake, suspension and alignment tests. Confirm your equipment first.');
+      return;
+    }
+    setErr('');
     setSelectedTierIds(function(current){
       if (current.indexOf(id) >= 0) return current.filter(function(x){return x!==id;});
       if (current.length >= 3) return current;
@@ -678,7 +685,7 @@ function AuthScreen(props) {
   function submit() {
     setErr(''); setLoading(true);
     var p = mode === 'signup'
-      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0], tierIds: pickedRole === 'insp' ? selectedTierIds : [] })
+      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0], tierIds: pickedRole === 'insp' ? selectedTierIds : [], canMeasure: pickedRole === 'insp' && canMeasure })
       : Data.signIn(email, pw);
     p.then(function(profile){ setLoading(false); props.login(profile); })
      .catch(function(e){ setLoading(false); setErr((e && e.message) || 'Something went wrong.'); });
@@ -722,6 +729,15 @@ function AuthScreen(props) {
               h('b',{style:{display:'block',fontSize:13}},t.name+' · '+R(t.buyer_price)),
               h('small',{style:{display:'block',fontSize:11,lineHeight:1.5,color:C.t3,marginTop:3}},detail)));
         }),
+        h('label',{style:{display:'flex',alignItems:'flex-start',gap:9,fontSize:12,lineHeight:1.5,color:C.t,marginTop:8}},
+          h('input',{type:'checkbox',checked:canMeasure,onChange:function(e){
+            var enabled=e.target.checked;setCanMeasure(enabled);
+            if(!enabled){
+              var comprehensive=signupTiers.filter(function(t){return t.name==='Comprehensive';})[0];
+              if(comprehensive) setSelectedTierIds(function(current){return current.filter(function(id){return id!==comprehensive.id;});});
+            }
+          }}),
+          h('span',null,'I have suitable equipment to perform measured brake, suspension and wheel-alignment tests (required for Comprehensive).')),
         signupTiers.length===0 && h('p',{style:{fontSize:12,color:C.red}},'Inspection tiers could not be loaded. Please try again.')),
       h('input',{className:'lc-line',value:email,onChange:function(e){setEmail(e.target.value);},type:'email',placeholder:'Email','aria-label':'Email',autoCapitalize:'none',autoComplete:'email'}),
       h('input',{className:'lc-line',value:pw,onChange:function(e){setPw(e.target.value);},type:'password',placeholder:'Password','aria-label':'Password',autoComplete:signup?'new-password':'current-password',onKeyDown:function(e){if(e.key==='Enter')submit();}}),
@@ -1981,12 +1997,19 @@ function InspProfileScreen(props) {
   var _myTierIds=useState([]); var myTierIds=_myTierIds[0]; var setMyTierIds=_myTierIds[1];
   var _tierSaving=useState(false); var tierSaving=_tierSaving[0]; var setTierSaving=_tierSaving[1];
   var _tierNotice=useState(''); var tierNotice=_tierNotice[0]; var setTierNotice=_tierNotice[1];
+  var _canMeasure=useState(false); var canMeasure=_canMeasure[0]; var setCanMeasure=_canMeasure[1];
   useEffect(function(){
-    Promise.all([Data.fetchInspectionTiers(),Data.fetchMyInspectorTiers()]).then(function(res){
-      setTierRows(res[0]); setMyTierIds(res[1]);
+    Promise.all([Data.fetchInspectionTiers(),Data.fetchMyInspectorTiers(),Data.fetchMyInspectorCanMeasure()]).then(function(res){
+      setTierRows(res[0]); setMyTierIds(res[1]); setCanMeasure(res[2]);
     }).catch(function(e){ setTierNotice((e&&e.message)||'Could not load service tiers.'); });
   },[]);
   function toggleMyTier(id){
+    var chosen=tierRows.filter(function(t){return t.id===id;})[0];
+    if(chosen && chosen.name==='Comprehensive' && !canMeasure){
+      setTierNotice('Comprehensive requires suitable equipment for measured brake, suspension and alignment tests. Confirm your equipment first.');
+      return;
+    }
+    setTierNotice('');
     setMyTierIds(function(current){
       if(current.indexOf(id)>=0) return current.filter(function(x){return x!==id;});
       if(current.length>=3) return current;
@@ -1996,7 +2019,7 @@ function InspProfileScreen(props) {
   function saveMyTiers(){
     if(!myTierIds.length){setTierNotice('Select at least one tier.');return;}
     setTierSaving(true);setTierNotice('');
-    Data.setMyInspectorTiers(myTierIds).then(function(){
+    Data.setMyInspectorTiers(myTierIds,canMeasure).then(function(){
       setTierNotice('Your service offerings have been saved.');
     }).catch(function(e){setTierNotice((e&&e.message)||'Could not save service offerings.');})
       .finally(function(){setTierSaving(false);});
@@ -2030,6 +2053,15 @@ function InspProfileScreen(props) {
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:800,fontSize:'var(--fs-caption)',color:C.t,marginBottom:6}},'Inspection services you offer'),
           h('p',{style:{fontSize:11,lineHeight:1.55,color:C.t3,marginBottom:12}},'Only select tiers you can deliver. Customers will only be matched to you for the services you select.'),
+          h('label',{style:{display:'flex',alignItems:'flex-start',gap:9,fontSize:12,lineHeight:1.5,color:C.t,marginBottom:12}},
+            h('input',{type:'checkbox',checked:canMeasure,onChange:function(e){
+              var enabled=e.target.checked;setCanMeasure(enabled);
+              if(!enabled){
+                var comprehensive=tierRows.filter(function(t){return t.name==='Comprehensive';})[0];
+                if(comprehensive) setMyTierIds(function(current){return current.filter(function(id){return id!==comprehensive.id;});});
+              }
+            }}),
+            h('span',null,'I have suitable equipment for measured brake, suspension and alignment tests (required for Comprehensive).')),
           tierRows.map(function(t){
             var selected=myTierIds.indexOf(t.id)>=0;
             var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded full checklist and road-test observations':'Full checklist and enhanced photo evidence; diagnostics only with suitable equipment';
