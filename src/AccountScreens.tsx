@@ -38,7 +38,7 @@ function Field(props) {
         props.options.map(function (o) { return h('option', { key: o[0], value: o[0] }, o[1]); }))
       : props.multiline
         ? h('textarea', { value: props.value, rows: 4, maxLength: props.maxLength, onChange: function (e) { props.onChange(e.target.value); }, style: inputStyle(C) })
-        : h('input', { value: props.value, inputMode: props.inputMode, maxLength: props.maxLength, placeholder: props.placeholder, autoComplete: 'off',
+        : h('input', { type: props.type, value: props.value, inputMode: props.inputMode, maxLength: props.maxLength, placeholder: props.placeholder, autoComplete: 'off',
           onChange: function (e) { props.onChange(e.target.value); }, style: inputStyle(C) }));
 }
 function inputStyle(C) {
@@ -263,6 +263,7 @@ function TicketThread(props) {
 
 /* --------------------------------------------------------------- DOCUMENTS */
 var KINDS = [['id', 'ID document'], ['licence', 'Licence / certificate'], ['proof_of_address', 'Proof of address'], ['other', 'Other']];
+var CRED_KINDS = [['eov', 'Examiner of Vehicles (EOV) licence'], ['trade_certificate', 'Motor trade qualification']];
 var DS = { pending: ['In review', 'warn'], approved: ['Approved', 'good'], rejected: ['Rejected', 'bad'] };
 
 export function DocumentsScreen(props) {
@@ -288,17 +289,59 @@ export function DocumentsScreen(props) {
       h(Field, { ui: ui, label: 'Document type', value: kind, onChange: setKind, options: KINDS }),
       h('input', { ref: input, type: 'file', accept: 'application/pdf,image/jpeg,image/png,image/webp', onChange: onFile, style: { display: 'none' }, 'aria-label': 'Choose a file' }),
       h(ui.PBtn, { label: 'Choose file and upload', loading: working, onClick: function () { if (input.current) input.current.click(); } }))),
+    h(CredentialsSection, { ui: ui, user: props.user, showToast: props.showToast, onChanged: reload }),
     st.loading && !st.data && h(ui.Spin, { size: 24 }),
     st.error && h(ErrorBox, { ui: ui, msg: st.error, retry: reload }),
     st.data && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t3, marginBottom: 10 } },
       'ID: ' + (has('id', 'approved') ? 'approved' : 'not yet approved') + ' · Licence: ' + (has('licence', 'approved') ? 'approved' : 'not yet approved')),
     docs.length > 0 && h(ui.Card, null, docs.map(function (d, i) {
       var m = DS[d.status] || ['', 'neutral'];
-      var label = (KINDS.filter(function (x) { return x[0] === d.kind; })[0] || [0, d.kind])[1];
+      var label = (KINDS.concat(CRED_KINDS).filter(function (x) { return x[0] === d.kind; })[0] || [0, d.kind])[1];
       return h('div', { key: d.id, style: { padding: '14px 18px', borderBottom: i < docs.length - 1 ? '1px solid var(--b)' : 'none' } },
         h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 10 } },
           h('p', { style: { fontWeight: 600, color: C.t, overflowWrap: 'anywhere' } }, label), h(Pill, { ui: ui, label: m[0], tone: m[1] })),
         h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t3, marginTop: 2, overflowWrap: 'anywhere' } }, d.file_name + ' · ' + fmtDate(d.created_at)),
         d.status === 'rejected' && d.reject_reason && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.red, marginTop: 4 } }, d.reject_reason));
     })));
+}
+
+/* ------------------------------------------------------- CREDENTIALS (badges) */
+function CredentialsSection(props) {
+  var ui = props.ui, C = ui.C;
+  var l = useLoad(function () { return Data.fetchMyCredentials(); }, []);
+  var st = l[0], reload = l[1];
+  var a = useState('eov'), kind = a[0], setKind = a[1];
+  var b = useState(''), num = b[0], setNum = b[1];
+  var g = useState('A'), grade = g[0], setGrade = g[1];
+  var e = useState(''), exp = e[0], setExp = e[1];
+  var w = useState(false), working = w[0], setWorking = w[1];
+  var input = useRef(null);
+  var onFile = function (ev) {
+    var file = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!file) return;
+    if (!num.trim()) { props.showToast('Enter the licence or certificate number first', true); return; }
+    setWorking(true);
+    Data.uploadMyCredential(props.user.id, kind, file, { number: num.trim(), grade: kind === 'eov' ? grade : null, expiresOn: exp || null })
+      .then(function () { props.showToast('Submitted. You get the badge once we approve it.'); setNum(''); setExp(''); reload(); if (props.onChanged) props.onChanged(); })
+      .catch(function (er) { props.showToast(errMsg(er), true); }).then(function () { setWorking(false); });
+  };
+  var list = st.data || [];
+  return h(ui.Card, { style: { marginBottom: 12 } }, h('div', { style: { padding: 18 } },
+    h('p', { style: { fontWeight: 700, color: C.t, marginBottom: 4 } }, 'Credential badges'),
+    h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t3, lineHeight: 1.5, marginBottom: 12 } }, 'Optional. Buyers see a badge (never your number) once CheckVertical has checked the document.'),
+    h(Field, { ui: ui, label: 'Credential', value: kind, onChange: setKind, options: CRED_KINDS }),
+    h(Field, { ui: ui, label: 'Licence or certificate number', value: num, onChange: setNum, maxLength: 60 }),
+    kind === 'eov' && h(Field, { ui: ui, label: 'EOV grade', value: grade, onChange: setGrade, options: [['A', 'Grade A'], ['B', 'Grade B'], ['C', 'Grade C']] }),
+    h(Field, { ui: ui, label: 'Expiry date (if any)', value: exp, onChange: setExp, type: 'date' }),
+    h('input', { ref: input, type: 'file', accept: 'application/pdf,image/jpeg,image/png,image/webp', onChange: onFile, style: { display: 'none' }, 'aria-label': 'Choose credential file' }),
+    h(ui.PBtn, { label: 'Choose file and submit', loading: working, onClick: function () { if (input.current) input.current.click(); } }),
+    list.length > 0 && h('div', { style: { marginTop: 14 } }, list.map(function (d) {
+      var m = DS[d.status] || ['', 'neutral'];
+      var label = (CRED_KINDS.filter(function (x) { return x[0] === d.kind; })[0] || [0, d.kind])[1] + (d.credential_grade ? ' · Grade ' + d.credential_grade : '');
+      return h('div', { key: d.id, style: { padding: '10px 0', borderTop: '1px solid var(--b)' } },
+        h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 10 } }, h('p', { style: { fontWeight: 600, color: C.t } }, label), h(Pill, { ui: ui, label: m[0], tone: m[1] })),
+        d.expires_on && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t3, marginTop: 2 } }, 'Expires ' + d.expires_on),
+        d.status === 'rejected' && d.reject_reason && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.red, marginTop: 4 } }, d.reject_reason));
+    }))));
 }

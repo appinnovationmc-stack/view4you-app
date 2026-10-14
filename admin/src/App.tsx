@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import * as api from './api'
 import { AuditPage, BookingsPage, InspectorsPage, OverviewPage, PaymentsPage, type Page } from './pages'
 import { PayoutsPage, ReportsPage, SettingsPage, SupportPage } from './pages2'
+import { CertificatesPage, StationsPage } from './pages3'
 import { ErrorBanner, useLoad } from './ui'
 import logoLight from '../../src/assets/brand/logo-light-bg.svg'
 import logoDark from '../../src/assets/brand/logo-dark-bg.svg'
@@ -52,6 +53,8 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
     { id: 'payments', label: 'Refunds & payments', badge: (o?.refunds_due ?? 0) + (o?.payment_problems_7d ?? 0) },
     { id: 'payouts', label: 'Payouts', badge: o?.withdrawals_requested },
     { id: 'support', label: 'Support', badge: o?.tickets_open },
+    { id: 'stations', label: 'Testing stations' },
+    { id: 'certificates', label: 'Certificates' },
     { id: 'settings', label: 'Settings' },
     { id: 'audit', label: 'Audit log' },
   ]
@@ -78,6 +81,8 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
         {page === 'payments' && <PaymentsPage {...props} />}
         {page === 'payouts' && <PayoutsPage canWrite={canWrite} />}
         {page === 'support' && <SupportPage />}
+        {page === 'stations' && <StationsPage canWrite={canWrite} />}
+        {page === 'certificates' && <CertificatesPage canWrite={canWrite} />}
         {page === 'settings' && <SettingsPage canWrite={canWrite} />}
         {page === 'audit' && <AuditPage />}
       </main>

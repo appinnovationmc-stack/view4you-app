@@ -12,7 +12,7 @@ const Head = ({ title, sub, onReload, loading }: { title: string; sub?: string; 
 )
 
 /* ───────────────────────── Inspector documents ───────────────────────── */
-const DOC_LABEL: Record<string, string> = { id: 'ID document', licence: 'Inspector licence / certificate', proof_of_address: 'Proof of address', other: 'Other' }
+const DOC_LABEL: Record<string, string> = { id: 'ID document', licence: 'Inspector licence / certificate', proof_of_address: 'Proof of address', other: 'Other', eov: 'Examiner of Vehicles (EOV) licence', trade_certificate: 'Motor trade qualification' }
 export function DocumentsModal({ inspector, canWrite, onClose, onChanged }: {
   inspector: api.InspectorRow; canWrite: boolean; onClose: () => void; onChanged: () => void
 }) {
@@ -41,6 +41,9 @@ export function DocumentsModal({ inspector, canWrite, onClose, onChanged }: {
               <div>
                 <strong>{DOC_LABEL[d.kind] ?? d.kind}</strong> <Pill value={d.status} />
                 <div className="muted">{d.file_name} · uploaded {when(d.created_at)}</div>
+                {(d.credential_number || d.credential_grade || d.expires_on) && (
+                  <div className="muted">Number {d.credential_number ?? '—'}{d.credential_grade ? ` · Grade ${d.credential_grade}` : ''}{d.expires_on ? ` · expires ${d.expires_on}` : ''}</div>
+                )}
                 {d.reject_reason && <div className="muted">Rejected: {d.reject_reason}</div>}
               </div>
               <div className="row">

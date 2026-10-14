@@ -110,7 +110,7 @@ export const addAdjustment = (user: string, amount: number, reason: string) =>
   rpc<void>('admin_add_adjustment', { p_user: user, p_amount: amount, p_reason: reason })
 
 /* ───────── inspector documents ───────── */
-export interface DocRow { id: string; kind: string; file_name: string; storage_path: string; status: string; reject_reason: string | null; reviewed_at: string | null; created_at: string }
+export interface DocRow { id: string; kind: string; file_name: string; storage_path: string; status: string; reject_reason: string | null; reviewed_at: string | null; created_at: string; credential_number?: string | null; credential_grade?: string | null; expires_on?: string | null }
 export const listDocuments = (user: string) => rpc<DocRow[]>('admin_list_documents', { p_user: user })
 export const reviewDocument = (id: string, approve: boolean, reason?: string) =>
   rpc<void>('admin_review_document', { p_id: id, p_approve: approve, p_reason: reason ?? null })
@@ -142,3 +142,36 @@ export interface Analytics {
   totals: { booking_revenue: number; report_revenue: number; report_sales: number }
 }
 export const analytics = (days: number) => rpc<Analytics>('admin_analytics', { p_days: days })
+
+/* ───────── testing stations, certificates, add-on fee ───────── */
+export interface StationRow {
+  id: string; name: string; address: string; city: string | null; province: string | null; phone: string | null; grade: 'A' | 'B' | 'C'
+  registration_number: string; hours: string | null; test_fee: number; vehicle_classes: string | null; lat: number | string | null; lng: number | string | null
+  active: boolean; verified_at: string | null; created_at: string
+}
+export interface StationInput {
+  id: string | null; name: string; address: string; city: string; province: string; phone: string; grade: string
+  registration: string; hours: string; fee: number; classes: string; lat: number | null; lng: number | null
+}
+export const listStations = () => rpc<StationRow[]>('admin_list_stations')
+export const saveStation = (s: StationInput) => rpc<string>('admin_save_station', {
+  p_id: s.id, p_name: s.name, p_address: s.address, p_city: s.city, p_province: s.province, p_phone: s.phone, p_grade: s.grade,
+  p_registration: s.registration, p_hours: s.hours, p_fee: s.fee, p_classes: s.classes, p_lat: s.lat, p_lng: s.lng,
+})
+export const setStationActive = (id: string, active: boolean, reason?: string) =>
+  rpc<void>('admin_set_station_active', { p_id: id, p_active: active, p_reason: reason ?? null })
+export const getAddonSettings = () => rpc<{ roadworthy_addon_fee: number }>('admin_get_addon_settings')
+export const setRoadworthyFee = (fee: number, reason: string) => rpc<void>('admin_set_roadworthy_fee', { p_fee: fee, p_reason: reason })
+
+export interface CertRow {
+  id: string; booking_id: string; vin: string; station_name: string | null; certificate_number: string; result: string
+  issued_on: string; expires_on: string | null; storage_path: string; status: string; created_at: string
+}
+export const listCertificates = (status: string) => rpc<CertRow[]>('admin_list_certificates', { p_status: status })
+export const reviewCertificate = (id: string, verify: boolean, reason?: string) =>
+  rpc<void>('admin_review_certificate', { p_id: id, p_verify: verify, p_reason: reason ?? null })
+export async function certificateUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage.from('roadworthy-certs').createSignedUrl(path, 120)
+  if (error || !data) throw new Error(error?.message ?? 'Could not open the file')
+  return data.signedUrl
+}

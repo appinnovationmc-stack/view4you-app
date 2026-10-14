@@ -1,6 +1,8 @@
 // Auction / dealership bookings, inspector credential badges, testing stations and roadworthy certificates.
 import { describe, it, expect, beforeAll } from 'vitest'
 import { makeDb, addUser, asUser, asService, asAnon, attempt, uid, type Db } from './harness'
+import { CHECKLIST } from '../../src/lib/reportTemplate'
+import { AREAS } from '../../src/lib/reportMapping'
 
 let db: Db
 const BUYER = uid(1), BUYER2 = uid(2), INSP = uid(3), INSP2 = uid(4), ADMIN = uid(90), SUPPORT = uid(91)
@@ -172,8 +174,9 @@ describe('roadworthy certificates on the report', () => {
     await call(INSP2, `select public.advance_booking($1,'en_route')`, [b.id])
     await call(INSP2, `select public.advance_booking($1,'in_progress')`, [b.id])
     await call(INSP2, 'select * from public.submit_detailed_report($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb)',
-      [b.id, 85, 'Good', 100000, 'pass', '[]', '[]', JSON.stringify([{ area: 'Engine', status: 'pass', note: 'ok' }]),
-        JSON.stringify([{ section: 'engine', component: 'oil', condition: 'good', explanation: null, roadworthy_relevant: false }]), '[]', '[]'])
+      [b.id, 100, 'Good', 100000, 'pass', '[]', '[]', JSON.stringify(AREAS.map(area => ({ area, status: 'pass', note: 'ok' }))),
+        JSON.stringify(CHECKLIST.flatMap(sec => sec.rows.map(([component, , rw]) => ({ section: sec.key, component, condition: 'good', explanation: null, roadworthy_relevant: !!rw })))),
+        '[]', JSON.stringify(['Front Left', 'Front Right', 'Rear Left', 'Rear Right'].map(position => ({ position, tread_mm: 5.5 })))])
     inspectionId = (await db.query<any>('select id from public.inspections where booking_id=$1', [bookingId])).rows[0].id
   })
 
