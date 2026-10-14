@@ -1023,13 +1023,21 @@ function BookScreen(props) {
   var _sid = useState('');  var stationId = _sid[0]; var setStationId = _sid[1];
   var _opts = useState(null); var opts = _opts[0]; var setOpts = _opts[1];
   var _sts = useState([]);  var stations = _sts[0]; var setStations = _sts[1];
+  var _tiers = useState([]); var tiers = _tiers[0]; var setTiers = _tiers[1];
+  var _tierId = useState(''); var tierId = _tierId[0]; var setTierId = _tierId[1];
   useEffect(function(){
     Data.fetchBookingOptions().then(setOpts).catch(function(){});
     Data.fetchTestingStations().then(setStations).catch(function(){});
+    Data.fetchInspectionTiers().then(function(rows){
+      setTiers(rows);
+      if(rows.length) setTierId(rows[0].id);
+    }).catch(function(){});
   }, []);
+  var tierMode = tiers.length > 0;
+  var selectedTier = tiers.filter(function(t){ return t.id === tierId; })[0] || null;
   var travelFee = opts ? opts.travel_fee : 100, platformFee = opts ? opts.platform_fee : 75;
   var addonFee = wantRw && stationId && opts ? opts.roadworthy_addon_fee : 0;
-  var feesTotal = travelFee + platformFee + addonFee;
+  var feesTotal = tierMode ? addonFee : travelFee + platformFee + addonFee;
   var station = stations.filter(function(x){ return x.id === stationId; })[0] || null;
   function isoLocal(v){ return v ? new Date(v).toISOString() : null; }
 
@@ -1044,13 +1052,14 @@ function BookScreen(props) {
 
   var venueOk = venueKind==='auction' ? (dealer.trim() && auctionAt && new Date(auctionAt).getTime() > Date.now()+3600000 && (!neededBy || new Date(neededBy).getTime() <= new Date(auctionAt).getTime()))
     : venueKind==='dealership' ? (dealer.trim()||loc.trim()) : loc.trim();
-  var ready = vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId);
+  var ready = vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId)&&(!tierMode||tierId);
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
   var online = INSPECTORS.filter(function(i){ return i.online; });
+  // Fixed platform tiers replace inspector-set pricing; sort inspectors by ETA or rating only.
   var sorted = online.slice().sort(function(a,b){
-    return sort==='price'?a.price-b.price : sort==='rating'?b.rating-a.rating : a.eta-b.eta;
+    return sort==='rating'?b.rating-a.rating : a.eta-b.eta;
   });
 
   function confirm() {
@@ -1059,7 +1068,7 @@ function BookScreen(props) {
     Data.createBooking({
       vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
       location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
-      notes: notes, inspectorId: inspector.id,
+      notes: notes, inspectorId: inspector.id, tierId: tierMode ? tierId : null,
       venueKind: venueKind, venueName: venueKind==='private' ? '' : dealer.trim(),
       auctionAt: venueKind==='auction' ? isoLocal(auctionAt) : null, lotNumber: venueKind==='auction' ? lot.trim() : '',
       neededBy: venueKind==='auction' ? isoLocal(neededBy) : null, stationId: wantRw ? stationId : null,
@@ -1081,6 +1090,19 @@ function BookScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){nav('home');},mb:0}),
         h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
+      tierMode&&h(Card,{style:{marginBottom:18}},
+        h('div',{style:{padding:'14px 14px 12px'}},
+          h('label',{style:LBL},'Choose your inspection'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
+            tiers.map(function(t){
+              var on=t.id===tierId;
+              return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
+                style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
+                h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
+                h('span',{style:{display:'block',fontSize:18,fontWeight:850,letterSpacing:'-.04em'}},R(t.buyer_price)),
+                h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)));
+            })),
+          h('p',{style:{fontSize:11,lineHeight:1.5,color:C.t3,margin:'10px 2px 0'}},'Travel included for the first 15 km. Earn toward your inspection cost when another buyer purchases the report.'))),
       h('div',{style:{marginBottom:16}},
         h('label',{style:LBL},'Where is the car?'),
         h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}},
@@ -1250,12 +1272,15 @@ function BookScreen(props) {
           notes&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4,fontStyle:'italic'}},'Note: '+notes),
           h(Hr,{my:12}),
           /* Price breakdown */
-          ([{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}].concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
+          ((tierMode
+            ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included (first 15 km)'}]
+            : [{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
+          ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
           h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal))))),
+            h('span',null,'Total'),h('span',{style:{color:C.lime}},tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal))))),
 
       /* Payment */
       h(Card,{style:{marginBottom:12}},
@@ -1265,8 +1290,8 @@ function BookScreen(props) {
 
       /* Passive income note — shown after payment, not blocking it */
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You earn a share each time another buyer purchases it.')),
-      h(PBtn,{label:loading?'Confirming…':(inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+feesTotal)+' via PayFast'),onClick:confirm,loading:loading})));
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You can earn toward your inspection cost when another buyer purchases it.')),
+      h(PBtn,{label:loading?'Confirming…':(tierMode ? 'Pay '+R((selectedTier ? selectedTier.buyer_price : 0)+addonFee)+' via PayFast' : (inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+feesTotal)+' via PayFast')),onClick:confirm,loading:loading})));
 
   /* ── STATUS (real booking state, polled from the server) ── */
   return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
