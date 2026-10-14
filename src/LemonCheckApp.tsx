@@ -1743,14 +1743,14 @@ function InspProfileScreen(props) {
           h('p',{style:{fontSize:20,fontWeight:800,color:C.t,letterSpacing:'-.03em',marginBottom:5}},user.name),
           h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
             h(Tag,{label:'★ '+user.rating.toFixed(2),bg:C.s3,c:C.t}),
-            h(Tag,{label:'Verified',bg:C.greenDim,c:C.green})))),
+            user.approved?h(Tag,{label:'Verified',bg:C.greenDim,c:C.green}):h(Tag,{label:'Pending verification',bg:C.s3,c:C.t3})))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
             [{l:'Licence',v:user.licence},{l:'Cert',v:user.cert},{l:'Experience',v:user.exp},{l:'Region',v:user.region}].map(function(d){
               return h('div',{key:d.l,style:{background:C.s2,borderRadius:8,padding:'10px',border:'1px solid var(--b)'}},
                 h('p',{style:{fontSize:10,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},d.l),
-                h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t,letterSpacing:'-.01em'}},d.v));
+                h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:d.v?C.t:C.t3,letterSpacing:'-.01em'}},d.v||'Not set'));
             })),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65}},user.bio))),
       h(Card,{style:{marginBottom:10}},
