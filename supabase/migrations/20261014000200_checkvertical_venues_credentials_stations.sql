@@ -1,4 +1,4 @@
--- CheckVertical 20261014000100 — auction / dealership bookings, inspector credentials, testing stations (forward-only).
+-- CheckVertical 20261014000200 — auction / dealership bookings, inspector credentials, testing stations (forward-only).
 --
 -- 1. Bookings can be at a private address, a dealership or an AUCTION. Auction bookings carry the auction time and
 --    lot number, and the deadline by which the buyer needs the report (default: the auction start) so the buyer can
@@ -291,7 +291,7 @@ revoke all on function public.create_booking(text, text, text, integer, text, te
 grant execute on function public.create_booking(text, text, text, integer, text, text, uuid, text, text, timestamptz, text, timestamptz, uuid) to authenticated, service_role;
 
 -- Inspector jobs show the venue, auction time, deadline and station. Columns are appended (view is replaced, not dropped).
-create or replace view public.inspector_jobs with (security_invoker = false) as
+create or replace view public.inspector_jobs with (security_invoker = true) as
   select b.id, b.inspector_id, b.vin, b.location, b.notes, b.status, b.inspection_fee, b.travel_fee,
          b.platform_fee, b.paid, b.payment_status, b.created_at, b.accepted_at, b.completed_at,
          v.make, v.model, v.year, v.colour, p.first_name as buyer_first_name,
@@ -401,12 +401,14 @@ revoke all on function public.lc_inspector_badges(uuid) from public, anon;
 grant execute on function public.lc_inspector_badges(uuid) to authenticated, service_role;
 
 -- Directory gains a trailing badges column.
-create or replace view public.inspector_directory with (security_invoker = false) as
+-- Read from the curated public directory table, not profiles. This preserves the RLS boundary
+-- while adding badges. The view itself must remain SECURITY INVOKER.
+create or replace view public.inspector_directory with (security_invoker = true) as
   select id, name, first_name, init, cert, experience, region, specialty, bio,
          rating, jobs_completed, price, eta_minutes, online, top_rated,
          public.lc_inspector_badges(id) as badges
-    from public.profiles
-   where role = 'inspector' and approved;
+    from public.inspector_directory_public
+   where approved = true;
 
 -- ---------------------------------------------------------------------------
 -- Official roadworthy certificates (issued by the testing station, attached to the booking)
