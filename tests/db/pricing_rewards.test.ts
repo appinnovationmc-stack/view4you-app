@@ -5,7 +5,8 @@ import { AREAS } from '../../src/lib/reportMapping'
 
 let db: Db
 const BUYER = uid(701), BUYER2 = uid(702), BUYER3 = uid(703), BUYER4 = uid(704), BUYER5 = uid(705)
-const INSPECTOR = uid(706)
+const INSPECTOR = uid(706), SUPPORT = uid(707)
+const RESELLERS = Array.from({length:10},(_,i)=>uid(710+i))
 
 const ITEMS = CHECKLIST.flatMap(section => section.rows.map(([component, , roadworthy]) => ({
   section: section.key, component, condition: 'good', explanation: null, roadworthy_relevant: !!roadworthy,
@@ -16,8 +17,8 @@ const submit = (bookingId: string) => asUser(db, INSPECTOR, () => db.query<any>(
   'select * from public.submit_detailed_report($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb)',
   [bookingId, 100, 'Test report', 85000, 'pass', '[]', '[]', JSON.stringify(FINDINGS), JSON.stringify(ITEMS), '[]', JSON.stringify(TYRES)]))
 
-async function createTierReport(vin: string) {
-  await db.query("update public.lc_settings set tiers_enabled=true, founding_limit=200 where id=1")
+async function createTierReport(vin: string, foundingLimit = 200) {
+  await db.query("update public.lc_settings set tiers_enabled=true, founding_limit=$1 where id=1",[foundingLimit])
   const tier = (await db.query<any>("select id from public.inspection_tiers where name='Standard'")).rows[0]
   const b = (await asUser(db, BUYER, () => db.query<any>(
     'select * from public.create_booking($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
@@ -38,8 +39,10 @@ async function createTierReport(vin: string) {
 beforeAll(async () => {
   db = await makeDb({ migrations: true })
   for (const [id,role] of [
-    [BUYER,'buyer'],[BUYER2,'buyer'],[BUYER3,'buyer'],[BUYER4,'buyer'],[BUYER5,'buyer'],[INSPECTOR,'inspector'],
+    [BUYER,'buyer'],[BUYER2,'buyer'],[BUYER3,'buyer'],[BUYER4,'buyer'],[BUYER5,'buyer'],[INSPECTOR,'inspector'],[SUPPORT,'buyer'],
   ] as const) await addUser(db,id,role,'Pricing Test '+id.slice(-2))
+  for (const id of RESELLERS) await addUser(db,id,'buyer','Reseller '+id.slice(-2))
+  await db.query("insert into public.admin_users(user_id,role) values ($1,'support')",[SUPPORT])
   await db.query('update public.profiles set approved=true,online=true,price=null where id=$1',[INSPECTOR])
 })
 
@@ -58,8 +61,13 @@ describe('CheckVertical fixed tiers and resale rewards', () => {
     expect(settings).toMatchObject({tiers_enabled:false,payer_share_bp:6000,platform_share_bp:4000,min_payout:200})
   })
 
-  it('keeps tier administration private from buyers and anon', async () => {
-    expect((await attempt(() => asUser(db,BUYER,() => db.query('select * from public.admin_list_tiers()')))).ok).toBe(false)
+  it('keeps tier administration admin-only and audits admin listing', async () => {
+    for (const who of [BUYER,INSPECTOR,SUPPORT]) {
+      expect((await attempt(() => asUser(db,who,() => db.query('select * from public.admin_list_tiers()')))).ok).toBe(false)
+      expect((await attempt(() => asUser(db,who,() => db.query(
+        'select public.admin_update_tier(null,$1,$2,$3,$4,$5,$6)',
+        ['Basic',790,149,1,true,'unauthorized'])))).ok).toBe(false)
+    }
     expect((await attempt(() => asAnon(db,() => db.query('select * from public.inspection_tiers')))).ok).toBe(false)
     expect((await asUser(db,BUYER,() => db.query<any>('select * from public.list_active_inspection_tiers()'))).rows.length).toBe(0)
   })
@@ -113,6 +121,29 @@ describe('CheckVertical fixed tiers and resale rewards', () => {
       'insert into public.report_purchases(inspection_id,buyer_id,amount_paid,payer_earning,inspector_earning) values($1,$2,249,149,0)',
       [inspectionId,BUYER3])))).ok).toBe(false)
     expect((await db.query<any>('select count(*)::int n from public.resale_rewards where purchase_id=$1',[other.id])).rows[0].n).toBe(1)
+  })
+
+  it('caps all first-buyer rewards at the original booking price', async () => {
+    const { bookingId, inspectionId } = await createTierReport('CAP001GP')
+    await db.query('update public.bookings set founding=false where id=$1',[bookingId])
+    for (const buyer of RESELLERS) {
+      await asService(db,() => db.query(
+        'insert into public.report_purchases(inspection_id,buyer_id,amount_paid,payer_earning,inspector_earning) values($1,$2,249,149,0)',
+        [inspectionId,buyer]))
+    }
+    const rewards = (await db.query<any>(
+      'select payer_amount,platform_amount from public.resale_rewards where inspection_id=$1 order by created_at',[inspectionId])).rows
+    expect(rewards.map((r:any)=>r.payer_amount)).toEqual([149,149,149,149,149,149,149,149,58,0])
+    expect(rewards.reduce((sum:number,r:any)=>sum+r.payer_amount,0)).toBe(1250)
+    expect(rewards.reduce((sum:number,r:any)=>sum+r.platform_amount,0)).toBe(1240)
+  })
+
+  it('limits founding status to the first N paid tier bookings', async () => {
+    await db.query('update public.bookings set founding=false')
+    const first = await createTierReport('FLIM01GP',1)
+    const second = await createTierReport('FLIM02GP',1)
+    expect((await db.query<any>('select founding from public.bookings where id=$1',[first.bookingId])).rows[0].founding).toBe(true)
+    expect((await db.query<any>('select founding from public.bookings where id=$1',[second.bookingId])).rows[0].founding).toBe(false)
   })
 
   it('applies the 70% founding share for the first three resales only', async () => {
