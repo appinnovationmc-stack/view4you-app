@@ -95,6 +95,10 @@ export interface Booking {
   roadworthy_requested?: boolean
   station_id?: string | null
   station_fee_quote?: number | null
+  tier_id?: string | null
+  inspector_payout?: number | null
+  platform_gross?: number | null
+  founding?: boolean
   created_at: string
   accepted_at: string | null
   completed_at: string | null

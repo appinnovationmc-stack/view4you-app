@@ -207,7 +207,7 @@ describe('report submit, access, preview and resale purchase', () => {
     const r = await submit(INSP, bookingId)
     inspectionId = r.rows[0].inspection_id
     const i = (await db.query<any>('select full_price, report_price, payer_cut, inspector_cut from public.inspections where id=$1', [inspectionId])).rows[0]
-    expect(i).toEqual({ full_price: 500, report_price: 90, payer_cut: 46, inspector_cut: 44 })
+    expect(i).toEqual({ full_price: 500, report_price: 90, payer_cut: 54, inspector_cut: 0 })
     expect((await bookingRow(bookingId)).status).toBe('done')
     const p = await db.query<any>('select jobs_completed from public.profiles where id=$1', [INSP])
     expect(p.rows[0].jobs_completed).toBe(1)
@@ -230,7 +230,7 @@ describe('report submit, access, preview and resale purchase', () => {
   })
   it('a non-purchaser sees only the preview (no notes, no verdict, no checklist)', async () => {
     const pv = (await asUser(db, BUYER2, () => db.query<any>('select public.report_preview($1) as p', ['RPT001GP']))).rows[0].p
-    expect(pv).toMatchObject({ score: 100, report_price: 90, payer_cut: 46, owned: false, verdict: null })
+    expect(pv).toMatchObject({ score: 100, report_price: 90, payer_cut: 54, owned: false, verdict: null })
     expect(pv.areas[0].note).toBeNull()
     expect((await asUser(db, BUYER2, () => db.query('select id from public.report_items'))).rows.length).toBe(0)
     expect((await asUser(db, BUYER2, () => db.query('select id from public.inspection_findings'))).rows.length).toBe(0)
@@ -246,11 +246,15 @@ describe('report submit, access, preview and resale purchase', () => {
     const pv = (await asUser(db, BUYER2, () => db.query<any>('select public.report_preview($1) as p', ['RPT001GP']))).rows[0].p
     expect(pv.owned).toBe(true); expect(pv.verdict).toBe('Good car')
     const rp = (await db.query<any>('select amount_paid, payer_earning, inspector_earning from public.report_purchases where inspection_id=$1', [inspectionId])).rows
-    expect(rp).toEqual([{ amount_paid: 90, payer_earning: 46, inspector_earning: 44 }])
+    expect(rp).toEqual([{ amount_paid: 90, payer_earning: 54, inspector_earning: 0 }])
     const earn = await asUser(db, INSP, () => db.query<any>('select inspector_earning from public.report_purchases'))
     expect(earn.rows.length).toBe(1)
-    const nt = await db.query<any>(`select user_id from public.notifications where type='earn'`)
-    expect(nt.rows.map((x: any) => x.user_id).sort()).toEqual([BUYER, INSP].sort())
+    const ntBefore = await db.query<any>(`select user_id from public.notifications where title='Your CheckVertical reward is ready'`)
+    expect(ntBefore.rows).toEqual([])
+    await db.query("update public.resale_rewards set release_at=now()-interval '1 minute' where inspection_id=$1",[inspectionId])
+    await asService(db, () => db.query('select public.lc_release_resale_rewards()'))
+    const ntAfter = await db.query<any>(`select user_id from public.notifications where title='Your CheckVertical reward is ready'`)
+    expect(ntAfter.rows.map((x: any) => x.user_id)).toEqual([BUYER])
   })
   it('the commissioning buyer and the inspector cannot buy their own report', async () => {
     for (const u of [BUYER, INSP])

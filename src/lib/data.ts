@@ -47,7 +47,8 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-  await supabase.auth.signOut()
+  // Local-only sign-out: do not revoke the user's other active sessions/devices.
+  await supabase.auth.signOut({ scope: 'local' })
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -171,20 +172,40 @@ export async function fetchOfflineInspectors(): Promise<Profile[]> {
  * Creates an UNPAID booking. The price is computed by the database from the inspector's profile;
  * the client sends no money values. The booking only reaches the inspector once payment is confirmed by PayFast.
  */
+export interface InspectionTier {
+  id: string; name: string; buyer_price: number; resale_price: number; sort: number
+}
+
+export interface EarnBackProgress { cap: number; earned: number; pending: number; percent: number }
+export async function fetchEarnBackProgress(bookingId: string): Promise<EarnBackProgress> {
+  const { data, error } = await supabase.rpc('get_earn_back_progress', { p_booking_id: bookingId })
+  if (error) throw error
+  return data as EarnBackProgress
+}
+
+export async function fetchInspectionTiers(): Promise<InspectionTier[]> {
+  const { data, error } = await supabase.rpc('list_active_inspection_tiers')
+  if (error) throw error
+  return (data || []) as InspectionTier[]
+}
+
 export async function createBooking(params: {
   vin: string; make: string; model: string; year: number
   location: string; notes: string; inspectorId: string
   venueKind?: VenueKind; venueName?: string; auctionAt?: string | null; lotNumber?: string
-  neededBy?: string | null; stationId?: string | null
+  neededBy?: string | null; stationId?: string | null; tierId?: string | null
 }): Promise<Booking> {
   const { vin, make, model, year, location, notes, inspectorId } = params
-  const { data, error } = await supabase.rpc('create_booking', {
+  const args: Record<string, unknown> = {
     p_vin: vin, p_make: make, p_model: model, p_year: year,
     p_location: location, p_notes: notes || null, p_inspector_id: inspectorId,
     p_venue_kind: params.venueKind ?? 'private', p_venue_name: params.venueName || null,
     p_auction_at: params.auctionAt || null, p_lot_number: params.lotNumber || null,
     p_needed_by: params.neededBy || null, p_station_id: params.stationId || null,
-  })
+  }
+  // Only tier-mode requests include the 14th argument; legacy callers retain the old RPC signature.
+  if (params.tierId) args.p_tier_id = params.tierId
+  const { data, error } = await supabase.rpc('create_booking', args)
   if (error) throw error
   return data as Booking
 }
@@ -223,7 +244,16 @@ export interface PayfastCheckout { order_ref: string; amount: number; action: st
 async function invokePayment(fn: string, body: Record<string, string>): Promise<PayfastCheckout> {
   const { data: session } = await supabase.auth.getSession()
   if (!session.session?.access_token) throw new Error('Please sign in again.')
-  const { data, error } = await supabase.functions.invoke(fn, { body })
+
+  let { data, error } = await supabase.functions.invoke(fn, { body })
+  // Refresh and retry exactly once for an expired access token. Never create a new booking here;
+  // the caller supplies the existing booking/report order id on retry.
+  const firstContext = error ? (error as { context?: Response }).context : undefined
+  if (error && firstContext?.status === 401) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+    if (refreshError || !refreshed.session?.access_token) throw new Error('Your session expired. Please sign in again.')
+    ;({ data, error } = await supabase.functions.invoke(fn, { body }))
+  }
   if (error) {
     // Edge Function errors carry the JSON body on error.context; surface the server's message when present.
     const ctx = (error as { context?: Response }).context

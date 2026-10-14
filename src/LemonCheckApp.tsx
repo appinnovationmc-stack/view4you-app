@@ -1013,6 +1013,7 @@ function BookScreen(props) {
   var _load = useState(false);  var loading=_load[0];var setLoading=_load[1];
   var _secs = useState(0);      var secs = _secs[0]; var setSecs = _secs[1];
   var _bkid = useState(pendingInfo ? pendingInfo.id : null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
+  var _bookingFingerprint = useState(''); var bookingFingerprint=_bookingFingerprint[0]; var setBookingFingerprint=_bookingFingerprint[1];
   var _rt = useState(null); var route = _rt[0]; var setRoute = _rt[1];
   var _ts = useState(0);    var totalSecs = _ts[0]; var setTotalSecs = _ts[1];
   var _vk = useState('private'); var venueKind = _vk[0]; var setVenueKind = _vk[1];
@@ -1023,13 +1024,21 @@ function BookScreen(props) {
   var _sid = useState('');  var stationId = _sid[0]; var setStationId = _sid[1];
   var _opts = useState(null); var opts = _opts[0]; var setOpts = _opts[1];
   var _sts = useState([]);  var stations = _sts[0]; var setStations = _sts[1];
+  var _tiers = useState([]); var tiers = _tiers[0]; var setTiers = _tiers[1];
+  var _tierId = useState(''); var tierId = _tierId[0]; var setTierId = _tierId[1];
   useEffect(function(){
     Data.fetchBookingOptions().then(setOpts).catch(function(){});
     Data.fetchTestingStations().then(setStations).catch(function(){});
+    Data.fetchInspectionTiers().then(function(rows){
+      setTiers(rows);
+      if(rows.length) setTierId(rows[0].id);
+    }).catch(function(){});
   }, []);
+  var tierMode = tiers.length > 0;
+  var selectedTier = tiers.filter(function(t){ return t.id === tierId; })[0] || null;
   var travelFee = opts ? opts.travel_fee : 100, platformFee = opts ? opts.platform_fee : 75;
   var addonFee = wantRw && stationId && opts ? opts.roadworthy_addon_fee : 0;
-  var feesTotal = travelFee + platformFee + addonFee;
+  var feesTotal = tierMode ? addonFee : travelFee + platformFee + addonFee;
   var station = stations.filter(function(x){ return x.id === stationId; })[0] || null;
   function isoLocal(v){ return v ? new Date(v).toISOString() : null; }
 
@@ -1044,27 +1053,35 @@ function BookScreen(props) {
 
   var venueOk = venueKind==='auction' ? (dealer.trim() && auctionAt && new Date(auctionAt).getTime() > Date.now()+3600000 && (!neededBy || new Date(neededBy).getTime() <= new Date(auctionAt).getTime()))
     : venueKind==='dealership' ? (dealer.trim()||loc.trim()) : loc.trim();
-  var ready = vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId);
+  var ready = vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId)&&(!tierMode||tierId);
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
   var online = INSPECTORS.filter(function(i){ return i.online; });
+  // Fixed platform tiers replace inspector-set pricing; sort inspectors by ETA or rating only.
   var sorted = online.slice().sort(function(a,b){
-    return sort==='price'?a.price-b.price : sort==='rating'?b.rating-a.rating : a.eta-b.eta;
+    return sort==='rating'?b.rating-a.rating : a.eta-b.eta;
   });
 
   function confirm() {
     if (loading) return;
     setLoading(true);
-    Data.createBooking({
-      vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
-      location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
-      notes: notes, inspectorId: inspector.id,
-      venueKind: venueKind, venueName: venueKind==='private' ? '' : dealer.trim(),
-      auctionAt: venueKind==='auction' ? isoLocal(auctionAt) : null, lotNumber: venueKind==='auction' ? lot.trim() : '',
-      neededBy: venueKind==='auction' ? isoLocal(neededBy) : null, stationId: wantRw ? stationId : null,
-    }).then(function(booking){
+    var draftKey = JSON.stringify([vin.trim().toUpperCase(),make,model,Number(year),
+      [dealer.trim(),loc.trim()].filter(Boolean).join(' · ') || loc || dealer,notes,inspector.id,
+      tierMode ? tierId : null,venueKind,dealer.trim(),auctionAt,lot.trim(),neededBy,wantRw ? stationId : null]);
+    var bookingRequest = bookingId && bookingFingerprint===draftKey
+      ? Promise.resolve({id:bookingId})
+      : Data.createBooking({
+          vin: vin.trim().toUpperCase(), make: make, model: model, year: Number(year),
+          location: [dealer.trim(), loc.trim()].filter(Boolean).join(' · ') || loc || dealer,
+          notes: notes, inspectorId: inspector.id, tierId: tierMode ? tierId : null,
+          venueKind: venueKind, venueName: venueKind==='private' ? '' : dealer.trim(),
+          auctionAt: venueKind==='auction' ? isoLocal(auctionAt) : null, lotNumber: venueKind==='auction' ? lot.trim() : '',
+          neededBy: venueKind==='auction' ? isoLocal(neededBy) : null, stationId: wantRw ? stationId : null,
+        });
+    bookingRequest.then(function(booking){
       setBookingId(booking.id);
+      setBookingFingerprint(draftKey);
       savePendingBooking({id:booking.id, inspector:inspector.name, vehicle:year+' '+make+' '+model, venue:venueKind, venueName:dealer.trim(), lot:lot.trim()});
       return Data.startBookingPayment(booking.id);
     }).then(function(payment){
@@ -1081,6 +1098,19 @@ function BookScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){nav('home');},mb:0}),
         h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
+      tierMode&&h(Card,{style:{marginBottom:18}},
+        h('div',{style:{padding:'14px 14px 12px'}},
+          h('label',{style:LBL},'Choose your inspection'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
+            tiers.map(function(t){
+              var on=t.id===tierId;
+              return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
+                style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
+                h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
+                h('span',{style:{display:'block',fontSize:18,fontWeight:850,letterSpacing:'-.04em'}},R(t.buyer_price)),
+                h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)));
+            })),
+          h('p',{style:{fontSize:11,lineHeight:1.5,color:C.t3,margin:'10px 2px 0'}},'Travel included for the first 15 km. Earn toward your inspection cost when another buyer purchases the report.'))),
       h('div',{style:{marginBottom:16}},
         h('label',{style:LBL},'Where is the car?'),
         h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}},
@@ -1178,7 +1208,7 @@ function BookScreen(props) {
 
       /* FIX: sort filter chips */
       h('div',{style:{display:'flex',gap:8,padding:'0 18px 12px',overflowX:'auto'}},
-        [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'},{id:'price',l:'Lowest price'}].map(function(s){
+        [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'}].map(function(s){
           var active = sort===s.id;
           return h('button',{key:s.id,onClick:function(){setSort(s.id);},
             style:{background:active?C.limeDim:C.s2,color:active?C.lime:C.t3,border:'1px solid '+(active?'var(--ink-dim2)':'var(--b)'),
@@ -1195,7 +1225,7 @@ function BookScreen(props) {
               h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
                 /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},insp.price == null ? 'Fee at checkout' : R(insp.price))),
+                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},tierMode ? 'In '+(selectedTier ? selectedTier.name : 'your tier') : (insp.price == null ? 'Fee at checkout' : R(insp.price)))),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
                 h('span',{style:{color:C.t,fontSize:12}},'★'),
                 h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
@@ -1250,12 +1280,15 @@ function BookScreen(props) {
           notes&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4,fontStyle:'italic'}},'Note: '+notes),
           h(Hr,{my:12}),
           /* Price breakdown */
-          ([{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}].concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
+          ((tierMode
+            ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included (first 15 km)'}]
+            : [{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
+          ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
               h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
           }),
           h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal))))),
+            h('span',null,'Total'),h('span',{style:{color:C.lime}},tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal)))))),
 
       /* Payment */
       h(Card,{style:{marginBottom:12}},
@@ -1265,8 +1298,8 @@ function BookScreen(props) {
 
       /* Passive income note — shown after payment, not blocking it */
       h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You earn a share each time another buyer purchases it.')),
-      h(PBtn,{label:loading?'Confirming…':(inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+feesTotal)+' via PayFast'),onClick:confirm,loading:loading})));
+        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You can earn toward your inspection cost when another buyer purchases it.')),
+      h(PBtn,{label:loading?'Confirming…':(tierMode ? 'Pay '+R((selectedTier ? selectedTier.buyer_price : 0)+addonFee)+' via PayFast' : (inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+feesTotal)+' via PayFast')),onClick:confirm,loading:loading})));
 
   /* ── STATUS (real booking state, polled from the server) ── */
   return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
@@ -1346,6 +1379,7 @@ function BookingStatus(props) {
   var _b=useState(null); var booking=_b[0]; var setBooking=_b[1];
   var _e=useState(null); var loadErr=_e[0]; var setLoadErr=_e[1];
   var _w=useState(false); var busy=_w[0]; var setBusy=_w[1];
+  var _earn=useState(null); var earn=_earn[0]; var setEarn=_earn[1];
   var _t0=useRef(Date.now());
 
   useEffect(function(){
@@ -1361,6 +1395,13 @@ function BookingStatus(props) {
     tick();
     return function(){ stop=true; if (timer) clearTimeout(timer); };
   }, [bookingId]);
+
+  useEffect(function(){
+    if(!booking || !booking.tier_id || !booking.paid) { setEarn(null); return; }
+    var stop=false;
+    Data.fetchEarnBackProgress(booking.id).then(function(v){ if(!stop) setEarn(v); }).catch(function(){ if(!stop) setEarn(null); });
+    return function(){ stop=true; };
+  }, [booking && booking.id, booking && booking.tier_id, booking && booking.paid, booking && booking.completed_at]);
 
   var name=(info.inspector||'Your inspector');
   var unpaid = booking && booking.status==='pending' && !booking.paid;
@@ -1391,6 +1432,16 @@ function BookingStatus(props) {
     h('p',{role:'status','aria-live':'polite',style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.035em',marginBottom:10}},view.t),
     h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:booking&&booking.venue_kind&&booking.venue_kind!=='private'?8:24,maxWidth:300}},view.d),
     booking&&booking.venue_kind&&booking.venue_kind!=='private'&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2,marginBottom:24,fontWeight:600}},venueLabel(booking.venue_kind,booking.venue_name,booking.lot_number)+(booking.auction_at?' · '+new Date(booking.auction_at).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'}):'')),
+    booking&&booking.tier_id&&booking.paid&&earn&&h(Card,{style:{width:'100%',maxWidth:360,marginBottom:18,textAlign:'left'}},
+      h('div',{style:{padding:'16px'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,marginBottom:8}},
+          h('strong',{style:{fontSize:14,color:C.t}},'Inspection cost progress'),
+          h('span',{style:{fontSize:12,fontWeight:800,color:C.lime}},Math.min(100,earn.percent)+'%')),
+        h('p',{style:{fontSize:12,color:C.t3,marginBottom:10}},R(earn.earned)+' earned of '+R(earn.cap)+' booking cost'),
+        h('div',{style:{height:8,background:'var(--s3)',borderRadius:99,overflow:'hidden'}},
+          h('div',{style:{height:'100%',width:Math.min(100,earn.percent)+'%',background:C.lime,borderRadius:99,transition:'width .35s ease'}})),
+        earn.pending>0&&h('p',{style:{fontSize:11,color:C.t3,marginTop:9}},R(earn.pending)+' pending release after the 7-day hold'),
+        earn.earned>=earn.cap&&h('p',{style:{fontSize:12,color:C.green,fontWeight:700,marginTop:9}},'Your booking cost has been recovered. Future resale proceeds go to CheckVertical.'))),
     booking&&booking.roadworthy_requested&&booking.paid&&h(CertificateCard,{bookingId:bookingId,showToast:showToast}),
     unpaid&&slow&&h('div',{style:{width:'100%',display:'flex',flexDirection:'column',gap:8,marginBottom:12}},
       h(PBtn,{label:busy?'Please wait…':'Try payment again',onClick:retryPay,loading:busy}),
