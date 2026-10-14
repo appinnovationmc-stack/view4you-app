@@ -166,6 +166,12 @@ export async function fetchOfflineInspectors(): Promise<Profile[]> {
   return ((data ?? []) as unknown as Profile[]).filter((p: any) => !p.online)
 }
 
+export async function fetchMyInspectorTiers(): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_my_inspector_tiers')
+  if (error) throw error
+  return (data ?? []) as string[]
+}
+
 export async function setMyInspectorTiers(tierIds: string[]): Promise<void> {
   const { error } = await supabase.rpc('set_my_inspector_tiers', { p_tier_ids: tierIds })
   if (error) throw error
