@@ -649,11 +649,36 @@ function AuthScreen(props) {
   var _name = useState('');        var name = _name[0];        var setName = _name[1];
   var _loading = useState(false);  var loading = _loading[0];  var setLoading = _loading[1];
   var _err = useState('');         var err = _err[0];          var setErr = _err[1];
+  var _signupTiers = useState([]); var signupTiers = _signupTiers[0]; var setSignupTiers = _signupTiers[1];
+  var _selectedTierIds = useState([]); var selectedTierIds = _selectedTierIds[0]; var setSelectedTierIds = _selectedTierIds[1];
+
+  useEffect(function(){
+    if (pickedRole !== 'insp' || mode !== 'signup') return;
+    var alive = true;
+    Data.fetchInspectionTiers().then(function(rows){
+      if (!alive) return;
+      setSignupTiers(rows);
+      setSelectedTierIds(function(current){
+        if (current.length) return current.filter(function(id){ return rows.some(function(t){return t.id===id;}); });
+        var basic = rows.filter(function(t){return t.name.toLowerCase()==='basic';})[0];
+        return basic ? [basic.id] : (rows[0] ? [rows[0].id] : []);
+      });
+    }).catch(function(e){ if(alive) setErr((e && e.message) || 'Could not load inspection tiers. Please try again.'); });
+    return function(){ alive = false; };
+  }, [pickedRole, mode]);
+
+  function toggleTier(id) {
+    setSelectedTierIds(function(current){
+      if (current.indexOf(id) >= 0) return current.filter(function(x){return x!==id;});
+      if (current.length >= 3) return current;
+      return current.concat([id]);
+    });
+  }
 
   function submit() {
     setErr(''); setLoading(true);
     var p = mode === 'signup'
-      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0] })
+      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0], tierIds: pickedRole === 'insp' ? selectedTierIds : [] })
       : Data.signIn(email, pw);
     p.then(function(profile){ setLoading(false); props.login(profile); })
      .catch(function(e){ setLoading(false); setErr((e && e.message) || 'Something went wrong.'); });
@@ -684,11 +709,25 @@ function AuthScreen(props) {
       h('h1',{className:'lc-title',style:{marginTop:72}}, signup?'Create':'Log into', h('br'), 'your account'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
       signup && h('input',{className:'lc-line',value:name,onChange:function(e){setName(e.target.value);},placeholder:'Full name','aria-label':'Full name',autoComplete:'name'}),
+      signup && pickedRole==='insp' && h('div',{style:{margin:'4px 0 22px'}},
+        h('p',{style:{fontSize:12,fontWeight:800,letterSpacing:'.08em',textTransform:'uppercase',color:C.t2,marginBottom:8}},'Which inspections can you offer?'),
+        h('p',{style:{fontSize:12,lineHeight:1.5,color:C.t3,marginBottom:12}},'Choose every tier you are equipped and confident to deliver. You can select up to three.'),
+        signupTiers.map(function(t){
+          var selected=selectedTierIds.indexOf(t.id)>=0;
+          var detail=t.name==='Basic'?'Visual condition and essential safety checks':t.name==='Standard'?'Expanded mechanical checks and road-test observations':'Full checklist, enhanced photo evidence and measured tests when suitable equipment is available';
+          return h('button',{key:t.id,type:'button',onClick:function(){toggleTier(t.id);},'aria-pressed':selected,
+            style:{display:'flex',width:'100%',alignItems:'flex-start',gap:10,textAlign:'left',padding:12,marginBottom:8,borderRadius:12,border:'1px solid '+(selected?C.t:'var(--b)'),background:selected?C.s2:'transparent',color:C.t}},
+            h('span',{style:{width:18,height:18,borderRadius:5,border:'1px solid '+(selected?C.t:'var(--b2)'),background:selected?C.t:'transparent',color:C.bg,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,flexShrink:0}},selected?'✓':''),
+            h('span',{style:{flex:1}},
+              h('b',{style:{display:'block',fontSize:13}},t.name+' · '+R(t.buyer_price)),
+              h('small',{style:{display:'block',fontSize:11,lineHeight:1.5,color:C.t3,marginTop:3}},detail)));
+        }),
+        signupTiers.length===0 && h('p',{style:{fontSize:12,color:C.red}},'Inspection tiers could not be loaded. Please try again.')),
       h('input',{className:'lc-line',value:email,onChange:function(e){setEmail(e.target.value);},type:'email',placeholder:'Email','aria-label':'Email',autoCapitalize:'none',autoComplete:'email'}),
       h('input',{className:'lc-line',value:pw,onChange:function(e){setPw(e.target.value);},type:'password',placeholder:'Password','aria-label':'Password',autoComplete:signup?'new-password':'current-password',onKeyDown:function(e){if(e.key==='Enter')submit();}}),
       err && h('p',{className:'lc-err',role:'alert'}, err),
       h('div',{style:{height:30}}),
-      h('button',{className:'lc-btn-pill dark',onClick:submit,disabled:loading||!email||!pw||(signup&&!name)}, loading?'Please wait\u2026':(signup?'Sign up':'Log in')),
+      h('button',{className:'lc-btn-pill dark',onClick:submit,disabled:loading||!email||!pw||(signup&&!name)||(signup&&pickedRole==='insp'&&!selectedTierIds.length)}, loading?'Please wait\u2026':(signup?'Sign up':'Log in')),
       h('button',{className:'lc-btn-pill light',onClick:back}, 'Change account type'),
       h('p',{className:'lc-foot'}, signup?'Already have an account? ':"Don't have an account? ",
         h('button',{className:'lc-link',onClick:function(){setMode(signup?'signin':'signup');setErr('');}}, signup?'Log in':'Sign up'))));
@@ -1057,7 +1096,7 @@ function BookScreen(props) {
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
-  var online = INSPECTORS.filter(function(i){ return i.online; });
+  var online = INSPECTORS.filter(function(i){ return i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0); });
   // Fixed platform tiers replace inspector-set pricing; sort inspectors by ETA or rating only.
   var sorted = online.slice().sort(function(a,b){
     return sort==='rating'?b.rating-a.rating : a.eta-b.eta;
@@ -1238,7 +1277,7 @@ function BookScreen(props) {
         }),
         /* Offline inspector — greyed, separate */
         h(Hr,{my:8}),
-        INSPECTORS.filter(function(i){return !i.online;}).map(function(insp){
+        INSPECTORS.filter(function(i){return !i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0);}).map(function(insp){
           return h('div',{key:insp.id,style:{background:C.s1,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'14px',display:'flex',alignItems:'center',gap:12,opacity:.45}},
             h(Av,{label:insp.init,size:44}),
             h('div',{style:{flex:1}},
@@ -2052,7 +2091,7 @@ function App() {
     return Math.round(hrs/24)+'d ago';
   }
   function mapNotif(n){ return {id:n.id, type:n.type, icon:n.icon, title:n.title, body:n.body, time:timeAgo(n.created_at), read:n.read}; }
-  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[]}; }
+  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[], tierIds:p.tier_ids||[]}; }
 
   function loadBuyerData(profile){
     Promise.all([
