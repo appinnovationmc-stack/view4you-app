@@ -32,6 +32,11 @@ async function createTierReport(vin: string, foundingLimit = 200) {
   await asUser(db, INSPECTOR, () => db.query('select public.accept_booking($1)', [b.id]))
   const submitted = await submit(b.id)
   const inspectionId = submitted.rows[0].inspection_id
+  // Tier reports cannot be bought until the required evidence is stored and publication passes.
+  await db.query(`insert into public.report_photos (inspection_id,section,storage_path,caption,sort)
+    select $1,'evidence','test/' || $1::text || '/' || n::text || '.jpg','test evidence',n
+    from generate_series(1,8) n`,[inspectionId])
+  await asUser(db, INSPECTOR, () => db.query('select public.publish_inspection_report($1)',[inspectionId]))
   await db.query('update public.vehicles set first_tracked_by=$1 where vin=$2',[BUYER,vin])
   return { bookingId: b.id as string, inspectionId: inspectionId as string }
 }
@@ -44,6 +49,7 @@ beforeAll(async () => {
   for (const id of RESELLERS) await addUser(db,id,'buyer','Reseller '+id.slice(-2))
   await db.query("insert into public.admin_users(user_id,role) values ($1,'support'),($2,'admin')",[SUPPORT,ADMIN])
   await db.query('update public.profiles set approved=true,online=true,price=null where id=$1',[INSPECTOR])
+  await db.query(`insert into public.inspector_tier_services(inspector_id,tier_id) select $1,id from public.inspection_tiers where active on conflict do nothing`,[INSPECTOR])
 })
 
 describe('CheckVertical fixed tiers and resale rewards', () => {
