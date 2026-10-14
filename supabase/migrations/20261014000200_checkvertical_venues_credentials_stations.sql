@@ -298,7 +298,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_uid uuid := auth.uid();
   v_name text;
@@ -310,7 +310,7 @@ begin
    where b.id = p_booking and b.inspector_id = v_uid and b.paid;
   return v_name;
 end;
-$;
+$$;
 revoke all on function public.cv_inspector_job_buyer_first_name(uuid) from public, anon;
 grant execute on function public.cv_inspector_job_buyer_first_name(uuid) to authenticated, service_role;
 
