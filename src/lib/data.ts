@@ -8,7 +8,7 @@ import type {
   Booking, Inspection, InspectionFinding, ReportPurchase, AppNotification,
   UserRole, FindingStatus, VenueKind, BookingOptions, TestingStation, ReportExtras, RoadworthyCertificate,
 } from '../types'
-import { evaluate, type Measurement, type ReportItem, type ReportPhoto, type Tyre } from './reportTemplate'
+import { evaluate, checklistForTier, type Measurement, type ReportItem, type ReportPhoto, type Tyre } from './reportTemplate'
 import { deriveFindings, scoreFromFindings, buildVerdictText } from './reportMapping'
 import type { ReportViewProps } from '../ReportView'
 
@@ -335,6 +335,7 @@ export interface DetailedSubmission {
   items: ReportItem[]
   measurements: Measurement[]
   tyres: Tyre[]
+  tierName?: string | null
 }
 
 export interface SubmittedReport {
@@ -350,7 +351,7 @@ export interface SubmittedReport {
  * raw data, so the stored summary can never disagree with the stored checklist.
  */
 export async function submitDetailedReport(p: DetailedSubmission): Promise<SubmittedReport> {
-  const verdict = evaluate(p.items, p.measurements, p.tyres)
+  const verdict = evaluate(p.items, p.measurements, p.tyres, checklistForTier(p.tierName))
   const findings = deriveFindings(p.items, p.measurements, p.tyres)
   const score = scoreFromFindings(findings)
 
