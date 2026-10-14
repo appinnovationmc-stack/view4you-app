@@ -1,10 +1,11 @@
 import {
-  CHECKLIST, CONDITION_LABEL, TYRE_POSITIONS, evaluate, labelFor, summariseSection,
+  CHECKLIST, CONDITION_LABEL, TYRE_POSITIONS, evaluate, labelFor, summariseSection, checklistForTier,
   type Measurement, type ReportItem, type ReportPhoto, type Tyre,
 } from './lib/reportTemplate'
 
 export interface ReportViewProps {
   reportNumber: string
+  tierName?: string
   vehicle: { make?: string; model?: string; year?: number | string; odometer_km?: number; colour?: string; fuel?: string; transmission?: string; body?: string; vin?: string; plate?: string }
   items: ReportItem[]
   measurements: Measurement[]
@@ -53,7 +54,8 @@ const css = `\n/* rv-glass */
 const cls = (c: string) => (c === 'poor' ? 'fail' : c === 'fair' ? 'warn' : '')
 
 export default function ReportView(p: ReportViewProps) {
-  const v = evaluate(p.items, p.measurements, p.tyres)
+  const activeChecklist = checklistForTier(p.tierName)
+  const v = evaluate(p.items, p.measurements, p.tyres, activeChecklist)
   const photosFor = (s: string) => (p.photos ?? []).filter(x => x.section === s)
   const tests = (t: Measurement['test']) => p.measurements.filter(m => m.test === t)
   const veh = p.vehicle
@@ -64,8 +66,8 @@ export default function ReportView(p: ReportViewProps) {
       <button className="noprint" onClick={() => window.print()}>Print / save as PDF</button>
 
       <h1>CheckVertical Condition Report</h1>
-      <div className="meta">Report no. <b>{p.reportNumber}</b>{p.inspectedAt && <> · Inspected {p.inspectedAt}</>}{p.inspectorName && <> · by {p.inspectorName}</>}</div>
-      <p className="lead">A non-invasive visual and diagnostic inspection of key safety and roadworthy indicators. It reflects the vehicle's condition at the time of inspection only and does not predict future performance or wear.</p>
+      <div className="meta"><b>{p.tierName || 'Standard'}</b> inspection · Report no. <b>{p.reportNumber}</b>{p.inspectedAt && <> · Inspected {p.inspectedAt}</>}{p.inspectorName && <> · by {p.inspectorName}</>}</div>
+      <p className="lead">This report covers the {p.tierName || 'Standard'} inspection scope and reflects the vehicle's condition at the time of inspection only. It is a non-invasive condition report, not an official roadworthy certificate, and it cannot guarantee that hidden faults or future failures will be found.</p>
 
       <div className="grid">{photosFor('overview').map((x, i) => <img key={i} src={x.url} alt={x.caption ?? 'Overview'} />)}</div>
 
@@ -82,7 +84,7 @@ export default function ReportView(p: ReportViewProps) {
         {v.warnings.length > 0 && <><div style={{ marginTop: 10 }}><b>Items to watch</b></div><ul>{v.warnings.map((w, i) => <li key={i} className="warn">{w}</li>)}</ul></>}
       </div>
 
-      {CHECKLIST.map(s => {
+      {activeChecklist.map(s => {
         const rows = p.items.filter(i => i.section === s.key)
         if (!rows.length) return null
         return (
