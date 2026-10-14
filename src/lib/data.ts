@@ -17,16 +17,16 @@ import type { ReportViewProps } from '../ReportView'
 // ---------------------------------------------------------------------------
 
 export async function signUp(params: {
-  email: string; password: string; role: UserRole; name: string
+  email: string; password: string; role: UserRole; name: string; tierIds?: string[]
 }) {
-  const { email, password, role, name } = params
+  const { email, password, role, name, tierIds = [] } = params
   const first_name = name.trim().split(/\s+/)[0] || name
   const init = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { role, name, first_name, init } },
+    options: { data: { role, name, first_name, init, ...(role === 'inspector' ? { inspection_tiers: tierIds } : {}) } },
   })
   if (error) throw error
   const user = data.user
@@ -155,17 +155,20 @@ export async function fetchMyVehicles(buyerId: string): Promise<
 
 // Public inspector info comes from the inspector_directory view (approved inspectors only; no email/phone).
 export async function fetchOnlineInspectors(): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from('inspector_directory').select('*').eq('online', true)
-    .order('eta_minutes', { ascending: true })
+  const { data, error } = await supabase.rpc('list_inspectors_with_tiers')
   if (error) throw error
-  return (data ?? []) as unknown as Profile[]
+  return ((data ?? []) as unknown as Profile[]).filter((p: any) => p.online).sort((a: any, b: any) => (a.eta_minutes ?? 99999) - (b.eta_minutes ?? 99999))
 }
 
 export async function fetchOfflineInspectors(): Promise<Profile[]> {
-  const { data, error } = await supabase.from('inspector_directory').select('*').eq('online', false)
+  const { data, error } = await supabase.rpc('list_inspectors_with_tiers')
   if (error) throw error
-  return (data ?? []) as unknown as Profile[]
+  return ((data ?? []) as unknown as Profile[]).filter((p: any) => !p.online)
+}
+
+export async function setMyInspectorTiers(tierIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('set_my_inspector_tiers', { p_tier_ids: tierIds })
+  if (error) throw error
 }
 
 /**
@@ -301,15 +304,24 @@ export async function advanceBooking(bookingId: string, status: 'en_route' | 'in
 export interface JobRow extends Omit<Booking, 'buyer_id'> {
   vehicle: Pick<Vehicle, 'make' | 'model' | 'year' | 'colour'>
   buyer_name: string
+  tier_id?: string | null
+  tier_name?: string | null
 }
 
 /** The signed-in inspector's own PAID jobs (view inspector_jobs; unpaid bookings are never shown to inspectors). */
 export async function fetchInspectorJobs(_inspectorId?: string): Promise<JobRow[]> {
-  const { data, error } = await supabase.from('inspector_jobs').select('*').order('created_at', { ascending: false })
+  const [{ data, error }, tiers] = await Promise.all([
+    supabase.from('inspector_jobs').select('*').order('created_at', { ascending: false }),
+    fetchInspectionTiers(),
+  ])
   if (error) throw error
+  const tierNames = new Map(tiers.map(t => [t.id, t.name]))
   return (data ?? []).map((r: Record<string, unknown>) => {
     const { make, model, year, colour, buyer_first_name, ...b } = r as Record<string, any>
-    return { ...b, vehicle: { make, model, year, colour }, buyer_name: buyer_first_name ?? 'Customer' } as JobRow
+    return {
+      ...b, vehicle: { make, model, year, colour }, buyer_name: buyer_first_name ?? 'Customer',
+      tier_name: b.tier_id ? tierNames.get(b.tier_id) ?? 'Standard' : 'Standard',
+    } as JobRow
   })
 }
 
