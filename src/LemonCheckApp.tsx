@@ -1143,13 +1143,15 @@ function BookScreen(props) {
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
             tiers.map(function(t){
               var on=t.id===tierId;
+              var detail=t.name==='Basic'?'60 required checks · 4 evidence photos':t.name==='Standard'?'115 required checks · 8 evidence photos':'115 required checks · 12 evidence photos';
               return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
                 style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
                 h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
                 h('span',{style:{display:'block',fontSize:18,fontWeight:850,letterSpacing:'-.04em'}},R(t.buyer_price)),
-                h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)));
+                h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)),
+                h('span',{style:{display:'block',fontSize:9,lineHeight:1.45,color:C.t3,marginTop:8}},detail));
             })),
-          h('p',{style:{fontSize:11,lineHeight:1.5,color:C.t3,margin:'10px 2px 0'}},'Travel included for the first 15 km. Earn toward your inspection cost when another buyer purchases the report.'))),
+          h('p',{style:{fontSize:11,lineHeight:1.5,color:C.t3,margin:'10px 2px 0'}},'Travel is included in the tier price at checkout. Earn toward your inspection cost when another buyer purchases the report.'))),
       h('div',{style:{marginBottom:16}},
         h('label',{style:LBL},'Where is the car?'),
         h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}},
