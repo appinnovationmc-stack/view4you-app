@@ -76,7 +76,7 @@ describe('access', () => {
 describe('pricing settings', () => {
   it('defaults match the old hard-coded values', async () => {
     expect((await db.query<any>('select public.lc_travel_fee() t, public.lc_platform_fee() p')).rows[0]).toEqual({ t: 100, p: 75 })
-    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 90, payer_cut: 46, inspector_cut: 44 })
+    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 90, payer_cut: 54, inspector_cut: 0 })
   })
   it('validates every input and needs a reason', async () => {
     for (const bad of [
@@ -88,8 +88,8 @@ describe('pricing settings', () => {
   it('a change takes effect on the next booking quote and report split, is audited with before and after', async () => {
     await call(ADMIN, UPDATE, settingsArgs({ travel: 150, platform: 100, price: 2000, payer: 5000, plat: 1000, min: 200, docs: true, reason: 'Q4 pricing' }))
     expect((await db.query<any>('select public.lc_travel_fee() t, public.lc_platform_fee() p')).rows[0]).toEqual({ t: 150, p: 100 })
-    // 500 * 20% = 100; payer 50% = 50; platform 10% = 10; inspector the rest = 40
-    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 100, payer_cut: 50, inspector_cut: 40 })
+    // Resale rewards never pay inspectors; configured payer/platform shares cover the report price.
+    expect((await db.query<any>('select * from public.lc_report_split(500)')).rows[0]).toEqual({ report_price: 100, payer_cut: 50, inspector_cut: 0 })
     const s = (await call(ADMIN, 'select public.admin_get_settings() as s')).rows[0].s
     expect(s).toMatchObject({ travel_fee: 150, min_payout: 200, require_documents: true })
     const a = (await db.query<any>(`select detail from public.admin_audit_log where action='settings_updated'`)).rows
