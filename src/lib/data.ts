@@ -171,20 +171,33 @@ export async function fetchOfflineInspectors(): Promise<Profile[]> {
  * Creates an UNPAID booking. The price is computed by the database from the inspector's profile;
  * the client sends no money values. The booking only reaches the inspector once payment is confirmed by PayFast.
  */
+export interface InspectionTier {
+  id: string; name: string; buyer_price: number; resale_price: number; sort: number
+}
+
+export async function fetchInspectionTiers(): Promise<InspectionTier[]> {
+  const { data, error } = await supabase.rpc('list_active_inspection_tiers')
+  if (error) throw error
+  return (data || []) as InspectionTier[]
+}
+
 export async function createBooking(params: {
   vin: string; make: string; model: string; year: number
   location: string; notes: string; inspectorId: string
   venueKind?: VenueKind; venueName?: string; auctionAt?: string | null; lotNumber?: string
-  neededBy?: string | null; stationId?: string | null
+  neededBy?: string | null; stationId?: string | null; tierId?: string | null
 }): Promise<Booking> {
   const { vin, make, model, year, location, notes, inspectorId } = params
-  const { data, error } = await supabase.rpc('create_booking', {
+  const args: Record<string, unknown> = {
     p_vin: vin, p_make: make, p_model: model, p_year: year,
     p_location: location, p_notes: notes || null, p_inspector_id: inspectorId,
     p_venue_kind: params.venueKind ?? 'private', p_venue_name: params.venueName || null,
     p_auction_at: params.auctionAt || null, p_lot_number: params.lotNumber || null,
     p_needed_by: params.neededBy || null, p_station_id: params.stationId || null,
-  })
+  }
+  // Only tier-mode requests include the 14th argument; legacy callers retain the old RPC signature.
+  if (params.tierId) args.p_tier_id = params.tierId
+  const { data, error } = await supabase.rpc('create_booking', args)
   if (error) throw error
   return data as Booking
 }
