@@ -69,6 +69,26 @@ export async function setOnlineStatus(online: boolean) {
   if (error) throw error
 }
 
+/**
+ * An online inspector shares an approximate position (the database rounds it to ~110 m and deletes it
+ * the moment the inspector goes offline). Refused while offline or unapproved.
+ */
+export async function setMyLocation(lat: number, lng: number) {
+  const { error } = await supabase.rpc('set_my_location', { p_lat: lat, p_lng: lng })
+  if (error) throw new Error(error.message)
+}
+
+export interface InspectorLocation { inspector_id: string; lat: number; lng: number }
+
+/** Approximate positions of online inspectors, fresh within 30 minutes. Buyers only. */
+export async function fetchInspectorLocations(): Promise<InspectorLocation[]> {
+  const { data, error } = await supabase.rpc('list_inspector_locations')
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as { inspector_id: string; lat: number | string; lng: number | string }[]).map((r) => ({
+    inspector_id: r.inspector_id, lat: Number(r.lat), lng: Number(r.lng),
+  }))
+}
+
 // ---------------------------------------------------------------------------
 // Vehicles + history (Search screen)
 // ---------------------------------------------------------------------------

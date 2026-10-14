@@ -88,14 +88,27 @@ function sm(s)   { return s>=80?{col:C.green,dim:C.greenDim,lbl:'Good',   sub:'A
 // Johannesburg CBD default — South Africa
 var SA_DEFAULT = { lat: -26.2041, lng: 28.0473 };
 
-function getUserLocation() {
+/** Real device position, or null when permission is refused or no fix arrives. Never falls back to a default
+ *  city, so it is safe to publish or to centre the map on. */
+function getRealLocation() {
   return new Promise(function(resolve) {
-    if (!navigator.geolocation) { resolve(SA_DEFAULT); return; }
+    if (!navigator.geolocation) { resolve(null); return; }
     navigator.geolocation.getCurrentPosition(
       function(pos) { resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-      function() { resolve(SA_DEFAULT); },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      function() { resolve(null); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
+  });
+}
+
+// Street-level zoom: individual roads and buildings are readable. Used whenever we know where the user is.
+var STREET_ZOOM = 17;
+// City-level zoom when we only have the default city, where street level would be meaningless.
+var CITY_ZOOM = 12;
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
   });
 }
 
@@ -215,7 +228,7 @@ function MapView(props) {
       doubleClickZoom: props.interactive !== false,
       touchZoom: props.interactive !== false,
       minZoom: 10,
-      maxZoom: 18,
+      maxZoom: 19,
     }).setView([center.lat, center.lng], zoom);
 
     /* CARTO raster basemap (Voyager). The key is a public client-side tile key: it ships in the tile URL.
@@ -1034,8 +1047,17 @@ function BookScreen(props) {
       if(rows.length) setTierId(rows[0].id);
     }).catch(function(){});
   }, []);
+  var _locs = useState([]); var inspLocs = _locs[0]; var setInspLocs = _locs[1];
+  // Fresh inspector pins and the buyer's real position each time the map opens.
+  useEffect(function(){
+    if (step !== 'choose') return;
+    var alive = true;
+    Data.fetchInspectorLocations().then(function(rows){ if (alive) setInspLocs(rows); }).catch(function(){ if (alive) setInspLocs([]); });
+    if (!geo) getRealLocation().then(function(pos){ if (alive && pos) setGeo(pos); });
+    return function(){ alive = false; };
+  }, [step]);
   var tierMode = tiers.length > 0;
-  var selectedTier = tiers.filter(function(t){ return t.id === tierId; })[0] || null;
+  var selectedTier =tiers.filter(function(t){ return t.id === tierId; })[0] || null;
   var travelFee = opts ? opts.travel_fee : 100, platformFee = opts ? opts.platform_fee : 75;
   var addonFee = wantRw && stationId && opts ? opts.roadworthy_addon_fee : 0;
   var feesTotal = tierMode ? addonFee : travelFee + platformFee + addonFee;
@@ -1063,10 +1085,18 @@ function BookScreen(props) {
     return sort==='rating'?b.rating-a.rating : a.eta-b.eta;
   });
 
+  // Pins: only inspectors who are online and sharing a fresh position. Names are escaped before going into the popup.
+  var pins = inspLocs.map(function(l){
+    var insp = online.filter(function(i){ return i.id === l.inspector_id; })[0];
+    if (!insp) return null;
+    return { lat:l.lat, lng:l.lng, color:C.lime, label:insp.init||'', size:38,
+      popup:'<b>'+escHtml(insp.name)+'</b><br>'+(insp.rating?escHtml(insp.rating.toFixed(1))+' ★ · ':'')+escHtml(insp.jobs||0)+' jobs'+(insp.eta!=null?'<br>About '+escHtml(insp.eta)+' min away':'') };
+  }).filter(Boolean);
+
   function confirm() {
     if (loading) return;
     setLoading(true);
-    var draftKey = JSON.stringify([vin.trim().toUpperCase(),make,model,Number(year),
+    var draftKey =JSON.stringify([vin.trim().toUpperCase(),make,model,Number(year),
       [dealer.trim(),loc.trim()].filter(Boolean).join(' · ') || loc || dealer,notes,inspector.id,
       tierMode ? tierId : null,venueKind,dealer.trim(),auctionAt,lot.trim(),neededBy,wantRw ? stationId : null]);
     var bookingRequest = bookingId && bookingFingerprint===draftKey
@@ -1140,7 +1170,8 @@ function BookScreen(props) {
             type:'button',
             onClick:function(){
               setGeoLoading(true);
-              getUserLocation().then(function(pos){
+              getRealLocation().then(function(pos){
+                if (!pos) { setGeoLoading(false); showToast('Could not get your location. Allow location access, or type the address.', true); return; }
                 setGeo(pos);
                 return reverseGeocode(pos.lat, pos.lng).then(function(name){
                   setLoc(name);
@@ -1189,14 +1220,19 @@ function BookScreen(props) {
     h(MapView,{
       height:'48vh',
       center: geo || SA_DEFAULT,
-      zoom: 13,
-      userPos: geo || SA_DEFAULT,
-      markers: [],
+      zoom: geo ? STREET_ZOOM : CITY_ZOOM,
+      // Stay on the buyer at street level; do not zoom out to fit every pin. Pan or zoom out to see more.
+      fit: false,
+      userPos: geo || null,
+      markers: pins,
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
         h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
+            pins.length
+              ? pins.length+(pins.length===1?' inspector is':' inspectors are')+' sharing a location. Tap a pin or choose from the list below.'
+              : 'No inspector locations to show right now. Choose an inspector from the list below.')))),
 
     h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
@@ -1648,6 +1684,20 @@ function InspHomeScreen(props) {
   var nav=props.nav, user=props.user, setJob=props.setJob;
   var showToast=props.showToast; var _dvi = useState(0); var setDataVersion=_dvi[1];
   var _on=useState(!!(user && user.online)); var online=_on[0]; var setOnline=_on[1];
+  // While online, share an approximate position so buyers can see nearby inspectors on the map.
+  // The database rounds it to ~110 m, ignores it unless the inspector is online, and deletes it on going offline.
+  function shareLocation(notify){
+    getRealLocation().then(function(pos){
+      if (!pos) { if (notify) showToast('Location is off, so buyers will not see you on the map. Allow location access to appear.', true); return; }
+      Data.setMyLocation(pos.lat, pos.lng).catch(function(){});
+    });
+  }
+  useEffect(function(){
+    if (!online) return;
+    shareLocation(false);
+    var id = setInterval(function(){ shareLocation(false); }, 120000);
+    return function(){ clearInterval(id); };
+  }, [online]);
   var pending=JOBS.filter(function(j){return j.status==='pending';});
   var done   =JOBS.filter(function(j){return j.status==='done';});
   var active =JOBS.filter(function(j){return j.status==='active';});
@@ -1660,7 +1710,7 @@ function InspHomeScreen(props) {
           h('p',{style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.04em'}},user.first)),
         h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
           /* Online/Offline toggle */
-          h('button',{onClick:function(){ haptic('selection'); var nv=!online; setOnline(nv); Data.setOnlineStatus(nv).catch(function(e){ console.error(e); setOnline(!nv); showToast((e&&e.message)||'Could not change status. Your account may still be awaiting approval.',true); }); },
+          h('button',{onClick:function(){ haptic('selection'); var nv=!online; setOnline(nv); Data.setOnlineStatus(nv).then(function(){ if(nv) shareLocation(true); }).catch(function(e){ console.error(e); setOnline(!nv); showToast((e&&e.message)||'Could not change status. Your account may still be awaiting approval.',true); }); },
             'aria-pressed':online,'aria-label':online?'Go offline':'Go online',
             style:{display:'flex',alignItems:'center',gap:7,background:online?C.greenDim:C.s2,border:'1px solid '+(online?'rgba(50,215,75,.25)':'var(--b)'),borderRadius:99,padding:'7px 12px',transition:'all .2s'}},
             h('div',{style:{width:7,height:7,borderRadius:4,background:online?C.green:C.t3,animation:online?'pg 2s infinite':'none'}}),
