@@ -17,16 +17,16 @@ import type { ReportViewProps } from '../ReportView'
 // ---------------------------------------------------------------------------
 
 export async function signUp(params: {
-  email: string; password: string; role: UserRole; name: string; tierIds?: string[]
+  email: string; password: string; role: UserRole; name: string; tierIds?: string[]; canMeasure?: boolean
 }) {
-  const { email, password, role, name, tierIds = [] } = params
+  const { email, password, role, name, tierIds = [], canMeasure = false } = params
   const first_name = name.trim().split(/\s+/)[0] || name
   const init = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'U'
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { role, name, first_name, init, ...(role === 'inspector' ? { inspection_tiers: tierIds } : {}) } },
+    options: { data: { role, name, first_name, init, ...(role === 'inspector' ? { inspection_tiers: tierIds, can_measure: canMeasure } : {}) } },
   })
   if (error) throw error
   const user = data.user
@@ -172,8 +172,14 @@ export async function fetchMyInspectorTiers(): Promise<string[]> {
   return (data ?? []) as string[]
 }
 
-export async function setMyInspectorTiers(tierIds: string[]): Promise<void> {
-  const { error } = await supabase.rpc('set_my_inspector_tiers', { p_tier_ids: tierIds })
+export async function fetchMyInspectorCanMeasure(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('get_my_inspector_can_measure')
+  if (error) throw error
+  return data === true
+}
+
+export async function setMyInspectorTiers(tierIds: string[], canMeasure: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_my_inspector_tiers', { p_tier_ids: tierIds, p_can_measure: canMeasure })
   if (error) throw error
 }
 
