@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProper
 import * as Data from './lib/data'
 import ReportView, { type ReportViewProps } from './ReportView'
 import {
-  CHECKLIST, TEST_POSITIONS, TYRE_POSITIONS, evaluate, testResult, checklistForTier, minimumEvidencePhotos,
+  CHECKLIST, TEST_POSITIONS, TYRE_POSITIONS, evaluate, testResult, checklistForTier, minimumEvidencePhotos, priorityForRow,
   type Condition, type Measurement, type ReportItem, type Tyre,
 } from './lib/reportTemplate'
 import { deriveFindings, scoreFromFindings } from './lib/reportMapping'
@@ -120,16 +120,17 @@ function Accordion(p: { title: string; meta?: string; metaColor?: string; open: 
 }
 
 interface ItemRowProps {
-  k: string; label: string; rw: boolean; cond: Condition | undefined; note: string
+  k: string; label: string; rw: boolean; priority: string; cond: Condition | undefined; note: string
   onCond: (k: string, c: Condition) => void; onNote: (k: string, v: string) => void
 }
-const ItemRow = memo(function ItemRow({ k, label, rw, cond, note, onCond, onNote }: ItemRowProps) {
+const ItemRow = memo(function ItemRow({ k, label, rw, priority, cond, note, onCond, onNote }: ItemRowProps) {
   const needsNote = cond === 'fair' || cond === 'poor'
   return (
     <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--b)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {rw && <span title="Affects the roadworthy verdict" aria-label="Roadworthy item" style={{ width: 6, height: 6, borderRadius: 3, background: C.amber, flexShrink: 0 }} />}
-        <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: cond ? C.t : C.t2 }}>{label}</span>
+        <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: cond ? C.t : C.t2, flex:1 }}>{label}</span>
+        <span style={{fontSize:9,fontWeight:800,letterSpacing:'.03em',color:priority==='Critical safety'?C.red:priority==='High priority'?C.amber:C.t3,whiteSpace:'nowrap'}}>{priority}</span>
       </div>
       <div role="group" aria-label={label} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
         {COND_ORDER.map(c => {
@@ -498,7 +499,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
                 </div>
               )}
               {s.rows.map(([key, label, rw]) => (
-                <ItemRow key={key} k={rk(s.key, key)} label={label} rw={!!rw} cond={draft.conds[rk(s.key, key)]}
+                <ItemRow key={key} k={rk(s.key, key)} label={label} rw={!!rw} priority={priorityForRow(s.key, key)} cond={draft.conds[rk(s.key, key)]}
                   note={draft.notes[rk(s.key, key)] ?? ''} onCond={setCond} onNote={setNote} />
               ))}
             </Accordion>
