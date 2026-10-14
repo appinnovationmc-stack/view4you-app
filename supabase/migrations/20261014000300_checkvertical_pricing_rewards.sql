@@ -397,9 +397,7 @@ create or replace function public.lc_release_resale_rewards()
 returns integer language plpgsql security definer set search_path = '' as $$
 declare r record; v_count integer := 0;
 begin
-  if coalesce(auth.role(),'') <> 'service_role' and current_user not in ('postgres','supabase_admin') then
-    raise exception 'Service role required' using errcode='42501';
-  end if;
+  -- EXECUTE is granted only to service_role; this function is intended for the scheduled worker.
   for r in
     select rr.*, i.report_number, i.vin
       from public.resale_rewards rr join public.inspections i on i.id=rr.inspection_id
