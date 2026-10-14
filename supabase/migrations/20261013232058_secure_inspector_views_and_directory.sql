@@ -12,7 +12,7 @@ create table if not exists public.inspector_directory_public (
   region text,
   specialty text,
   bio text,
-  rating numeric,
+  rating numeric(3,2),
   jobs_completed integer,
   price integer,
   eta_minutes integer,
