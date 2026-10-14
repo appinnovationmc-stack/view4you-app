@@ -290,16 +290,40 @@ end $$;
 revoke all on function public.create_booking(text, text, text, integer, text, text, uuid, text, text, timestamptz, text, timestamptz, uuid) from public, anon;
 grant execute on function public.create_booking(text, text, text, integer, text, text, uuid, text, text, timestamptz, text, timestamptz, uuid) to authenticated, service_role;
 
--- Inspector jobs show the venue, auction time, deadline and station. Columns are appended (view is replaced, not dropped).
+-- A SECURITY INVOKER view must not read other users' profiles directly. This narrowly
+-- scoped helper returns only the first name for a paid booking assigned to the caller.
+create or replace function public.cv_inspector_job_buyer_first_name(p_booking uuid)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_uid uuid := auth.uid();
+  v_name text;
+begin
+  if v_uid is null then return null; end if;
+  select p.first_name into v_name
+    from public.bookings b
+    join public.profiles p on p.id = b.buyer_id
+   where b.id = p_booking and b.inspector_id = v_uid and b.paid;
+  return v_name;
+end;
+$;
+revoke all on function public.cv_inspector_job_buyer_first_name(uuid) from public, anon;
+grant execute on function public.cv_inspector_job_buyer_first_name(uuid) to authenticated, service_role;
+
+-- Inspector jobs show the venue, auction time, deadline and station. Keep SECURITY INVOKER;
+-- buyer name is exposed only by the narrowly scoped helper above.
 create or replace view public.inspector_jobs with (security_invoker = true) as
   select b.id, b.inspector_id, b.vin, b.location, b.notes, b.status, b.inspection_fee, b.travel_fee,
          b.platform_fee, b.paid, b.payment_status, b.created_at, b.accepted_at, b.completed_at,
-         v.make, v.model, v.year, v.colour, p.first_name as buyer_first_name,
+         v.make, v.model, v.year, v.colour, public.cv_inspector_job_buyer_first_name(b.id) as buyer_first_name,
          b.venue_kind, b.venue_name, b.auction_at, b.lot_number, b.needed_by,
          b.roadworthy_requested, s.name as station_name
     from public.bookings b
     join public.vehicles v on v.vin = b.vin
-    left join public.profiles p on p.id = b.buyer_id
     left join public.testing_stations s on s.id = b.station_id
    where b.inspector_id = (select auth.uid()) and b.paid;
 
