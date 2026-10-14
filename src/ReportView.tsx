@@ -1,5 +1,5 @@
 import {
-  CHECKLIST, CONDITION_LABEL, TYRE_POSITIONS, evaluate, labelFor, summariseSection, checklistForTier,
+  CONDITION_LABEL, TYRE_POSITIONS, evaluate, labelFor, summariseSection, checklistForTier,
   type Measurement, type ReportItem, type ReportPhoto, type Tyre,
 } from './lib/reportTemplate'
 
