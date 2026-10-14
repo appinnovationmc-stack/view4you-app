@@ -6,7 +6,7 @@ import { supabase } from './supabase'
 import type {
   Profile, Vehicle, VehicleHistory, VehicleAccident, OdometerReading,
   Booking, Inspection, InspectionFinding, ReportPurchase, AppNotification,
-  UserRole, FindingStatus,
+  UserRole, FindingStatus, VenueKind, BookingOptions, TestingStation, ReportExtras, RoadworthyCertificate,
 } from '../types'
 import { evaluate, type Measurement, type ReportItem, type ReportPhoto, type Tyre } from './reportTemplate'
 import { deriveFindings, scoreFromFindings, buildVerdictText } from './reportMapping'
@@ -174,14 +174,48 @@ export async function fetchOfflineInspectors(): Promise<Profile[]> {
 export async function createBooking(params: {
   vin: string; make: string; model: string; year: number
   location: string; notes: string; inspectorId: string
+  venueKind?: VenueKind; venueName?: string; auctionAt?: string | null; lotNumber?: string
+  neededBy?: string | null; stationId?: string | null
 }): Promise<Booking> {
   const { vin, make, model, year, location, notes, inspectorId } = params
   const { data, error } = await supabase.rpc('create_booking', {
     p_vin: vin, p_make: make, p_model: model, p_year: year,
     p_location: location, p_notes: notes || null, p_inspector_id: inspectorId,
+    p_venue_kind: params.venueKind ?? 'private', p_venue_name: params.venueName || null,
+    p_auction_at: params.auctionAt || null, p_lot_number: params.lotNumber || null,
+    p_needed_by: params.neededBy || null, p_station_id: params.stationId || null,
   })
   if (error) throw error
   return data as Booking
+}
+
+// Fees the server will charge (so the confirm screen never guesses) and the testing-station directory.
+export const fetchBookingOptions = () => rpc<BookingOptions>('booking_options')
+export const fetchTestingStations = () => rpc<TestingStation[]>('list_testing_stations')
+
+// Report extras: venue, inspector badges and the station certificate (no document, no path).
+export const fetchReportExtras = (inspectionId: string) => rpc<ReportExtras>('report_extras', { p_inspection: inspectionId })
+
+// The booking's own certificate (buyer / inspector). Files live in the private roadworthy-certs bucket under <booking id>/.
+export const fetchBookingCertificate = async (bookingId: string) =>
+  (await rpc<RoadworthyCertificate[]>('booking_certificate', { p_booking: bookingId }))[0] ?? null
+export async function submitRoadworthyCertificate(bookingId: string, file: File, f: {
+  number: string; result: 'pass' | 'fail'; issuedOn: string; expiresOn: string | null
+}): Promise<string> {
+  const ext = DOC_TYPES[file.type]
+  if (!ext) throw new Error('Upload a PDF, JPG, PNG or WebP file')
+  if (file.size > DOC_MAX_BYTES) throw new Error('That file is over 10 MB')
+  const path = `${bookingId}/certificate-${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('roadworthy-certs').upload(path, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  return rpc<string>('submit_roadworthy_certificate', {
+    p_booking: bookingId, p_path: path, p_number: f.number, p_result: f.result, p_issued_on: f.issuedOn, p_expires_on: f.expiresOn || null,
+  })
+}
+export async function openCertificate(path: string): Promise<void> {
+  const { data, error } = await supabase.storage.from('roadworthy-certs').createSignedUrl(path, 120)
+  if (error || !data) throw new Error(error?.message ?? 'Could not open the file')
+  window.open(data.signedUrl, '_blank', 'noopener')
 }
 
 export interface PayfastCheckout { order_ref: string; amount: number; action: string; fields: Record<string, string> }
@@ -479,12 +513,29 @@ export const replyMyTicket = (ticketId: string, body: string) => rpc<void>('repl
 // ---------------------------------------------------------------------------
 
 export type DocKind = 'id' | 'licence' | 'proof_of_address' | 'other'
+export type CredentialKind = 'eov' | 'trade_certificate'
 export interface MyDocument { id: string; kind: DocKind; file_name: string; status: 'pending' | 'approved' | 'rejected'; reject_reason: string | null; created_at: string }
+export interface MyCredential {
+  id: string; kind: CredentialKind; file_name: string; status: 'pending' | 'approved' | 'rejected'; reject_reason: string | null
+  credential_number: string | null; credential_grade: 'A' | 'B' | 'C' | null; expires_on: string | null; created_at: string
+}
 
 export const DOC_MAX_BYTES = 10 * 1024 * 1024
 const DOC_TYPES: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
 export const fetchMyDocuments = () => rpc<MyDocument[]>('my_documents')
+export const fetchMyCredentials = () => rpc<MyCredential[]>('my_credentials')
+
+/** Uploads an Examiner of Vehicles / trade certificate and registers it for operator review. */
+export async function uploadMyCredential(userId: string, kind: CredentialKind, file: File, f: { number: string; grade: string | null; expiresOn: string | null }): Promise<string> {
+  const ext = DOC_TYPES[file.type]
+  if (!ext) throw new Error('Upload a PDF, JPG, PNG or WebP file')
+  if (file.size > DOC_MAX_BYTES) throw new Error('That file is over 10 MB')
+  const path = `${userId}/${kind}-${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('inspector-docs').upload(path, file, { contentType: file.type, upsert: false })
+  if (error) throw new Error(error.message)
+  return rpc<string>('register_my_credential', { p_kind: kind, p_path: path, p_file_name: file.name, p_number: f.number, p_grade: f.grade, p_expires_on: f.expiresOn || null })
+}
 
 export async function uploadMyDocument(userId: string, kind: DocKind, file: File): Promise<string> {
   const ext = DOC_TYPES[file.type]
@@ -494,4 +545,14 @@ export async function uploadMyDocument(userId: string, kind: DocKind, file: File
   const { error } = await supabase.storage.from('inspector-docs').upload(path, file, { contentType: file.type, upsert: false })
   if (error) throw new Error(error.message)
   return rpc<string>('register_my_document', { p_kind: kind, p_path: path, p_file_name: file.name })
+}
+
+/** Inspector edits their own self-reported details. Verification is separate (documents + admin approval). */
+export async function updateMyProfile(p: { licence?: string; cert?: string; experience?: string; region?: string }) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not signed in')
+  const patch = Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined))
+  if (!Object.keys(patch).length) return
+  const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
+  if (error) throw error
 }

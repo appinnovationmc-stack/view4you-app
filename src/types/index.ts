@@ -23,6 +23,7 @@ export interface Profile {
   online: boolean
   top_rated: boolean
   approved?: boolean
+  badges?: InspectorBadge[]
   created_at: string
 }
 
@@ -85,9 +86,40 @@ export interface Booking {
   paid: boolean
   payment_status?: 'unpaid' | 'paid' | 'legacy_unverified' | 'refund_due' | 'refunded'
   amount_due?: number | null
+  venue_kind?: VenueKind
+  venue_name?: string | null
+  auction_at?: string | null
+  lot_number?: string | null
+  needed_by?: string | null
+  addon_fee?: number
+  roadworthy_requested?: boolean
+  station_id?: string | null
+  station_fee_quote?: number | null
   created_at: string
   accepted_at: string | null
   completed_at: string | null
+}
+
+export type VenueKind = 'private' | 'dealership' | 'auction'
+export interface InspectorBadge { kind: 'identity_verified' | 'eov' | 'trade_qualified'; grade?: 'A' | 'B' | 'C' | null }
+export interface TestingStation {
+  id: string; name: string; address: string; city: string | null; province: string | null; phone: string | null
+  grade: 'A' | 'B' | 'C'; registration_number: string; hours: string | null; test_fee: number
+  vehicle_classes: string | null; lat: number | null; lng: number | null
+}
+export interface BookingOptions { roadworthy_addon_fee: number; travel_fee: number; platform_fee: number }
+export interface RoadworthyCertificate {
+  id: string; certificate_number: string; result: 'pass' | 'fail'; issued_on: string; expires_on: string | null
+  storage_path: string; status: 'submitted' | 'verified' | 'rejected'; reject_reason: string | null
+  station_name: string | null; station_grade: string | null
+}
+export interface ReportExtras {
+  venue: { kind: VenueKind; name: string | null; auction_at: string | null; lot_number: string | null }
+  inspector_badges: InspectorBadge[]
+  roadworthy_certificate: null | {
+    certificate_number: string; result: 'pass' | 'fail'; issued_on: string; expires_on: string | null
+    verified: boolean; station_name: string | null; station_grade: string | null
+  }
 }
 
 export type FindingStatus = 'pass' | 'warn' | 'fail'

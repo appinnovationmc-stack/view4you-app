@@ -1743,16 +1743,22 @@ function InspProfileScreen(props) {
           h('p',{style:{fontSize:20,fontWeight:800,color:C.t,letterSpacing:'-.03em',marginBottom:5}},user.name),
           h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
             h(Tag,{label:'★ '+user.rating.toFixed(2),bg:C.s3,c:C.t}),
-            h(Tag,{label:'Verified',bg:C.greenDim,c:C.green})))),
+            user.approved ? h(Tag,{label:'Verified by CheckVertical',bg:C.greenDim,c:C.green}) : h(Tag,{label:'Pending approval',bg:C.s3,c:C.t3})))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}},
-            [{l:'Licence',v:user.licence},{l:'Cert',v:user.cert},{l:'Experience',v:user.exp},{l:'Region',v:user.region}].map(function(d){
+            [{l:'Licence',v:user.licence},{l:'Cert',v:user.cert},{l:'Experience',v:user.exp},{l:'Region',v:user.region}].map(function(d){ return {l:d.l, v:d.v||'Not set'}; }).map(function(d){
               return h('div',{key:d.l,style:{background:C.s2,borderRadius:8,padding:'10px',border:'1px solid var(--b)'}},
                 h('p',{style:{fontSize:10,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}},d.l),
                 h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t,letterSpacing:'-.01em'}},d.v));
             })),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65}},user.bio))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginBottom:12}},user.approved ? 'These details are self-reported. Your verified status comes from the documents you upload.' : 'These details are self-reported. You are verified once your documents are approved.'),
+          h(GBtn,{label:'Edit my details',onClick:function(){
+            var f=function(k,q){ var v=window.prompt(q,user[k]||''); return v===null?undefined:v.trim(); };
+            var patch={licence:f('licence','Licence type (e.g. Code 08 / PrDP)'),cert:f('cert','Certification (e.g. EOV Grade A)'),experience:f('exp','Experience (e.g. 6 years)'),region:f('region','Region (e.g. Gauteng)')};
+            Data.updateMyProfile(patch).then(function(){ window.location.reload(); }).catch(function(e){ window.alert(e.message||'Could not save'); });
+          }}),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.65,marginTop:12}},user.bio))),
       h(Card,{style:{marginBottom:10}},
         h('div',{style:{padding:'18px'}},
           h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:12}},'How you earn'),
