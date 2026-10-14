@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProper
 import * as Data from './lib/data'
 import ReportView, { type ReportViewProps } from './ReportView'
 import {
-  CHECKLIST, TEST_POSITIONS, TYRE_POSITIONS, evaluate, testResult,
+  CHECKLIST, TEST_POSITIONS, TYRE_POSITIONS, evaluate, testResult, checklistForTier, minimumEvidencePhotos,
   type Condition, type Measurement, type ReportItem, type Tyre,
 } from './lib/reportTemplate'
 import { deriveFindings, scoreFromFindings } from './lib/reportMapping'
@@ -24,6 +24,7 @@ const C = {
 export interface InspectionJob {
   id: string; vin: string; make: string; model: string; year: number
   customer: string; location: string; date: string; pay: number; notes?: string
+  tierId?: string | null; tierName?: string | null
 }
 export interface InspectionFormProps {
   job: InspectionJob | undefined
@@ -46,7 +47,6 @@ const emptyDraft = (): Draft => ({ odometer: '', conds: {}, notes: {}, tests: {}
 const emptyTyre = (): TyreForm => ({ size: '', load_speed: '', make: '', model: '', tyre_type: '', tread: '' })
 
 const rk = (section: string, component: string) => `${section}.${component}`
-const TOTAL_ITEMS = CHECKLIST.reduce((n, s) => n + s.rows.length, 0)
 const MAIN_TYRES = TYRE_POSITIONS.filter(p => p !== 'Spare')
 const TYRE_TYPES = ['Summer', 'All-season', 'All-terrain', 'Run-flat', 'Winter']
 const PHOTO_SECTIONS: [string, string][] = [
@@ -195,6 +195,8 @@ type Phase = 'form' | 'saving' | 'done'
 
 export default function InspectionForm({ job, nav, showToast, onSubmitted }: InspectionFormProps) {
   const jobId = job?.id ?? 'none'
+  const activeChecklist = useMemo(() => checklistForTier(job?.tierName), [job?.tierName])
+  const TOTAL_ITEMS = activeChecklist.reduce((n, s) => n + s.rows.length, 0)
   const [draft, setDraft] = useState<Draft>(() => loadDraft(jobId))
   const [open, setOpen] = useState<string | null>(CHECKLIST[0].key)
   const [phase, setPhase] = useState<Phase>('form')
@@ -228,15 +230,15 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     setDraft(d => ({ ...d, tyres: { ...d.tyres, [pos]: { ...emptyTyre(), ...d.tyres[pos], ...f } } }))
   const markRestGood = (sectionKey: string) => setDraft(d => {
     const next = { ...d.conds }
-    CHECKLIST.find(s => s.key === sectionKey)?.rows.forEach(([key]) => { if (!next[rk(sectionKey, key)]) next[rk(sectionKey, key)] = 'good' })
+    activeChecklist.find(s => s.key === sectionKey)?.rows.forEach(([key]) => { if (!next[rk(sectionKey, key)]) next[rk(sectionKey, key)] = 'good' })
     return { ...d, conds: next }
   })
 
   // ---- derived data ----
-  const items: ReportItem[] = useMemo(() => CHECKLIST.flatMap(s => s.rows.flatMap(([key, , rw]) => {
+  const items: ReportItem[] = useMemo(() => activeChecklist.flatMap(s => s.rows.flatMap(([key, , rw]) => {
     const c = draft.conds[rk(s.key, key)]
     return c ? [{ section: s.key, component: key, condition: c, explanation: (draft.notes[rk(s.key, key)] ?? '').trim(), roadworthy_relevant: !!rw }] : []
-  })), [draft.conds, draft.notes])
+  })), [draft.conds, draft.notes, activeChecklist])
 
   const measurements: Measurement[] = useMemo(() => {
     const out: Measurement[] = []
@@ -262,14 +264,18 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     return [{ position, size: t.size.trim(), load_speed: t.load_speed.trim(), make: t.make.trim(), model: t.model.trim(), tyre_type: t.tyre_type, tread_mm: toNum(t.tread) }]
   }), [draft.tyres])
 
-  const verdict = useMemo(() => evaluate(items, measurements, tyres), [items, measurements, tyres])
+  const verdict = useMemo(() => evaluate(items, measurements, tyres, activeChecklist), [items, measurements, tyres, activeChecklist])
   const unset = TOTAL_ITEMS - items.length
   const score = useMemo(() => (unset === 0 ? scoreFromFindings(deriveFindings(items, measurements, tyres)) : null), [unset, items, measurements, tyres])
+
+  const photoCount = Object.values(photos).reduce((n, a) => n + a.length, 0)
+  const requiredPhotos = minimumEvidencePhotos(job?.tierName)
 
   const issues = useMemo(() => {
     const out: string[] = []
     const od = toNum(draft.odometer)
     if (od === null || od < 0 || !Number.isInteger(od)) out.push('Enter the odometer reading (whole km)')
+    if (photoCount < requiredPhotos) out.push(`Add at least ${requiredPhotos} evidence photos for the ${job?.tierName || 'Standard'} tier`)
     if (unset > 0) out.push(`${unset} checklist item${unset === 1 ? '' : 's'} not checked yet`)
     const noNote = items.filter(i => i.condition === 'poor' && !i.explanation).length
     if (noNote > 0) out.push(`${noNote} "Poor" item${noNote === 1 ? '' : 's'} need a note`)
@@ -288,7 +294,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
       }
     }
     return out
-  }, [draft.odometer, draft.tyres, draft.tests, items, unset])
+  }, [draft.odometer, draft.tyres, draft.tests, items, unset, photoCount, requiredPhotos, job?.tierName])
 
   // ---- photos ----
   const addPhotos = async (section: string, files: FileList) => {
@@ -310,7 +316,6 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     if (gone) URL.revokeObjectURL(gone.url)
     return { ...p, [section]: (p[section] ?? []).filter(e => e.id !== id) }
   })
-  const photoCount = Object.values(photos).reduce((n, a) => n + a.length, 0)
 
   // ---- submit ----
   const submit = async () => {
@@ -319,7 +324,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     let saved: Data.SubmittedReport
     try {
       saved = await Data.submitDetailedReport({
-        bookingId: job.id, odometerKm: toNum(draft.odometer) ?? 0, items, measurements, tyres,
+        bookingId: job.id, odometerKm: toNum(draft.odometer) ?? 0, items, measurements, tyres, tierName: job.tierName,
       })
     } catch (err) {
       console.error(err)
@@ -419,7 +424,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
 
   // ---- form ----
   const saving = phase === 'saving'
-  const checkedBySection = (key: string) => CHECKLIST.find(s => s.key === key)!.rows.filter(([c]) => draft.conds[rk(key, c)]).length
+  const checkedBySection = (key: string) => activeChecklist.find(s => s.key === key)!.rows.filter(([c]) => draft.conds[rk(key, c)]).length
   const progressPct = Math.round((items.length / TOTAL_ITEMS) * 100)
 
   return (
@@ -443,6 +448,8 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
         )}
 
         <div style={{ ...card, padding: '14px 16px' }}>
+          <div style={{fontSize:12,fontWeight:800,marginBottom:6}}>{job.tierName || 'Standard'} inspection</div>
+          <p style={{...caption,marginBottom:12}}>{job.tierName === 'Basic' ? 'Focused visual condition and essential safety inspection. Items outside this scope are not scored as passed.' : job.tierName === 'Comprehensive' ? 'Full checklist with enhanced photo evidence. Diagnostic and measured tests must only be reported when the correct equipment is available and used.' : 'Expanded full-checklist inspection with documented condition findings.'}</p>
           <Field label="Odometer (km)" value={draft.odometer} numeric placeholder="e.g. 128450"
             onChange={v => setDraft(d => ({ ...d, odometer: v }))} invalid={draft.odometer !== '' && (toNum(draft.odometer) === null || !Number.isInteger(toNum(draft.odometer)))} />
           <div style={{ marginTop: 12 }}>
@@ -476,7 +483,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           marks items that affect the roadworthy verdict. Everything saves on this phone as you go.
         </p>
 
-        {CHECKLIST.map(s => {
+        {activeChecklist.map(s => {
           const done = checkedBySection(s.key)
           const complete = done === s.rows.length
           return (
