@@ -61,7 +61,7 @@ create index if not exists resale_rewards_inspection on public.resale_rewards(in
 
 create or replace function public.list_active_inspection_tiers()
 returns table(id uuid,name text,buyer_price integer,resale_price integer,sort integer)
-language plpgsql stable security definer set search_path = '' as $
+language plpgsql stable security definer set search_path = '' as $$
 begin
   if auth.uid() is null or not exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='buyer') then
     raise exception 'Buyer sign-in required' using errcode='42501';
@@ -437,7 +437,7 @@ exception when undefined_table or undefined_function or insufficient_privilege t
 end $$;
 
 create or replace function public.get_earn_back_progress(p_booking_id uuid)
-returns jsonb language plpgsql stable security definer set search_path = '' as $
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_booking public.bookings%rowtype; v_earned integer; v_pending integer; v_cap integer;
 begin
   if auth.uid() is null then raise exception 'Sign in required' using errcode='28000'; end if;
