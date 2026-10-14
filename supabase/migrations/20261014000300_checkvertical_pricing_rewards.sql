@@ -313,6 +313,29 @@ drop trigger if exists cv_mark_founding_booking on public.bookings;
 create trigger cv_mark_founding_booking before update of paid on public.bookings
 for each row execute function public.cv_mark_founding_booking();
 
+-- The invoker-security inspector view must not require direct read access to private station records.
+create or replace function public.cv_inspector_job_station_name(p_booking uuid)
+returns text language plpgsql stable security definer set search_path = '' as $$
+declare v_name text;
+begin
+  if auth.uid() is null then return null; end if;
+  select ts.name into v_name
+    from public.bookings b join public.testing_stations ts on ts.id=b.station_id
+   where b.id=p_booking and b.inspector_id=auth.uid() and b.paid;
+  return v_name;
+end $$;
+revoke all on function public.cv_inspector_job_station_name(uuid) from public, anon;
+grant execute on function public.cv_inspector_job_station_name(uuid) to authenticated, service_role;
+
+create or replace view public.inspector_jobs with (security_invoker=true) as
+  select b.id,b.inspector_id,b.vin,b.location,b.notes,b.status,b.inspection_fee,b.travel_fee,
+    b.platform_fee,b.paid,b.payment_status,b.created_at,b.accepted_at,b.completed_at,
+    v.make,v.model,v.year,v.colour,public.cv_inspector_job_buyer_first_name(b.id) as buyer_first_name,
+    b.venue_kind,b.venue_name,b.auction_at,b.lot_number,b.needed_by,b.roadworthy_requested,
+    public.cv_inspector_job_station_name(b.id) as station_name
+  from public.bookings b join public.vehicles v on v.vin=b.vin
+  where b.inspector_id=(select auth.uid()) and b.paid;
+
 -- Tier bookings use the fixed inspector payout; legacy inspection rows keep their existing stored split.
 create or replace function public.lc_credit_job_fee() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -359,7 +382,10 @@ begin
   select i.* into v_inspection from public.inspections i where i.id=new.inspection_id;
   select b.* into v_booking from public.bookings b where b.id=v_inspection.booking_id;
   select first_tracked_by into v_tracker from public.vehicles where vin=v_inspection.vin;
-  if v_tracker is null or v_tracker=new.buyer_id then return new; end if;
+  if v_tracker is not null and v_tracker=new.buyer_id then
+    update public.report_purchases set payer_earning=0,inspector_earning=0 where id=new.id;
+    return new;
+  end if;
 
   select payer_share_bp,payer_cap_bp,hold_days,reward_expiry_months,founding_share_bp,founding_resales
     into v_share_bp,v_cap,v_hold,v_expiry,v_found_share,v_found_count
@@ -383,6 +409,7 @@ begin
     v_payer := least(round(v_price * coalesce(v_share_bp,6000) / 10000.0)::integer,greatest(v_cap-v_earned,0));
   end if;
   v_platform := greatest(v_price-v_payer,0);
+  update public.report_purchases set payer_earning=v_payer,inspector_earning=0 where id=new.id;
   insert into public.resale_rewards(purchase_id,inspection_id,first_buyer_id,payer_amount,platform_amount,release_at)
   values (new.id,new.inspection_id,v_tracker,v_payer,v_platform,new.purchased_at + make_interval(days=>coalesce(v_hold,7)))
   on conflict (purchase_id) do nothing;
