@@ -1200,7 +1200,7 @@ function BookScreen(props) {
 
       /* FIX: sort filter chips */
       h('div',{style:{display:'flex',gap:8,padding:'0 18px 12px',overflowX:'auto'}},
-        [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'},{id:'price',l:'Lowest price'}].map(function(s){
+        [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'}].map(function(s){
           var active = sort===s.id;
           return h('button',{key:s.id,onClick:function(){setSort(s.id);},
             style:{background:active?C.limeDim:C.s2,color:active?C.lime:C.t3,border:'1px solid '+(active?'var(--ink-dim2)':'var(--b)'),
@@ -1217,7 +1217,7 @@ function BookScreen(props) {
               h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
                 h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
                 /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},insp.price == null ? 'Fee at checkout' : R(insp.price))),
+                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},tierMode ? 'In '+(selectedTier ? selectedTier.name : 'your tier') : (insp.price == null ? 'Fee at checkout' : R(insp.price)))),
               h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
                 h('span',{style:{color:C.t,fontSize:12}},'★'),
                 h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
