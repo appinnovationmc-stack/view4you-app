@@ -424,14 +424,14 @@ revoke all on function public.lc_release_resale_rewards() from public, anon, aut
 grant execute on function public.lc_release_resale_rewards() to service_role;
 
 -- Run by pg_cron when the extension exists. Edge-function scheduling can call the same service-only RPC otherwise.
-do $
+do $$
 begin
   if exists (select 1 from pg_extension where extname='pg_cron') then
     execute 'select cron.schedule(''checkvertical-release-resale-rewards'', ''*/15 * * * *'', ''select public.lc_release_resale_rewards();'')';
   end if;
 exception when undefined_table or undefined_function or insufficient_privilege or duplicate_object then
   raise notice 'pg_cron unavailable or job already scheduled; schedule lc_release_resale_rewards from a service-role Edge Function.';
-end $;
+end $$;
 
 create or replace function public.get_earn_back_progress(p_booking_id uuid)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
