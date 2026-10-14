@@ -1143,7 +1143,7 @@ function BookScreen(props) {
           h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
             tiers.map(function(t){
               var on=t.id===tierId;
-              var detail=t.name==='Basic'?'60 required checks · 4 evidence photos':t.name==='Standard'?'115 required checks · 8 evidence photos':'115 required checks · 12 evidence photos';
+              var detail=t.name==='Basic'?'60 checks · essential safety and visible condition · 4 photos':t.name==='Standard'?'115 checks · expanded mechanical and road observations · 8 photos':'115 checks · 12 photos · measured tests when equipped';
               return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
                 style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
                 h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
