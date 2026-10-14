@@ -69,7 +69,7 @@ begin
   if not exists(select 1 from public.lc_settings s where s.id=1 and s.tiers_enabled) then return; end if;
   return query select t.id,t.name,t.buyer_price,t.resale_price,t.sort
     from public.inspection_tiers t where t.active order by t.sort,t.buyer_price;
-end $;
+end $$;
 revoke all on function public.list_active_inspection_tiers() from public, anon;
 grant execute on function public.list_active_inspection_tiers() to authenticated, service_role;
 
@@ -448,7 +448,7 @@ begin
    where i.booking_id=p_booking_id and rr.first_buyer_id=auth.uid();
   return jsonb_build_object('cap',v_cap,'earned',v_earned,'pending',v_pending,
     'percent',case when v_cap<=0 then 0 else least(100,round(v_earned*100.0/v_cap)) end);
-end $;
+end $$;
 revoke all on function public.get_earn_back_progress(uuid) from public, anon;
 grant execute on function public.get_earn_back_progress(uuid) to authenticated, service_role;
 
