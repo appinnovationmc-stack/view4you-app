@@ -156,3 +156,24 @@ describe('writes are applied and audited', () => {
     expect(rows.every((r: any) => r.admin_email?.includes(ADMIN))).toBe(true)
   })
 })
+
+describe('admin_update_inspector_profile', () => {
+  const args = [INSP, 'Cert A', 'LIC-1', 'Midrand', '8 years', 450, 30]
+  const sql = 'select public.admin_update_inspector_profile($1,$2,$3,$4,$5,$6,$7)'
+  it('buyers, inspectors, support and anon cannot write it', async () => {
+    for (const who of [BUYER, INSP, SUPPORT]) expect((await attempt(() => call(who, sql, args))).ok).toBe(false)
+    expect((await attempt(() => asAnon(db, () => db.query(sql, args)))).ok).toBe(false)
+  })
+  it('admin sets the fields, makes the inspector bookable, and it is audited', async () => {
+    await call(ADMIN, sql, args)
+    const p = (await db.query<any>(`select cert, licence, region, experience, price, eta_minutes from public.profiles where id=$1`, [INSP])).rows[0]
+    expect(p).toMatchObject({ cert: 'Cert A', licence: 'LIC-1', region: 'Midrand', experience: '8 years', price: 450, eta_minutes: 30 })
+    const a = await db.query<any>(`select 1 from public.admin_audit_log where action='inspector_profile_updated' and target_id=$1`, [INSP])
+    expect(a.rows.length).toBe(1)
+  })
+  it('rejects bad price/ETA and non-inspectors', async () => {
+    expect((await attempt(() => call(ADMIN, sql, [INSP, '', '', '', '', 0, 30]))).ok).toBe(false)
+    expect((await attempt(() => call(ADMIN, sql, [INSP, '', '', '', '', 450, 9999]))).ok).toBe(false)
+    expect((await attempt(() => call(ADMIN, sql, [BUYER, '', '', '', '', 450, 30]))).ok).toBe(false)
+  })
+})

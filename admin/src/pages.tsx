@@ -115,6 +115,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
   const { data, error, loading, reload } = useLoad(() => api.listInspectors(status), [status])
   const [suspend, setSuspend] = useState<api.InspectorRow | null>(null)
   const [docsFor, setDocsFor] = useState<api.InspectorRow | null>(null)
+  const [editFor, setEditFor] = useState<api.InspectorRow | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const approve = async (r: api.InspectorRow) => {
@@ -151,6 +152,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
                   </td>
                   <td>{when(r.created_at)}</td>
                   <td>
+                    {canWrite && <button className="btn sm" onClick={() => setEditFor(r)}>Edit profile</button>}{' '}
                     {canWrite && (r.approved
                       ? <button className="btn sm danger" onClick={() => setSuspend(r)}>Suspend</button>
                       : <button className="btn sm primary" onClick={() => void approve(r)}>Approve</button>)}
@@ -161,6 +163,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
           </table>
         )}
       </div>
+      {editFor && <EditProfileModal inspector={editFor} onClose={() => setEditFor(null)} onSaved={reload} />}
       {docsFor && <DocumentsModal inspector={docsFor} canWrite={canWrite} onClose={() => setDocsFor(null)} onChanged={reload} />}
       {suspend && (
         <PromptModal title={`Suspend ${suspend.name}?`} danger multiline label="Reason" confirmLabel="Suspend"
@@ -169,6 +172,41 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
           onClose={() => setSuspend(null)} />
       )}
     </>
+  )
+}
+
+function EditProfileModal({ inspector: r, onClose, onSaved }: { inspector: api.InspectorRow; onClose: () => void; onSaved: () => void }) {
+  const [f, setF] = useState({ cert: r.cert ?? '', licence: r.licence ?? '', region: r.region ?? '', experience: r.experience ?? '',
+    price: r.price == null ? '' : String(r.price), eta: r.eta_minutes == null ? '' : String(r.eta_minutes) })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+  const num = (v: string) => (v.trim() === '' ? null : Number(v))
+  const save = async () => {
+    const price = num(f.price), eta = num(f.eta)
+    if ((price !== null && !Number.isInteger(price)) || (eta !== null && !Number.isInteger(eta))) { setError('Price and ETA must be whole numbers.'); return }
+    setBusy(true); setError(null)
+    try { await api.updateInspectorProfile(r.id, { cert: f.cert, licence: f.licence, region: f.region, experience: f.experience, price, eta_minutes: eta }); onSaved(); onClose() }
+    catch (e) { setError((e as Error).message); setBusy(false) }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label={`Edit ${r.name}`} onKeyDown={(e) => { if (e.key === 'Escape' && !busy) onClose() }}>
+      <div className="modal">
+        <h2>Edit {r.name}</h2>
+        <p className="muted">Shown on the inspector's profile. An inspector cannot be booked until a price above R0 is set.</p>
+        <label>Certification<input type="text" value={f.cert} onChange={set('cert')} /></label>
+        <label>Licence number<input type="text" value={f.licence} onChange={set('licence')} /></label>
+        <label>Region<input type="text" value={f.region} onChange={set('region')} /></label>
+        <label>Experience<input type="text" value={f.experience} onChange={set('experience')} placeholder="e.g. 8 years" /></label>
+        <label>Inspection fee (R)<input type="text" inputMode="numeric" value={f.price} onChange={set('price')} /></label>
+        <label>ETA (minutes)<input type="text" inputMode="numeric" value={f.eta} onChange={set('eta')} /></label>
+        <ErrorBanner message={error} />
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button className="btn" onClick={onClose} disabled={busy}>Back</button>
+          <button className="btn primary" onClick={() => void save()} disabled={busy}>{busy ? 'Working…' : 'Save'}</button>
+        </div>
+      </div>
+    </div>
   )
 }
 

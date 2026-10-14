@@ -23,7 +23,7 @@ export interface Overview {
 export interface InspectorRow {
   id: string; name: string; email: string; phone: string | null; cert: string | null; licence: string | null
   region: string | null; approved: boolean; online: boolean; jobs_completed: number; rating: number | string
-  price: number | null; created_at: string
+  price: number | null; created_at: string; experience: string | null; eta_minutes: number | null
   docs_pending: number | string; docs_approved: number | string; docs_rejected: number | string
 }
 export interface BookingRow {
@@ -62,6 +62,10 @@ export const listAudit = () => rpc<AuditRow[]>('admin_list_audit', { p_limit: 20
 
 export const setInspectorApproval = (id: string, approved: boolean, reason?: string) =>
   rpc<void>('admin_set_inspector_approval', { p_inspector_id: id, p_approved: approved, p_reason: reason ?? null })
+export interface InspectorProfileEdit { cert: string; licence: string; region: string; experience: string; price: number | null; eta_minutes: number | null }
+export const updateInspectorProfile = (id: string, e: InspectorProfileEdit) => rpc<void>('admin_update_inspector_profile', {
+  p_inspector_id: id, p_cert: e.cert, p_licence: e.licence, p_region: e.region, p_experience: e.experience,
+  p_price: e.price, p_eta_minutes: e.eta_minutes })
 export const cancelBooking = (id: string, reason: string) => rpc<void>('admin_cancel_booking', { p_booking_id: id, p_reason: reason })
 export const markRefunded = (id: string, reference: string) => rpc<void>('admin_mark_refunded', { p_booking_id: id, p_reference: reference })
 
