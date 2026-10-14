@@ -81,11 +81,24 @@ const BASIC_SCOPE: Record<string, string[]> = {
 }
 
 /** Basic focuses on visible condition and essential safety. Standard/Comprehensive use the full checklist. */
+export function priorityForRow(sectionKey: string, component: string): 'Critical safety' | 'High priority' | 'Standard check' {
+  const row = CHECKLIST.find(s => s.key === sectionKey)?.rows.find(r => r[0] === component)
+  if (row?.[2]) return 'Critical safety'
+  if (['engine', 'wheels', 'test_drive'].includes(sectionKey)) return 'High priority'
+  return 'Standard check'
+}
+
 export function checklistForTier(tierName?: string | null): Section[] {
-  if ((tierName || '').toLowerCase() !== 'basic') return CHECKLIST
+  const isBasic = (tierName || '').toLowerCase() === 'basic'
   return CHECKLIST.map(section => ({
     ...section,
-    rows: section.rows.filter(([key]) => (BASIC_SCOPE[section.key] || []).includes(key)),
+    rows: section.rows
+      .filter(([key]) => !isBasic || (BASIC_SCOPE[section.key] || []).includes(key))
+      .slice()
+      .sort((a, b) => {
+        const rank = (row: Row) => row[2] ? 0 : (['engine', 'wheels', 'test_drive'].includes(section.key) ? 1 : 2)
+        return rank(a) - rank(b)
+      }),
   })).filter(section => section.rows.length > 0)
 }
 
