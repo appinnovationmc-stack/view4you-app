@@ -5,7 +5,7 @@ import { AREAS } from '../../src/lib/reportMapping'
 
 let db: Db
 const BUYER = uid(701), BUYER2 = uid(702), BUYER3 = uid(703), BUYER4 = uid(704), BUYER5 = uid(705)
-const INSPECTOR = uid(706), SUPPORT = uid(707)
+const INSPECTOR = uid(706), SUPPORT = uid(707), ADMIN = uid(708)
 const RESELLERS = Array.from({length:10},(_,i)=>uid(710+i))
 
 const ITEMS = CHECKLIST.flatMap(section => section.rows.map(([component, , roadworthy]) => ({
@@ -39,10 +39,10 @@ async function createTierReport(vin: string, foundingLimit = 200) {
 beforeAll(async () => {
   db = await makeDb({ migrations: true })
   for (const [id,role] of [
-    [BUYER,'buyer'],[BUYER2,'buyer'],[BUYER3,'buyer'],[BUYER4,'buyer'],[BUYER5,'buyer'],[INSPECTOR,'inspector'],[SUPPORT,'buyer'],
+    [BUYER,'buyer'],[BUYER2,'buyer'],[BUYER3,'buyer'],[BUYER4,'buyer'],[BUYER5,'buyer'],[INSPECTOR,'inspector'],[SUPPORT,'buyer'],[ADMIN,'buyer'],
   ] as const) await addUser(db,id,role,'Pricing Test '+id.slice(-2))
   for (const id of RESELLERS) await addUser(db,id,'buyer','Reseller '+id.slice(-2))
-  await db.query("insert into public.admin_users(user_id,role) values ($1,'support')",[SUPPORT])
+  await db.query("insert into public.admin_users(user_id,role) values ($1,'support'),($2,'admin')",[SUPPORT,ADMIN])
   await db.query('update public.profiles set approved=true,online=true,price=null where id=$1',[INSPECTOR])
 })
 
@@ -69,6 +69,8 @@ describe('CheckVertical fixed tiers and resale rewards', () => {
         ['Basic',790,149,1,true,'unauthorized'])))).ok).toBe(false)
     }
     expect((await attempt(() => asAnon(db,() => db.query('select * from public.inspection_tiers')))).ok).toBe(false)
+    expect((await asUser(db,ADMIN,() => db.query<any>('select * from public.admin_list_tiers()'))).rows.length).toBe(3)
+    expect((await db.query<any>("select count(*)::int n from public.admin_audit_log where action='tiers_listed'")).rows[0].n).toBe(1)
     expect((await asUser(db,BUYER,() => db.query<any>('select * from public.list_active_inspection_tiers()'))).rows.length).toBe(0)
   })
 
