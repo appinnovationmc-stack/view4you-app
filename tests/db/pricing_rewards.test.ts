@@ -33,10 +33,13 @@ async function createTierReport(vin: string, foundingLimit = 200) {
   const submitted = await submit(b.id)
   const inspectionId = submitted.rows[0].inspection_id
   // Tier reports cannot be bought until the required evidence is stored and publication passes.
-  await db.query(`insert into public.report_photos (inspection_id,section,storage_path,caption,sort)
-    select $1,'evidence','test/' || $1::text || '/' || n::text || '.jpg','test evidence',n
-    from generate_series(1,8) n`,[inspectionId])
-  await asUser(db, INSPECTOR, () => db.query('select public.publish_inspection_report($1)',[inspectionId]))
+  for (let n = 1; n <= 8; n++) {
+    await db.query(
+      'insert into public.report_photos (inspection_id,section,storage_path,caption,sort) values ($1,$2,$3,$4,$5)',
+      [inspectionId, 'evidence', 'test/' + inspectionId + '/' + n + '.jpg', 'test evidence', n],
+    )
+  }
+  await asUser(db, INSPECTOR, () => db.query('select public.publish_inspection_report($1::uuid)',[inspectionId]))
   await db.query('update public.vehicles set first_tracked_by=$1 where vin=$2',[BUYER,vin])
   return { bookingId: b.id as string, inspectionId: inspectionId as string }
 }
