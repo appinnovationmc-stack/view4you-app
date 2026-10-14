@@ -1274,6 +1274,9 @@ function BookScreen(props) {
         })),
 
       h('div',{style:{padding:'0 14px',display:'flex',flexDirection:'column',gap:8}},
+        sorted.length===0 && h('div',{style:{padding:'20px 14px',background:C.s1,border:'1px solid var(--b)',borderRadius:12}},
+          h('p',{style:{fontWeight:800,fontSize:13,color:C.t,marginBottom:6}},tierMode ? 'No inspectors currently offer this tier' : 'No inspectors available right now'),
+          h('p',{style:{fontSize:12,lineHeight:1.6,color:C.t3}},tierMode ? 'Inspectors must select this service in their profile and meet the equipment requirements before they appear here. Try another tier or check back later.' : 'Try again shortly or check back later.')),
         sorted.map(function(insp){
           return h('button',{key:insp.id,onClick:function(){setInspector(insp);setStep('confirm');},className:'pressable',
             style:{width:'100%',background:C.s1,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'14px',display:'flex',alignItems:'center',gap:12,textAlign:'left'}},
@@ -1338,7 +1341,7 @@ function BookScreen(props) {
           h(Hr,{my:12}),
           /* Price breakdown */
           ((tierMode
-            ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included (first 15 km)'}]
+            ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included in tier price'}]
             : [{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
           ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
             return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
