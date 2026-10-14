@@ -284,7 +284,9 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
         if (!t) continue
         const r = toNum(t.right), l = toNum(t.left)
         const touched = t.right.trim() !== '' || (test !== 'slip' && t.left.trim() !== '')
-        if (touched && (r === null || (test !== 'slip' && l === null))) out.push(`${test[0].toUpperCase()}${test.slice(1)} test, ${position}: fill in both values`)
+        const missing = r === null || (test !== 'slip' && l === null)
+        if (job?.tierName === 'Comprehensive' && missing) out.push(`Comprehensive requires a complete ${test} measurement for ${position}`)
+        else if (touched && missing) out.push(`${test[0].toUpperCase()}${test.slice(1)} test, ${position}: fill in both values`)
         if (test !== 'slip' && ((r ?? 0) < 0 || (l ?? 0) < 0)) out.push(`${test[0].toUpperCase()}${test.slice(1)} test, ${position}: values can't be negative`)
       }
     }
@@ -494,7 +496,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
 
         <Accordion title="Measured tests" meta={`${measurements.length} entered`} open={open === 'tests'} onToggle={() => setOpen(o => (o === 'tests' ? null : 'tests'))}>
           <div style={{ padding: '12px 16px 4px' }}>
-            <p style={{ ...caption, marginBottom: 10 }}>Optional. Skip any test you didn't run. Use a comma or a dot for decimals.</p>
+            <p style={{ ...caption, marginBottom: 10 }}>{job?.tierName === 'Comprehensive' ? 'Required for Comprehensive. Record all seven brake, suspension and alignment measurements using suitable equipment.' : 'Optional for Basic and Standard. Only record tests you actually performed using suitable equipment. Use a comma or a dot for decimals.'}</p>
             {(['brake', 'shock', 'slip'] as const).map(test => (
               <div key={test} style={{ marginBottom: 14 }}>
                 <p style={{ fontWeight: 700, fontSize: 'var(--fs-caption)', color: C.t, marginBottom: 8 }}>
