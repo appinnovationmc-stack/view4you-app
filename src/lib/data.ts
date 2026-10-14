@@ -396,7 +396,7 @@ export interface PhotoUpload { section: string; blob: Blob; caption?: string }
  * Runs after the report is saved; a failure here never loses the report. Returns what failed
  * so the caller can offer a retry.
  */
-export async function uploadReportPhotos(inspectionId: string, photos: PhotoUpload[]): Promise<{ uploaded: number; failed: PhotoUpload[] }> {
+export async function uploadReportPhotos(inspectionId: string, photos: PhotoUpload[]): Promise<{ uploaded: number; failed: PhotoUpload[]; publishError?: string }> {
   const failed: PhotoUpload[] = []
   const stored: { photo: PhotoUpload; path: string }[] = []
   const stamp = Date.now()
@@ -431,6 +431,10 @@ export async function uploadReportPhotos(inspectionId: string, photos: PhotoUplo
     // re-uploads and records them (the orphaned files are small and sit in the private bucket).
     return { uploaded: 0, failed: [...failed, ...stored.map(s => s.photo)] }
   }
+
+  // A tiered report remains private to the inspector until the server verifies the required evidence.
+  const { error: publishError } = await supabase.rpc('publish_inspection_report', { p_inspection_id: inspectionId })
+  if (publishError) return { uploaded: rows.length, failed, publishError: publishError.message }
   return { uploaded: rows.length, failed }
 }
 
