@@ -343,8 +343,13 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
     setPhotoStatus('uploading')
     try {
       const res = await Data.uploadReportPhotos(inspectionId, list)
-      setFailedPhotos(res.failed)
-      if (res.failed.length) showToast(`${res.failed.length} photo${res.failed.length === 1 ? '' : 's'} didn't upload. Tap retry.`, true)
+      if (res.publishError) {
+        setFailedPhotos(list)
+        showToast(res.publishError + ' Retry to finish uploading the required evidence.', true)
+      } else {
+        setFailedPhotos(res.failed)
+        if (res.failed.length) showToast(`${res.failed.length} photo${res.failed.length === 1 ? '' : 's'} didn't upload. Tap retry.`, true)
+      }
     } catch (err) {
       console.error(err)
       setFailedPhotos(list)
