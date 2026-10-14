@@ -175,6 +175,13 @@ export interface InspectionTier {
   id: string; name: string; buyer_price: number; resale_price: number; sort: number
 }
 
+export interface EarnBackProgress { cap: number; earned: number; pending: number; percent: number }
+export async function fetchEarnBackProgress(bookingId: string): Promise<EarnBackProgress> {
+  const { data, error } = await supabase.rpc('get_earn_back_progress', { p_booking_id: bookingId })
+  if (error) throw error
+  return data as EarnBackProgress
+}
+
 export async function fetchInspectionTiers(): Promise<InspectionTier[]> {
   const { data, error } = await supabase.rpc('list_active_inspection_tiers')
   if (error) throw error
