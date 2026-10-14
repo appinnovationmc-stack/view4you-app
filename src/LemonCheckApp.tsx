@@ -1371,6 +1371,7 @@ function BookingStatus(props) {
   var _b=useState(null); var booking=_b[0]; var setBooking=_b[1];
   var _e=useState(null); var loadErr=_e[0]; var setLoadErr=_e[1];
   var _w=useState(false); var busy=_w[0]; var setBusy=_w[1];
+  var _earn=useState(null); var earn=_earn[0]; var setEarn=_earn[1];
   var _t0=useRef(Date.now());
 
   useEffect(function(){
@@ -1386,6 +1387,13 @@ function BookingStatus(props) {
     tick();
     return function(){ stop=true; if (timer) clearTimeout(timer); };
   }, [bookingId]);
+
+  useEffect(function(){
+    if(!booking || !booking.tier_id || !booking.paid) { setEarn(null); return; }
+    var stop=false;
+    Data.fetchEarnBackProgress(booking.id).then(function(v){ if(!stop) setEarn(v); }).catch(function(){ if(!stop) setEarn(null); });
+    return function(){ stop=true; };
+  }, [booking && booking.id, booking && booking.tier_id, booking && booking.paid, booking && booking.completed_at]);
 
   var name=(info.inspector||'Your inspector');
   var unpaid = booking && booking.status==='pending' && !booking.paid;
@@ -1416,6 +1424,16 @@ function BookingStatus(props) {
     h('p',{role:'status','aria-live':'polite',style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.035em',marginBottom:10}},view.t),
     h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:booking&&booking.venue_kind&&booking.venue_kind!=='private'?8:24,maxWidth:300}},view.d),
     booking&&booking.venue_kind&&booking.venue_kind!=='private'&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t2,marginBottom:24,fontWeight:600}},venueLabel(booking.venue_kind,booking.venue_name,booking.lot_number)+(booking.auction_at?' · '+new Date(booking.auction_at).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'}):'')),
+    booking&&booking.tier_id&&booking.paid&&earn&&h(Card,{style:{width:'100%',maxWidth:360,marginBottom:18,textAlign:'left'}},
+      h('div',{style:{padding:'16px'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,marginBottom:8}},
+          h('strong',{style:{fontSize:14,color:C.t}},'Inspection cost progress'),
+          h('span',{style:{fontSize:12,fontWeight:800,color:C.lime}},Math.min(100,earn.percent)+'%')),
+        h('p',{style:{fontSize:12,color:C.t3,marginBottom:10}},R(earn.earned)+' earned of '+R(earn.cap)+' booking cost'),
+        h('div',{style:{height:8,background:'var(--s3)',borderRadius:99,overflow:'hidden'}},
+          h('div',{style:{height:'100%',width:Math.min(100,earn.percent)+'%',background:C.lime,borderRadius:99,transition:'width .35s ease'}})),
+        earn.pending>0&&h('p',{style:{fontSize:11,color:C.t3,marginTop:9}},R(earn.pending)+' pending release after the 7-day hold'),
+        earn.earned>=earn.cap&&h('p',{style:{fontSize:12,color:C.green,fontWeight:700,marginTop:9}},'Your booking cost has been recovered. Future resale proceeds go to CheckVertical.'))),
     booking&&booking.roadworthy_requested&&booking.paid&&h(CertificateCard,{bookingId:bookingId,showToast:showToast}),
     unpaid&&slow&&h('div',{style:{width:'100%',display:'flex',flexDirection:'column',gap:8,marginBottom:12}},
       h(PBtn,{label:busy?'Please wait…':'Try payment again',onClick:retryPay,loading:busy}),
