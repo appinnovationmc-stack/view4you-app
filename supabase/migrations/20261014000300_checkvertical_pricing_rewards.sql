@@ -59,6 +59,20 @@ revoke all on public.resale_rewards from public, anon, authenticated;
 create index if not exists resale_rewards_release_due on public.resale_rewards(release_at) where released_at is null;
 create index if not exists resale_rewards_inspection on public.resale_rewards(inspection_id);
 
+create or replace function public.list_active_inspection_tiers()
+returns table(id uuid,name text,buyer_price integer,resale_price integer,sort integer)
+language plpgsql stable security definer set search_path = '' as $
+begin
+  if auth.uid() is null or not exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='buyer') then
+    raise exception 'Buyer sign-in required' using errcode='42501';
+  end if;
+  if not exists(select 1 from public.lc_settings s where s.id=1 and s.tiers_enabled) then return; end if;
+  return query select t.id,t.name,t.buyer_price,t.resale_price,t.sort
+    from public.inspection_tiers t where t.active order by t.sort,t.buyer_price;
+end $;
+revoke all on function public.list_active_inspection_tiers() from public, anon;
+grant execute on function public.list_active_inspection_tiers() to authenticated, service_role;
+
 create or replace function public.admin_list_tiers()
 returns setof public.inspection_tiers
 language plpgsql stable security definer set search_path = '' as $$
