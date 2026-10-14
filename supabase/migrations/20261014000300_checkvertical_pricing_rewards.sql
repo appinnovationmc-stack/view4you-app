@@ -393,6 +393,15 @@ begin
   v_price := greatest(coalesce(new.amount_paid,0),0);
   if v_price <= 0 then return new; end if;
 
+  -- If no first buyer is recorded for this vehicle, the platform retains the full resale.
+  if v_tracker is null then
+    update public.report_purchases set payer_earning=0,inspector_earning=0 where id=new.id;
+    insert into public.resale_rewards(purchase_id,inspection_id,first_buyer_id,payer_amount,platform_amount,release_at)
+    values (new.id,new.inspection_id,null,0,v_price,new.purchased_at + make_interval(days=>coalesce(v_hold,7)))
+    on conflict (purchase_id) do nothing;
+    return new;
+  end if;
+
   if v_booking.founding then
     select count(*) into v_founding_count from public.resale_rewards rr
       join public.bookings b on b.id=v_inspection.booking_id
