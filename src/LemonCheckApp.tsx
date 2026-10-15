@@ -1132,8 +1132,19 @@ function BookScreen(props) {
   /* FIX: sort inspectors */
   var online = INSPECTORS.filter(function(i){ return i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0); });
   // Fixed platform tiers replace inspector-set pricing; sort inspectors by ETA or rating only.
+  function approxDistanceKm(a,b){
+    if(!geo||a.lat==null||a.lng==null||b.lat==null||b.lng==null) return null;
+    var rad=Math.PI/180, dLat=(b.lat-a.lat)*rad, dLng=(b.lng-a.lng)*rad;
+    var q=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(Math.max(0,1-q)));
+  }
   var sorted = online.slice().sort(function(a,b){
-    return sort==='rating'?b.rating-a.rating : a.eta-b.eta;
+    if(sort==='rating') return b.rating-a.rating;
+    if(geo && a.lat!=null && b.lat!=null){
+      var da=approxDistanceKm(geo,a), db=approxDistanceKm(geo,b);
+      if(da!=null && db!=null && da!==db) return da-db;
+    }
+    return (a.eta==null?99999:a.eta)-(b.eta==null?99999:b.eta);
   });
 
   function confirm() {
@@ -1257,7 +1268,17 @@ function BookScreen(props) {
         h('textarea',{value:notes,onChange:function(e){setNotes(e.target.value);},placeholder:'Warning lights, concerns, anything the inspector should know…',rows:3,'aria-label':'Notes'})),
       h(PBtn,{label:'Find nearby inspectors',onClick:function(){
         setChoosing(true);
-        setChoosing(false); setStep('choose');
+        var locPromise=geo?Promise.resolve(geo):getUserLocation();
+        locPromise.then(function(pos){
+          setGeo(pos);
+          return Promise.all([Data.fetchOnlineInspectors(),Data.fetchOfflineInspectors()]);
+        }).then(function(rows){
+          INSPECTORS=rows[0].map(mapInspector).concat(rows[1].map(mapInspector));
+          setChoosing(false); setStep('choose');
+        }).catch(function(e){
+          setChoosing(false);
+          showToast((e&&e.message)||'Could not refresh nearby inspectors.',true);
+        });
       },loading:choosing,disabled:!ready||choosing})));
 
   /* ── CHOOSE INSPECTOR ── */
@@ -1267,12 +1288,17 @@ function BookScreen(props) {
       center: geo || SA_DEFAULT,
       zoom: 13,
       userPos: geo || SA_DEFAULT,
-      markers: [],
+      markers: INSPECTORS.filter(function(i){ return i.online && i.lat != null && i.lng != null; }).map(function(i){
+        return {lat:i.lat,lng:i.lng,label:i.init||'I',color:C.green,size:34,popup:i.name+' · '+(i.cert||'Inspector')};
+      }),
     },
       h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
         h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
           h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},'Inspector locations are not published on the map yet. Choose an inspector from the list below.')))),
+          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
+            INSPECTORS.some(function(i){return i.online&&i.lat!=null&&i.lng!=null;})
+              ? 'Green pins show online inspectors. Locations are approximate.'
+              : 'No fresh inspector locations are available yet. Inspectors must enable location and go online.')))),
 
     h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
       h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
@@ -2187,7 +2213,7 @@ function App() {
     return Math.round(hrs/24)+'d ago';
   }
   function mapNotif(n){ return {id:n.id, type:n.type, icon:n.icon, title:n.title, body:n.body, time:timeAgo(n.created_at), read:n.read}; }
-  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[], tierIds:p.tier_ids||[]}; }
+  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[], tierIds:p.tier_ids||[], lat:p.lat==null?null:Number(p.lat), lng:p.lng==null?null:Number(p.lng)}; }
 
   function loadBuyerData(profile){
     Promise.all([
