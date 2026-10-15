@@ -89,12 +89,26 @@ function sm(s)   { return s>=80?{col:C.green,dim:C.greenDim,lbl:'Good',   sub:'A
 var SA_DEFAULT = { lat: -26.2041, lng: 28.0473 };
 
 function getUserLocation() {
-  return new Promise(function(resolve) {
-    if (!navigator.geolocation) { resolve(SA_DEFAULT); return; }
+  return new Promise(function(resolve, reject) {
+    if (!navigator.geolocation) {
+      reject(new Error('Location services are not available on this device.'));
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      function(pos) { resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-      function() { resolve(SA_DEFAULT); },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      function(pos) {
+        if (!pos || !pos.coords || !Number.isFinite(pos.coords.latitude) || !Number.isFinite(pos.coords.longitude)) {
+          reject(new Error('Your device did not return a valid location.'));
+          return;
+        }
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      function(err) {
+        var message = err && err.code === 1 ? 'Allow location access in your browser settings, then try again.'
+          : err && err.code === 3 ? 'Location lookup timed out. Please try again.'
+          : 'Could not determine your location. Check your device settings and try again.';
+        reject(new Error(message));
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
     );
   });
 }
@@ -1081,13 +1095,17 @@ function BookScreen(props) {
   var _sts = useState([]);  var stations = _sts[0]; var setStations = _sts[1];
   var _tiers = useState([]); var tiers = _tiers[0]; var setTiers = _tiers[1];
   var _tierId = useState(''); var tierId = _tierId[0]; var setTierId = _tierId[1];
+  var _tierLoadError = useState(''); var tierLoadError = _tierLoadError[0]; var setTierLoadError = _tierLoadError[1];
   useEffect(function(){
     Data.fetchBookingOptions().then(setOpts).catch(function(){});
     Data.fetchTestingStations().then(setStations).catch(function(){});
     Data.fetchInspectionTiers().then(function(rows){
       setTiers(rows);
+      setTierLoadError('');
       if(rows.length) setTierId(rows[0].id);
-    }).catch(function(){});
+    }).catch(function(e){
+      setTierLoadError((e && e.message) || 'Inspection pricing could not be loaded. Refresh and try again.');
+    });
   }, []);
   var tierMode = tiers.length > 0;
   var selectedTier = tiers.filter(function(t){ return t.id === tierId; })[0] || null;
@@ -1108,7 +1126,7 @@ function BookScreen(props) {
 
   var venueOk = venueKind==='auction' ? (dealer.trim() && auctionAt && new Date(auctionAt).getTime() > Date.now()+3600000 && (!neededBy || new Date(neededBy).getTime() <= new Date(auctionAt).getTime()))
     : venueKind==='dealership' ? (dealer.trim()||loc.trim()) : loc.trim();
-  var ready = vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId)&&(!tierMode||tierId);
+  var ready = !tierLoadError&&vin.trim()&&make&&model&&year&&venueOk&&(!wantRw||stationId)&&(!tierMode||tierId);
   var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
@@ -1153,6 +1171,7 @@ function BookScreen(props) {
       h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
         h(BackBtn,{onClick:function(){nav('home');},mb:0}),
         h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
+      tierLoadError && h('div',{role:'alert',style:{padding:12,marginBottom:14,borderRadius:12,background:C.redDim,color:C.red,fontSize:12}},'Inspection pricing could not be verified. '+tierLoadError+' Booking is disabled until pricing loads successfully.'),
       tierMode&&h(Card,{style:{marginBottom:18}},
         h('div',{style:{padding:'14px 14px 12px'}},
           h('label',{style:LBL},'Choose your inspection'),
@@ -1204,7 +1223,7 @@ function BookScreen(props) {
                   setGeoLoading(false);
                   showToast('Location found');
                 });
-              }).catch(function(){ setGeoLoading(false); showToast('Could not get location', true); });
+              }).catch(function(e){ setGeoLoading(false); showToast((e && e.message) || 'Could not get location', true); });
             },
             style:{background:'var(--w06)',border:'1px solid var(--w1)',borderRadius:99,color:C.t,fontSize:11,fontWeight:600,padding:'5px 10px'}
           }, geoLoading ? 'Locating…' : 'Use my location')
@@ -1304,7 +1323,7 @@ function BookScreen(props) {
             h('div',{style:{flex:1}},
               h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.name),
               h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}},'Currently offline'),
-              h('div',{style:{marginTop:8}},h(Tag,{label:'Notify when online',bg:C.s3,c:C.t3}))));
+              h('div',{style:{marginTop:8}},h(Tag,{label:'Offline · not bookable yet',bg:C.s3,c:C.t3}))));
         }))));
 
   /* ── CONFIRM (collapsed — was 5 cards, now 2) ── */
@@ -2216,7 +2235,16 @@ function App() {
     if (r === 'buyer') loadBuyerData(profile); else loadInspectorData(profile);
   }
   function doneOnb(){ setShowOnb(false); setScreen(role==='buyer'?'home':'ijobs'); }
-  function logout(){ Data.signOut(); setRole(null); setUser(null); setScreen('auth'); }
+  function logout(){
+    Data.signOut().then(function(){
+      // Reset the UI only after Supabase confirms the local session was cleared.
+      BUYER = null; INSP_USER = null; INSPECTORS = []; VEHICLES = {}; JOBS = []; TXNS = []; NOTIFS_INIT = [];
+      setRole(null); setUser(null); setScreen('auth');
+    }).catch(function(e){
+      console.error('Sign out failed:', e);
+      showToast('Could not sign out. Please try again.', true);
+    });
+  }
   function markRead(){
     setNotifs(function(ns){ return ns.map(function(n){ return Object.assign({},n,{read:true}); }); });
     if (user) Data.markAllNotificationsRead(user.id).catch(function(e){ console.error(e); });
