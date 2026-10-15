@@ -42,7 +42,6 @@ textarea { width: 100%; min-height: 80px; resize: vertical; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .card .label { color: var(--ink-3); font-size: 12px; margin-bottom: 6px; }
 .card .value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
-.card.alert { border-color: var(--bad); }
 .card button { all: unset; cursor: pointer; display: block; width: 100%; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 18px; }
 
@@ -156,9 +155,11 @@ input[type='checkbox'] { accent-color: #12a66b; }
 .card { background: rgba(222,222,225,.9); border: 1px solid rgba(255,255,255,.5); border-radius: 26px; padding: 18px 20px; box-shadow: 0 6px 18px rgba(10,10,11,.05); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .card .label { color: var(--ink-3); font-size: 12px; }
 .card .value { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; }
-.card.alert { background: #0a0a0b; border-color: #0a0a0b; color: #fff; box-shadow: 0 12px 28px rgba(10,10,11,.16); }
-.card.alert .label { color: #a7a8ae; }
-.card.alert .value { color: var(--lime); }
+.card { position: relative; }
+.card.hero { background: #0a0a0b; border-color: #0a0a0b; color: #fff; box-shadow: 0 12px 28px rgba(10,10,11,.16); }
+.card.hero .label { color: #a7a8ae; }
+.card.hero .value { color: var(--lime); }
+.card.alert::after { content: '!'; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 11px; background: #e5231b; color: #fff; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(229,35,27,.3); }
 .panel, .tablewrap { background: var(--panel); border: 1px solid rgba(255,255,255,.6); border-radius: 26px; box-shadow: 0 4px 14px rgba(10,10,11,.05); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .panel { padding: 20px; }
 th { background: transparent; }
@@ -178,3 +179,21 @@ th, td { border-bottom: 1px solid #e4e4e8; }
 .login h1 { font-size: 26px; }
 .tip { border-radius: 14px; }
 @media (max-width: 760px) { .side { border-bottom: 0; } .main { padding: 16px; } }
+
+/* Pill tabs (short filters) */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { border: 1px solid #c9c9ce; background: rgba(255,255,255,.85); color: var(--ink); border-radius: 999px; padding: 8px 15px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.tab:hover { background: #fff; }
+.tab.on { background: #0a0a0b; color: var(--lime); border-color: #0a0a0b; }
+
+/* Tables become rows of rounded cards, like the design page */
+.tablewrap, .panel:has(> table) { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; }
+.tablewrap table, .panel > table { border-collapse: separate; border-spacing: 0 8px; }
+.tablewrap th, .panel > table th { background: transparent; border-bottom: 0; padding: 4px 14px; }
+.tablewrap td, .panel > table td { background: rgba(255,255,255,.92); border-bottom: 0; padding: 14px; vertical-align: middle; }
+.tablewrap td:first-child, .panel > table td:first-child { border-radius: 20px 0 0 20px; padding-left: 18px; }
+.tablewrap td:last-child, .panel > table td:last-child { border-radius: 0 20px 20px 0; padding-right: 18px; }
+.chartdata table { border-spacing: 0; }
+.chartdata td { background: transparent; border-radius: 0 !important; padding: 3px 8px; }
+.empty { background: rgba(255,255,255,.8); border-radius: 26px; }
+.tablewrap .empty { background: rgba(255,255,255,.8); }

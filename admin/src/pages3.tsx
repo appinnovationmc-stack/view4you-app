@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as api from './api'
-import { Empty, ErrorBanner, Pill, PromptModal, money, useLoad, when } from './ui'
+import { Empty, ErrorBanner, Pill, PromptModal, Tabs, money, useLoad, when } from './ui'
 
 interface PageProps { canWrite: boolean }
 
@@ -136,12 +136,12 @@ export function StationsPage({ canWrite }: PageProps) {
                 <td>{[s.city, s.province].filter(Boolean).join(', ') || '—'}</td>
                 <td>{money(s.test_fee)}</td>
                 <td><Pill value={s.active ? 'approved' : 'suspended'} label={s.active ? 'listed' : 'hidden'} /></td>
-                <td className="row">
+                <td><div className="row">
                   {canWrite && <button className="btn sm" onClick={() => setEdit(toInput(s))}>Edit</button>}
                   {canWrite && (s.active
                     ? <button className="btn sm danger" onClick={() => setToggle(s)}>Hide</button>
                     : <button className="btn sm primary" onClick={() => void activate(s)}>List</button>)}
-                </td>
+                </div></td>
               </tr>
             ))}
           </tbody>
@@ -176,9 +176,7 @@ export function CertificatesPage({ canWrite }: PageProps) {
       <Head title="Certificates" onReload={reload} loading={loading}
         sub="Official roadworthy certificates uploaded by buyers and inspectors. Open the file, check the number, station, vehicle and dates, then verify or reject. Only verified certificates show as checked on the report." />
       <div className="row" style={{ marginBottom: 12 }}>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status filter">
-          <option value="submitted">To review</option><option value="verified">Verified</option><option value="rejected">Rejected</option><option value="all">All</option>
-        </select>
+        <Tabs label="Status filter" value={status} onChange={setStatus} options={[{ value: 'submitted', label: 'To review' }, { value: 'verified', label: 'Verified' }, { value: 'rejected', label: 'Rejected' }, { value: 'all', label: 'All' }]} />
       </div>
       <ErrorBanner message={error ?? err} />
       {data && data.length === 0 && <Empty>Nothing here.</Empty>}
@@ -194,11 +192,11 @@ export function CertificatesPage({ canWrite }: PageProps) {
                 <td>{c.result}</td>
                 <td>Issued {c.issued_on}{c.expires_on ? <div className="muted">valid to {c.expires_on}</div> : null}</td>
                 <td><Pill value={c.status === 'submitted' ? 'pending' : c.status === 'verified' ? 'approved' : 'rejected'} label={c.status} /></td>
-                <td className="row">
+                <td><div className="row">
                   <button className="btn sm" onClick={() => void open(c)}>Open file</button>
                   {canWrite && c.status !== 'verified' && <button className="btn sm primary" onClick={() => void verify(c)}>Verify</button>}
                   {canWrite && c.status !== 'rejected' && <button className="btn sm danger" onClick={() => setReject(c)}>Reject</button>}
-                </td>
+                </div></td>
               </tr>
             ))}
           </tbody>

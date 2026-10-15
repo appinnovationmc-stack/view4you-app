@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as api from './api'
-import { Empty, ErrorBanner, Pill, PromptModal, money, useLoad, when } from './ui'
+import { Empty, ErrorBanner, Pill, PromptModal, Tabs, money, useLoad, when } from './ui'
 import { DailyChart, Funnel } from './charts'
 import { DocumentsModal, ReassignModal } from './pages2'
 
@@ -17,10 +17,10 @@ const Head = ({ title, sub, onReload, loading }: { title: string; sub?: string; 
 /* ───────────────────────── Overview ───────────────────────── */
 export function OverviewPage({ go }: PageProps) {
   const { data: o, error, loading, reload } = useLoad(api.overview, [])
-  const stat = (label: string, value: string | number, opts?: { alert?: boolean; to?: Page; filter?: string }) => {
+  const stat = (label: string, value: string | number, opts?: { alert?: boolean; to?: Page; filter?: string; hero?: boolean }) => {
     const inner = <><div className="label">{label}</div><div className="value">{value}</div></>
     return (
-      <div className={`card ${opts?.alert ? 'alert' : ''}`} key={label}>
+      <div className={`card${opts?.hero ? ' hero' : ''}${opts?.alert ? ' alert' : ''}`} key={label}>
         {opts?.to ? <button onClick={() => go(opts.to!, opts.filter)}>{inner}</button> : inner}
       </div>
     )
@@ -32,7 +32,7 @@ export function OverviewPage({ go }: PageProps) {
       {o && (
         <>
           <div className="cards">
-            {stat('Inspectors awaiting approval', o.inspectors_pending_approval, { alert: o.inspectors_pending_approval > 0, to: 'inspectors', filter: 'pending' })}
+            {stat('Inspectors awaiting approval', o.inspectors_pending_approval, { alert: o.inspectors_pending_approval > 0, to: 'inspectors', filter: 'pending', hero: true })}
             {stat('Refunds due', o.refunds_due, { alert: o.refunds_due > 0, to: 'payments' })}
             {stat('Refund amount owed', money(o.refunds_due_amount), { alert: o.refunds_due > 0, to: 'payments' })}
             {stat('Payment problems (7 days)', o.payment_problems_7d, { alert: o.payment_problems_7d > 0, to: 'payments' })}
@@ -73,9 +73,7 @@ function AnalyticsSection() {
     <>
       <div className="head" style={{ marginTop: 8 }}>
         <div><h2 style={{ marginBottom: 2 }}>Trends</h2><p className="muted">Revenue is what buyers paid, not company profit.</p></div>
-        <select aria-label="Period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          <option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option>
-        </select>
+        <Tabs label="Period" value={days} onChange={setDays} options={[{ value: 7, label: '7 days' }, { value: 30, label: '30 days' }, { value: 90, label: '90 days' }]} />
       </div>
       <ErrorBanner message={error} />
       {loading && !a && <p className="muted">Loading…</p>}
@@ -125,9 +123,7 @@ export function InspectorsPage({ canWrite, initialFilter }: PageProps) {
     <>
       <Head title="Inspectors" sub="New inspectors cannot go online or receive jobs until approved. Check their documents before approving." onReload={reload} loading={loading} />
       <div className="row" style={{ marginBottom: 12 }}>
-        <label className="row">Show <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-          <option value="all">All</option><option value="pending">Awaiting approval</option><option value="approved">Approved</option>
-        </select></label>
+        <Tabs label="Show" value={status} onChange={(v) => setStatus(v as typeof status)} options={[{ value: 'all', label: 'All' }, { value: 'pending', label: 'Awaiting approval' }, { value: 'approved', label: 'Approved' }]} />
       </div>
       <ErrorBanner message={error ?? actionError} />
       <div className="tablewrap">

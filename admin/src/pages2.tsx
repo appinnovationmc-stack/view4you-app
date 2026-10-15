@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as api from './api'
-import { Empty, ErrorBanner, Pill, PromptModal, money, useLoad, when } from './ui'
+import { Empty, ErrorBanner, Pill, PromptModal, Tabs, money, useLoad, when } from './ui'
 
 interface PageProps { canWrite: boolean }
 
@@ -120,9 +120,7 @@ export function ReportsPage({ canWrite }: PageProps) {
       <Head title="Reports" onReload={reload} loading={loading}
         sub="Take a report down if it is wrong, abusive or disputed. People who already bought it keep the money they paid but can no longer open it. You can restore it." />
       <form className="row" style={{ marginBottom: 12 }} onSubmit={(e) => { e.preventDefault(); setQ(search) }}>
-        <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-          <option value="all">All</option><option value="live">Live</option><option value="taken_down">Taken down</option>
-        </select>
+        <Tabs label="Status" value={status} onChange={(v) => setStatus(v as typeof status)} options={[{ value: 'all', label: 'All' }, { value: 'live', label: 'Live' }, { value: 'taken_down', label: 'Taken down' }]} />
         <input type="search" placeholder="Report number, VIN or inspector" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button className="btn" type="submit">Search</button>
       </form>
@@ -183,10 +181,7 @@ function Withdrawals({ canWrite }: PageProps) {
   return (
     <>
       <div className="row" style={{ marginBottom: 12 }}>
-        <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="requested">Waiting to be paid</option><option value="paid">Paid</option>
-          <option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="all">All</option>
-        </select>
+        <Tabs label="Status" value={status} onChange={setStatus} options={[{ value: 'requested', label: 'Waiting to be paid' }, { value: 'paid', label: 'Paid' }, { value: 'rejected', label: 'Rejected' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'all', label: 'All' }]} />
         <button className="btn" onClick={reload} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
       </div>
       <ErrorBanner message={error} />
@@ -330,10 +325,7 @@ export function SupportPage() {
     <>
       <Head title="Support" onReload={reload} loading={loading} sub="Tickets from buyers and inspectors. Support staff can reply and resolve." />
       <form className="row" style={{ marginBottom: 12 }} onSubmit={(e) => { e.preventDefault(); setQ(search) }}>
-        <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="unresolved">Not resolved</option><option value="open">Waiting on us</option>
-          <option value="answered">Waiting on customer</option><option value="resolved">Resolved</option><option value="all">All</option>
-        </select>
+        <Tabs label="Status" value={status} onChange={setStatus} options={[{ value: 'unresolved', label: 'Not resolved' }, { value: 'open', label: 'Waiting on us' }, { value: 'answered', label: 'Waiting on customer' }, { value: 'resolved', label: 'Resolved' }, { value: 'all', label: 'All' }]} />
         <input type="search" placeholder="Subject, email or VIN" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button className="btn" type="submit">Search</button>
       </form>
