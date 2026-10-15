@@ -90,7 +90,7 @@ interface PhotoEntry { id: string; blob: Blob; url: string }
 
 // ---- small UI pieces ----
 const card: CSSProperties = { background: C.s1, borderRadius: 'var(--rl)', border: '1px solid var(--b)', overflow: 'hidden', marginBottom: 10 }
-const inputStyle: CSSProperties = { fontSize: 16, borderRadius: 0, backgroundColor: 'transparent', border: 'none', borderBottom: '2px solid rgba(255,255,255,.95)', padding: '8px 2px 8px', width: '100%', color: '#fff' }
+const inputStyle: CSSProperties = { fontSize: 16, borderRadius: 0, backgroundColor: 'transparent', border: 'none', borderBottom: '2px solid rgba(10,10,11,.35)', padding: '8px 2px 8px', width: '100%', color: 'var(--t)' }
 const caption: CSSProperties = { fontSize: 'var(--fs-caption)', color: C.t2 }
 
 const COND_STYLE: Record<Condition, { c: string; bg: string; short: string }> = {
@@ -169,7 +169,7 @@ function PhotoPicker(p: { title: string; entries: PhotoEntry[]; busy: boolean; o
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: p.entries.length ? 8 : 0 }}>
         <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: C.t2 }}>{p.title} · {p.entries.length}</span>
         <button type="button" disabled={p.busy} onClick={() => ref.current?.click()}
-          style={{ background: 'rgba(255,255,255,.2)', border: '1px solid var(--b2)', color: '#fff', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 500 }}>
+          style={{ background: '#fff', border: '1px solid var(--b2)', color: 'var(--t)', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 500 }}>
           Add photo
         </button>
         <input ref={ref} type="file" accept="image/*" multiple hidden

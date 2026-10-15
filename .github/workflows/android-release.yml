@@ -1,0 +1,64 @@
+name: Build CheckVertical Android release (Play Store)
+
+# Manual run: Actions tab -> "Build CheckVertical Android release" -> Run workflow.
+# Signed output needs the four secrets listed in docs/ANDROID_RELEASE.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VITE_SUPABASE_URL: https://pxofttvtlkqaziqrvfmd.supabase.co
+      # Supabase publishable key: intended for client apps; database access is protected by RLS.
+      VITE_SUPABASE_ANON_KEY: sb_publishable_ja6URzj6NAsiL5yCGkuUZQ_4cZyIYar
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+
+      - name: Prepare signing key (if secrets are set)
+        id: sign
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set. Building UNSIGNED output that Google Play will reject."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release bundle and APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease assembleRelease --no-daemon
+
+      - name: Upload release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkvertical-release-${{ steps.sign.outputs.signed == 'true' && 'SIGNED' || 'UNSIGNED' }}
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30

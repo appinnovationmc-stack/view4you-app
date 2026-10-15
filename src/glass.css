@@ -411,3 +411,178 @@ input[type="radio"]:checked { background: #fff radial-gradient(circle, var(--cv-
 .glass, .lc-tile-act, .lc-chip { transition: transform .15s ease, box-shadow .2s ease, background .2s ease; }
 
 @media print { body::after { display: none !important; } }
+
+/* ============================================================
+   VOLTIX-STYLE LAYER (light, clean, product-first)
+   Overrides the frosted-glass tokens above. Remove this block
+   to return to the previous look. Brand mark is unchanged.
+   ============================================================ */
+:root {
+  --vx-yellow: #f3ff3a;
+  --vx-ink: #0a0a0b;
+  --vx-card-dark: #0b0b0c;
+  --vx-card-light: #dedee0;
+
+  --canvas: #ececee;
+  --s1: #ffffff;
+  --s2: #f2f2f3;
+  --s3: #e3e3e5;
+  --b: rgba(10,10,11,.09);
+  --b2: rgba(10,10,11,.18);
+
+  --t: #0a0a0b;
+  --t2: rgba(10,10,11,.74);
+  --t3: rgba(10,10,11,.52);
+
+  --ink: #0a0a0b;
+  --on-ink: #ffffff;
+  --ink-dim: rgba(10,10,11,.07);
+  --ink-dim2: rgba(10,10,11,.045);
+  --on-ink-dim: rgba(255,255,255,.18);
+  --on-ink-2: rgba(255,255,255,.78);
+  --on-ink-3: rgba(255,255,255,.55);
+
+  --green: #0f9d63;  --green-dim: rgba(18,166,107,.14);
+  --red:   #c4301f;  --red-dim:   rgba(196,48,31,.12);
+  --amber: #9a6200;  --amber-dim: rgba(224,160,0,.18);
+  --blue:  #0a0a0b;  --blue-dim:  rgba(10,10,11,.07);
+  --on-status: #0b1f13;
+
+  --w04: rgba(10,10,11,.03);
+  --w06: rgba(10,10,11,.05);
+  --w07: rgba(10,10,11,.06);
+  --w08: rgba(10,10,11,.08);
+  --w1:  rgba(10,10,11,.10);
+  --w2:  rgba(10,10,11,.18);
+
+  --glass-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 14px 30px -20px rgba(10,10,11,.28);
+  --shadow-soft: 0 14px 34px -16px rgba(10,10,11,.32);
+  --shadow-sheet: 0 -16px 44px -18px rgba(10,10,11,.28);
+  --map-bg: #e6e6e8;
+  --r: 20px; --rl: 28px; --rx: 34px;
+}
+
+/* backdrop: soft studio light, no mint drift */
+body::before, .lc-paper::before {
+  background:
+    radial-gradient(80% 36% at 78% 0%, #ffffff 0, rgba(255,255,255,0) 70%),
+    radial-gradient(70% 30% at 0% 100%, rgba(255,255,255,.9) 0, rgba(255,255,255,0) 70%),
+    linear-gradient(180deg, #e7e7e9 0%, #f4f4f5 55%, #e9e9eb 100%);
+}
+body::after { display: none; }
+h1, h2, h3, .lc-title, .lc-h1, .lc-big { text-shadow: none; }
+::selection { background: var(--vx-yellow); color: #0a0a0b; }
+:focus-visible { outline: 2px solid var(--vx-ink); outline-offset: 3px; }
+
+/* fields */
+input, textarea, select { color: var(--t); caret-color: var(--t); border-bottom: 1.5px solid rgba(10,10,11,.28); }
+input:focus, textarea:focus, select:focus { border-bottom-color: var(--vx-ink); box-shadow: none; }
+input::placeholder, textarea::placeholder { color: var(--t3); }
+input:-webkit-autofill { -webkit-text-fill-color: #0a0a0b; }
+select { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230a0a0b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 2px center; padding-right: 26px; }
+input[type="checkbox"], input[type="radio"] { border: 1.5px solid rgba(10,10,11,.35); box-shadow: none; }
+input[type="checkbox"]:checked { background-color: var(--vx-ink); border-color: var(--vx-ink); }
+input[type="radio"]:checked { background: #fff radial-gradient(circle, var(--vx-ink) 0 38%, transparent 42%); border-color: var(--vx-ink); }
+label { color: var(--t2); }
+
+/* buttons: black pills, white pills, yellow knobs */
+.btn-primary, .lc-btn-pill.dark, .lc-role.dark, .lc-tile-act.solid {
+  background: var(--vx-ink); color: #fff; animation: none !important;
+  box-shadow: 0 16px 28px -16px rgba(10,10,11,.7);
+}
+.btn-ghost, .lc-btn-pill.light, .lc-role.light { background: #fff; color: var(--vx-ink); border: 1px solid var(--b); box-shadow: 0 10px 22px -16px rgba(10,10,11,.3); }
+.dot { background: var(--vx-ink); color: var(--vx-yellow); }
+.lc-role.dark .dot, .lc-tile-act.solid .dot { background: var(--vx-yellow); color: var(--vx-ink); }
+.lc-btn-pill.dark { letter-spacing: .01em; }
+
+/* auth + onboarding */
+.lc-auth { color: var(--t); }
+.lc-title { color: var(--t); }
+.lc-sub { color: var(--t2); }
+.lc-foot { color: var(--t2); }
+.lc-link { color: var(--t); }
+.lc-back { background: #fff; border: 1px solid var(--b); color: var(--vx-ink); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.lc-back svg path { stroke: var(--vx-ink); }
+.lc-err { color: var(--red); background: var(--red-dim); }
+.lc-tile { background: #fff; border: 1px solid var(--b); box-shadow: var(--glass-shadow); animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.lc-tile svg { stroke: var(--vx-ink); color: var(--vx-ink); }
+.lc-dots i { background: rgba(10,10,11,.22); }
+.lc-dots i.on { background: var(--vx-ink); box-shadow: none; }
+
+/* nav: floating white pill, black active tab with yellow icon */
+.lc-nav { background: rgba(255,255,255,.92); border: 1px solid var(--b); box-shadow: 0 18px 36px -18px rgba(10,10,11,.4); }
+.lc-tab { color: var(--t3); }
+.lc-tab.on { background: var(--vx-ink); color: var(--vx-yellow); box-shadow: none; }
+.lc-tab.on svg { color: var(--vx-yellow); stroke: var(--vx-yellow); }
+
+/* type */
+.lc-big, .lc-h1 { color: var(--t); }
+.lc-tile-act { color: var(--t); background: #fff; border: 1px solid var(--b); }
+.lc-tile-act.solid { color: #fff; }
+[style*="position: fixed"][style*="bottom: 0px"][style*="max-width: 430px"] {
+  background: linear-gradient(to top, rgba(240,240,242,.97) 70%, rgba(240,240,242,0)) !important;
+}
+
+/* search: white pill + black round button with yellow icon */
+.lc-search { background: #fff; border: 1px solid var(--b2); border-bottom: 1px solid var(--b2); border-radius: 999px; padding: 4px 4px 4px 16px; box-shadow: 0 10px 22px -18px rgba(10,10,11,.4); }
+.lc-search > svg { color: var(--t3); }
+.lc-search input, .lc-search input:focus { padding: 12px 4px; }
+.lc-search:focus-within { box-shadow: 0 0 0 2px var(--vx-ink); }
+.lc-search .lc-go { background: var(--vx-ink); color: var(--vx-yellow); box-shadow: none; margin-bottom: 0; }
+.lc-chip { background: #fff; color: var(--t); border: 1px solid var(--b2); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.lc-chip:active { background: var(--vx-yellow); border-color: var(--vx-ink); }
+
+/* glass surfaces become clean white cards */
+.glass, .glass-strong, .glass-pill, .glass-nav, .glass-sheet, [style*="var(--s1)"] { backdrop-filter: none; -webkit-backdrop-filter: none; }
+[role="alert"]:not(.lc-err) { background: rgba(10,10,11,.92) !important; }
+.skeleton { background: linear-gradient(90deg, rgba(10,10,11,.05) 25%, rgba(10,10,11,.11) 50%, rgba(10,10,11,.05) 75%); background-size: 800px 100%; }
+
+/* map */
+.leaflet-popup-content-wrapper { background: #fff !important; color: var(--vx-ink) !important; border: 1px solid var(--b); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.leaflet-popup-tip { background: #fff !important; }
+.leaflet-container a.leaflet-popup-close-button { color: var(--vx-ink) !important; }
+.lc-user-core { background: var(--vx-ink); border-color: var(--vx-yellow); }
+.lc-user-pulse { background: rgba(243,255,58,.7); }
+.lc-zoom { background: rgba(255,255,255,.92); }
+
+/* ---------- Voltix home: header, splash, tier cards, swipe ---------- */
+.vx-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.vx-brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; color: var(--t); }
+.vx-menu { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--t); padding: 8px 2px; }
+.vx-menu i { display: block; width: 16px; height: 8px; border-top: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; }
+.vx-hello { margin: 4px 2px 16px; }
+.vx-hello p { font-size: 13px; color: var(--t3); }
+.vx-hello h1 { font-size: 28px; font-weight: 500; letter-spacing: -0.035em; line-height: 1.1; margin-top: 2px; color: var(--t); }
+
+.vx-card { position: relative; overflow: hidden; border-radius: 34px; padding: 22px 22px 0; margin-bottom: 14px; min-height: 342px; color: var(--vx-ink); background: var(--vx-card-light); }
+.vx-card.dark { background: var(--vx-card-dark); color: #fff; }
+.vx-card h2 { font-size: 24px; font-weight: 400; letter-spacing: -0.03em; line-height: 1.1; padding-right: 60px; }
+.vx-spec { margin-top: 18px; }
+.vx-spec small { display: block; font-size: 12px; opacity: .62; }
+.vx-spec b { display: block; font-size: 20px; font-weight: 400; letter-spacing: -0.02em; margin: 2px 0 12px; }
+.vx-corner { position: absolute; right: 18px; top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.vx-round { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(10,10,11,.25); color: var(--vx-ink); background: transparent; }
+.vx-card.dark .vx-round { border-color: rgba(255,255,255,.3); color: var(--vx-yellow); }
+.vx-card { --car-body: #1b1b1e; --car-glass: #70747d; --car-tyre: #0d0d0f; --car-rim: #cfd1d6; --car-line: rgba(255,255,255,.22); --car-edge: rgba(255,255,255,.3); }
+.vx-card.dark { --car-body: #f1f1f3; --car-glass: #2a2b30; --car-tyre: #17171a; --car-rim: #d9dbe0; --car-line: rgba(10,10,11,.16); --car-edge: rgba(255,255,255,.6); }
+.vx-art { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
+.vx-art svg { width: 118%; height: auto; margin: 0 -9% 0 -9%; flex-shrink: 0; }
+
+.vx-swipe { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 62%; max-width: 250px; height: 46px; border-radius: 999px; background: rgba(40,40,44,.9); color: #fff; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; box-shadow: 0 10px 22px -12px rgba(0,0,0,.6); }
+.vx-card:not(.dark) .vx-swipe { background: rgba(255,255,255,.55); color: var(--vx-ink); border: 1px solid rgba(10,10,11,.1); }
+.vx-swipe span.lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding-left: 40px; font-size: 13px; font-weight: 500; pointer-events: none; transition: opacity .15s; }
+.vx-swipe span.lbl em { font-style: normal; color: var(--vx-yellow); letter-spacing: -2px; }
+.vx-card:not(.dark) .vx-swipe span.lbl em { color: #9aa300; }
+.vx-knob { position: absolute; left: 3px; top: 3px; width: 40px; height: 40px; border-radius: 50%; background: var(--vx-yellow); color: var(--vx-ink); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; box-shadow: 0 6px 14px -6px rgba(0,0,0,.5); }
+.vx-knob.snap { transition: transform .25s cubic-bezier(.22,1,.36,1); }
+
+.vx-splash { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: var(--safe-top) 24px max(28px, env(safe-area-inset-bottom)); overflow: hidden; }
+.vx-splash .vx-logo { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 12px; font-size: 26px; letter-spacing: -0.02em; color: var(--t); }
+.vx-splash .vx-tag { font-size: 13px; color: var(--t3); margin-top: -4px; }
+.vx-splash { --car-body: #f7f7f9; --car-glass: #3a3c42; --car-tyre: #141417; --car-rim: #d4d6db; --car-line: rgba(10,10,11,.14); --car-edge: rgba(10,10,11,.22); }
+.vx-splash .vx-hero { flex: 1; width: calc(100% + 48px); margin: 0 -24px 18px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.vx-splash .vx-hero svg { width: 128%; max-width: 760px; height: auto; flex-shrink: 0; margin-left: -22%; }
+.vx-cta { width: 100%; padding: 19px 24px; border-radius: 999px; background: var(--vx-ink); color: #fff; font-size: 14px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 18px 30px -16px rgba(10,10,11,.8); }
+.vx-cta:active { transform: scale(.985); }
+
+@media print { body::before { display: none !important; } }
