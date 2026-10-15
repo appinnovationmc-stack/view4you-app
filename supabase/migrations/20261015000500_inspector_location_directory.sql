@@ -1,4 +1,13 @@
 -- Inspector location sharing is explicit (going online) and directory coordinates are coarse.
+-- The table may already exist in production; define it here too so fresh/test databases replay cleanly.
+create table if not exists public.inspector_locations (
+  inspector_id uuid primary key references public.profiles(id) on delete cascade,
+  lat numeric not null check (lat between -90 and 90),
+  lng numeric not null check (lng between -180 and 180),
+  updated_at timestamptz not null default now()
+);
+alter table public.inspector_locations enable row level security;
+revoke all on public.inspector_locations from public, anon, authenticated;
 create or replace function public.update_my_inspector_location(p_lat numeric, p_lng numeric)
 returns void
 language plpgsql
