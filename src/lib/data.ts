@@ -65,6 +65,21 @@ export async function fetchProfile(id: string): Promise<Profile> {
 
 /** Goes online/offline. Only approved inspectors can; the database enforces it. */
 export async function setOnlineStatus(online: boolean) {
+  if (online) {
+    if (!navigator.geolocation) throw new Error('Location services are required to go online.')
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, (error) => {
+        reject(new Error(error.code === 1
+          ? 'Allow location access to go online.'
+          : 'Could not verify your location. Please try again.'))
+      }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 })
+    })
+    const { error: locationError } = await supabase.rpc('update_my_inspector_location', {
+      p_lat: position.coords.latitude,
+      p_lng: position.coords.longitude,
+    })
+    if (locationError) throw locationError
+  }
   const { error } = await supabase.rpc('set_online', { p_online: online })
   if (error) throw error
 }
@@ -155,7 +170,7 @@ export async function fetchMyVehicles(buyerId: string): Promise<
 
 // Public inspector info comes from the inspector_directory view (approved inspectors only; no email/phone).
 export async function fetchOnlineInspectors(): Promise<Profile[]> {
-  const { data, error } = await supabase.rpc('list_inspectors_with_tiers')
+  const { data, error } = await supabase.rpc('list_inspectors_with_tiers_and_locations')
   if (error) throw error
   return ((data ?? []) as unknown as Profile[]).filter((p: any) => p.online).sort((a: any, b: any) => (a.eta_minutes ?? 99999) - (b.eta_minutes ?? 99999))
 }
