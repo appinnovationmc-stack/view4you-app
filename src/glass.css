@@ -554,7 +554,7 @@ label { color: var(--t2); }
 .vx-hello p { font-size: 13px; color: var(--t3); }
 .vx-hello h1 { font-size: 28px; font-weight: 500; letter-spacing: -0.035em; line-height: 1.1; margin-top: 2px; color: var(--t); }
 
-.vx-card { position: relative; overflow: hidden; border-radius: 34px; padding: 22px 22px 0; margin-bottom: 14px; min-height: 276px; color: var(--vx-ink); background: var(--vx-card-light); }
+.vx-card { position: relative; overflow: hidden; border-radius: 34px; padding: 22px 22px 0; margin-bottom: 14px; min-height: 342px; color: var(--vx-ink); background: var(--vx-card-light); }
 .vx-card.dark { background: var(--vx-card-dark); color: #fff; }
 .vx-card h2 { font-size: 24px; font-weight: 400; letter-spacing: -0.03em; line-height: 1.1; padding-right: 60px; }
 .vx-spec { margin-top: 18px; }
@@ -563,8 +563,10 @@ label { color: var(--t2); }
 .vx-corner { position: absolute; right: 18px; top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .vx-round { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(10,10,11,.25); color: var(--vx-ink); background: transparent; }
 .vx-card.dark .vx-round { border-color: rgba(255,255,255,.3); color: var(--vx-yellow); }
-.vx-art { position: absolute; left: 0; right: 0; bottom: 0; height: 52%; display: flex; align-items: flex-end; justify-content: center; opacity: .92; pointer-events: none; }
-.vx-art svg { width: 86%; height: auto; color: currentColor; opacity: .85; }
+.vx-card { --car-body: #1b1b1e; --car-glass: #70747d; --car-tyre: #0d0d0f; --car-rim: #cfd1d6; --car-line: rgba(255,255,255,.22); --car-edge: rgba(255,255,255,.3); }
+.vx-card.dark { --car-body: #f1f1f3; --car-glass: #2a2b30; --car-tyre: #17171a; --car-rim: #d9dbe0; --car-line: rgba(10,10,11,.16); --car-edge: rgba(255,255,255,.6); }
+.vx-art { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; align-items: flex-end; justify-content: center; pointer-events: none; }
+.vx-art svg { width: 118%; height: auto; margin: 0 -9% 0 -9%; flex-shrink: 0; }
 
 .vx-swipe { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 62%; max-width: 250px; height: 46px; border-radius: 999px; background: rgba(40,40,44,.9); color: #fff; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; box-shadow: 0 10px 22px -12px rgba(0,0,0,.6); }
 .vx-card:not(.dark) .vx-swipe { background: rgba(255,255,255,.55); color: var(--vx-ink); border: 1px solid rgba(10,10,11,.1); }
@@ -577,8 +579,9 @@ label { color: var(--t2); }
 .vx-splash { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: var(--safe-top) 24px max(28px, env(safe-area-inset-bottom)); overflow: hidden; }
 .vx-splash .vx-logo { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 12px; font-size: 26px; letter-spacing: -0.02em; color: var(--t); }
 .vx-splash .vx-tag { font-size: 13px; color: var(--t3); margin-top: -4px; }
-.vx-splash .vx-hero { flex: 1; width: calc(100% + 48px); margin: 0 -24px; display: flex; align-items: flex-end; justify-content: center; color: var(--vx-ink); }
-.vx-splash .vx-hero svg { width: 118%; max-width: 520px; height: auto; margin-left: -18%; opacity: .9; }
+.vx-splash { --car-body: #f7f7f9; --car-glass: #3a3c42; --car-tyre: #141417; --car-rim: #d4d6db; --car-line: rgba(10,10,11,.14); --car-edge: rgba(10,10,11,.22); }
+.vx-splash .vx-hero { flex: 1; width: calc(100% + 48px); margin: 0 -24px 18px; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.vx-splash .vx-hero svg { width: 128%; max-width: 760px; height: auto; flex-shrink: 0; margin-left: -22%; }
 .vx-cta { width: 100%; padding: 19px 24px; border-radius: 999px; background: var(--vx-ink); color: #fff; font-size: 14px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 18px 30px -16px rgba(10,10,11,.8); }
 .vx-cta:active { transform: scale(.985); }
 

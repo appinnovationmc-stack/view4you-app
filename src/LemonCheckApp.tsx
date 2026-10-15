@@ -603,13 +603,27 @@ function ArrowDot(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 var PENDING_TIER = null; /* tier tapped on Home; BookScreen preselects it */
 
-/* Neutral line-art car. Placeholder until real photos are supplied. */
+/* Vector crossover, side view. Colours come from --car-* variables so it reads on light and dark cards.
+   Stand-in for product photography; replace with real photos when supplied. */
 function CarArt() {
-  return h('svg',{viewBox:'0 0 400 150',fill:'none',stroke:'currentColor',strokeWidth:3,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-    h('path',{d:'M20 112 V98 C20 92 24 88 32 86 L92 76 L130 52 C134 49 138 48 144 48 H246 C252 48 257 50 261 54 L298 82 L350 90 C362 92 368 98 368 106 V112 H329 A24 24 0 0 0 281 112 H119 A24 24 0 0 0 71 112 Z'}),
-    h('path',{d:'M126 78 L146 56 H182 V78 Z M192 78 V56 H244 L274 78 Z M187 80 V106'}),
-    h('circle',{cx:95,cy:112,r:19}), h('circle',{cx:95,cy:112,r:7}),
-    h('circle',{cx:305,cy:112,r:19}), h('circle',{cx:305,cy:112,r:7}));
+  var wheels = [150, 450].map(function(cx) {
+    return h('g',{key:cx},
+      h('circle',{cx:cx,cy:146,r:40,fill:'var(--car-tyre)'}),
+      h('circle',{cx:cx,cy:146,r:26,fill:'var(--car-rim)'}),
+      [0,72,144,216,288].map(function(a){
+        var r = a * Math.PI / 180;
+        return h('line',{key:a,x1:cx,y1:146,x2:cx + 25 * Math.cos(r),y2:146 + 25 * Math.sin(r),stroke:'var(--car-tyre)',strokeWidth:5,strokeLinecap:'round'});
+      }),
+      h('circle',{cx:cx,cy:146,r:8,fill:'var(--car-tyre)'}));
+  });
+  return h('svg',{viewBox:'0 0 600 210','aria-hidden':'true',style:{overflow:'visible'}},
+    h('ellipse',{cx:300,cy:190,rx:280,ry:9,fill:'rgba(10,10,11,.2)',style:{filter:'blur(7px)'}}),
+    h('path',{d:'M30 146 L30 120 C30 108 38 100 52 98 L130 90 C150 66 178 48 215 44 L370 44 C400 44 425 56 448 80 L520 92 C548 96 566 110 568 130 L568 146 L498 146 A48 48 0 0 0 402 146 L198 146 A48 48 0 0 0 102 146 Z',fill:'var(--car-body)',stroke:'var(--car-edge)',strokeWidth:1.5,strokeLinejoin:'round'}),
+    h('path',{d:'M150 90 C166 69 186 57 214 55 H282 V90 Z M292 90 V55 H372 C396 55 414 65 432 90 Z',fill:'var(--car-glass)'}),
+    h('path',{d:'M287 92 V142 M62 114 H98 M202 114 H398 M502 114 H540',stroke:'var(--car-line)',strokeWidth:2,fill:'none',strokeLinecap:'round'}),
+    h('rect',{x:304,y:121,width:112,height:5,rx:2.5,fill:'#f3ff3a'}),
+    h('path',{d:'M34 110 H58',stroke:'#f3ff3a',strokeWidth:5,strokeLinecap:'round'}),
+    wheels);
 }
 
 /* Drag the yellow knob to the end to confirm. Enter or Space on the knob also confirms. */
@@ -675,8 +689,7 @@ function TierCard(props) {
 
 function Onboarding(props) {
   var _s = useState(0); var step = _s[0]; var setStep = _s[1];
-  var _sp = useState(true); var showSplash = _sp[0]; var setShowSplash = _sp[1];
-  if (showSplash) return h(Splash,{onStart:function(){ setShowSplash(false); }});
+
   var slides = ONBOARD[props.role] || ONBOARD.buyer;
   var cur    = slides[step];
   var isLast = step === slides.length - 1;
@@ -1239,7 +1252,7 @@ function BookScreen(props) {
               var on=t.id===tierId;
               return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
                 style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
-                h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
+                h('span',{style:{display:'block',fontSize:10.5,fontWeight:800,letterSpacing:'-.02em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:on?C.lime:C.t3,marginBottom:7}},t.name),
                 h('span',{style:{display:'block',fontSize:18,fontWeight:850,letterSpacing:'-.04em'}},R(t.buyer_price)),
                 h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)));
             })),
@@ -1807,6 +1820,7 @@ function InspHomeScreen(props) {
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 20px 20px',background:'var(--hero)'}},
+      h('div',{className:'vx-brand',style:{marginBottom:18}}, h(Logo,{size:34}), h(Wordmark)),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
         h('div',null,
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:3}},greet()),
@@ -2147,6 +2161,7 @@ function App() {
   var _toast = useState(null);         var toast   = _toast[0]; var setToast   = _toast[1];
   var _dv    = useState(0);            var setDataVersion = _dv[1]; /* bump to force re-render after Data.* loads */
   var _boot  = useState(true);         var booting  = _boot[0];  var setBooting  = _boot[1];
+  var _spl   = useState(true);         var showSplash = _spl[0]; var setShowSplash = _spl[1];
 
   function showToast(msg,err){ setToast({msg:msg,err:!!err}); setTimeout(function(){setToast(null);},3200); }
   var _hist = React.useRef([]);
@@ -2272,6 +2287,7 @@ function App() {
       h('p', {style:{color:C.t2,fontSize:13,fontWeight:400,margin:0}}, APP_TAGLINE));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
+  if (screen==='auth' && showSplash && !role) return h(Splash,{onStart:function(){ setShowSplash(false); }});
   if (screen==='auth') return h('div',null,h(Toast,{t:toast}),h(AuthScreen,{login:login}));
 
   var screens = {
