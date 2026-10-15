@@ -7,7 +7,7 @@ export const when = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
 const GOOD = new Set(['done', 'paid', 'applied', 'refunded', 'approved', 'accepted', 'in_progress', 'en_route'])
-const BAD = new Set(['cancelled', 'refund_due', 'amount_mismatch', 'rejected_kind', 'already_paid_other_reference', 'suspended'])
+const BAD = new Set(['cancelled', 'rejected', 'refund_due', 'amount_mismatch', 'rejected_kind', 'already_paid_other_reference', 'suspended'])
 export function Pill({ value, label }: { value: string; label?: string }) {
   const cls = GOOD.has(value) ? 'ok' : BAD.has(value) ? 'bad' : value === 'pending' || value === 'unpaid' ? 'warn' : ''
   return <span className={`pill ${cls}`}>{(label ?? value).replace(/_/g, ' ')}</span>
