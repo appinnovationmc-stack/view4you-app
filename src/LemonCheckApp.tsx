@@ -24,12 +24,12 @@ var C = {
   bg:'var(--bg)', s1:'var(--s1)', s2:'var(--s2)', s3:'var(--s3)',
   b:'var(--b)', b2:'var(--b2)',
   t:'var(--t)', t2:'var(--t2)', t3:'var(--t3)',
-  lime:'#ffffff', ink:'#000000', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim2)',
+  lime:'var(--ink)', ink:'#0A0A0B', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim)',
   green:'var(--green)', greenDim:'var(--green-dim)',
   red:'var(--red)', redDim:'var(--red-dim)',
   amber:'var(--amber)', amberDim:'var(--amber-dim)',
   blue:'var(--blue)', blueDim:'var(--blue-dim)',
-  brand:'#ffffff',
+  brand:'#12A66B',
 };
 /* THEME-V3 (light + dark) */
 
@@ -72,6 +72,7 @@ var ONBOARD = {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    HELPERS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[], tierIds:p.tier_ids||[], lat:p.lat==null?null:Number(p.lat), lng:p.lng==null?null:Number(p.lng)}; }
 function greet() { var h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
 function R(n)    { return 'R\u00a0'+Number(n).toLocaleString(); }
 function sm(s)   { return s>=80?{col:C.green,dim:C.greenDim,lbl:'Good',   sub:'Above average'}
@@ -434,30 +435,29 @@ function SkeletonInspectorList() {
 
 function Av(props) {
   var sz = props.size || 40;
-  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:500,color:'#000',flexShrink:0,letterSpacing:'-.02em',boxShadow:'0 10px 20px -10px rgba(0,0,0,.5)'}}, props.label);
+  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'#3DDC97',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:700,color:'#0A0A0B',flexShrink:0,letterSpacing:'-.02em'}}, props.label);
 }
 
 /* FIX: Ring — animated fill on mount, sub-label for context, thicker fill stroke */
 function Ring(props) {
   var sz = props.size || 72, sc = props.score, m = sm(sc);
-  var r   = sz * .38;
+  var dark = !!props.dark; /* ring sitting on a black hero card */
+  var r   = sz * .4;
+  var sw  = Math.max(5, sz * .1);
   var cir = 2 * Math.PI * r;
   var fill = (sc / 100) * cir;
   var cx  = sz / 2, cy = sz / 2;
+  var strokeCol = sc >= 80 ? (dark ? '#3DDC97' : '#12A66B') : m.col;
 
   return h('div', {style:{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},  /* showLabel=true adds sub text */
     h('svg', {width:sz, height:sz, viewBox:'0 0 '+sz+' '+sz,
               role:'img', 'aria-label':'Condition score: '+sc+' out of 100 — '+m.sub},
-      /* Track */
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(255,255,255,.28)',strokeWidth:3.5}),
-      /* FIX: fill stroke is thicker (5) than track (3.5), ring-fill animation */
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:m.col,strokeWidth:5,
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:dark?'#2A2B30':'#C4C4C9',strokeWidth:sw}),
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:strokeCol,strokeWidth:sw,
                    strokeDasharray:cir+' '+cir,strokeDashoffset:cir-fill,strokeLinecap:'round',
                    transform:'rotate(-90 '+cx+' '+cy+')',
                    style:{'--ring-cir':cir,'--ring-gap':cir-fill,strokeDashoffset:cir-fill,animation:'ring-draw .85s cubic-bezier(.22,1,.36,1) both'}}),
-      h('text', {x:cx,y:cy-sz*.05,textAnchor:'middle',dominantBaseline:'middle',fill:C.t,fontSize:sz*.26,fontWeight:500,fontFamily:"'Poppins',sans-serif",letterSpacing:'-.03em'}, sc),
-      /* FIX: sub-label inside ring for context */
-      h('text', {x:cx,y:cy+sz*.21,textAnchor:'middle',fill:C.t3,fontSize:sz*.115,fontFamily:"'Poppins',sans-serif"}, '/ 100')),
+      h('text', {x:cx,y:cy,textAnchor:'middle',dominantBaseline:'central',fill:dark?'#fff':'#0A0A0B',fontSize:sz*.28,fontWeight:700,fontFamily:"'Poppins',sans-serif",letterSpacing:'-.03em'}, sc)),
     props.showLabel && h('span', {style:{fontSize:10,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap'}}, m.sub));
 }
 
@@ -500,24 +500,24 @@ function PBtn(props) {
     className: props.dark ? 'btn-ghost' : 'btn-primary',
     style: Object.assign({
       width:'100%',
-      background: props.dark ? '#fff' : '#000',
-      color: props.dark ? '#000' : '#fff',
-      border: 'none',
+      background: props.dark ? 'rgba(255,255,255,.92)' : '#0A0A0B',
+      color: props.dark ? '#0A0A0B' : '#3DDC97',
+      border: props.dark ? '1px solid #D0D0D4' : 'none',
       borderRadius:'var(--pill)',
       padding:'17px 24px',
-      fontSize:'var(--fs-body)',
-      fontWeight:500,
-      letterSpacing:'-.01em',
+      fontSize:14,
+      fontWeight:600,
+      letterSpacing:'.04em',
       display:'flex',
       alignItems:'center',
       justifyContent:'center',
       gap:10,
       opacity: dis ? 0.4 : 1,
       cursor: dis ? 'default' : 'pointer',
-      boxShadow: props.dark ? '0 14px 26px -14px rgba(0,0,0,.5)' : '0 14px 26px -12px rgba(0,0,0,.7)',
+      boxShadow: props.dark ? 'none' : '0 8px 20px rgba(10,10,11,.18)',
     }, props.style||{})
   },
-    props.loading ? h(Spin,{size:18,col:props.dark?'#000':'#fff',track:props.dark?'rgba(0,0,0,.15)':'rgba(255,255,255,.3)'}) : null,
+    props.loading ? h(Spin,{size:18,col:props.dark?'#0A0A0B':'#3DDC97',track:props.dark?'rgba(0,0,0,.15)':'rgba(255,255,255,.2)'}) : null,
     props.label
   );
 }
@@ -528,9 +528,9 @@ function GBtn(props) {
     className: 'btn-ghost pressable',
     style: Object.assign({
       width:'100%',
-      background:'#fff',
-      color:'#000',
-      border:'none',
+      background:'rgba(255,255,255,.92)',
+      color:'#0A0A0B',
+      border:'1px solid #D0D0D4',
       borderRadius:'var(--pill)',
       padding:'16px 22px',
       fontSize:'var(--fs-body)',
@@ -545,7 +545,7 @@ function BackBtn(props) {
   return h('button', {
     onClick:function(){ haptic('selection'); props.onClick(); },
     'aria-label': 'Go back',
-    style:{width:40,height:40,borderRadius:'50%',background:C.s2,border:'1px solid var(--b)',
+    style:{width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,.92)',border:'1px solid #D0D0D4',
       display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
       marginBottom: props.mb != null ? props.mb : 20}},
     h('svg',{width:16,height:16,viewBox:'0 0 16 16',fill:'none','aria-hidden':'true'},
@@ -607,7 +607,7 @@ function Onboarding(props) {
     h('div',{className:'lc-auth-in'},
       h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
-        h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#fff')),
+        h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#3DDC97')),
         h('h1',{className:'lc-title'}, cur.title),
         h('p',{className:'lc-sub',style:{fontSize:15}}, cur.body)),
       h('div',{className:'lc-dots'},
@@ -767,73 +767,173 @@ function AuthScreen(props) {
    HOME SCREEN
    FIX: safe-top, lime only on earnings number, green tags for pass status
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DESIGN-V4 SHARED PIECES
+   Swipe to confirm, vehicle photo slot, screen header, chips
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+var CHEV = 'M9 6l6 6-6 6';
+
+/* Swipe to confirm. Drag the mint handle to the end (85%+) to confirm.
+   Keyboard / screen-reader users activate the handle itself (click with detail 0, Enter, Space). */
+function SwipeConfirm(props) {
+  var _d = useState(0); var dx = _d[0]; var setDx = _d[1];
+  var track = useRef(null);
+  var st = useRef(null);
+  var HANDLE = 42, PAD = 5;
+  var off = !!(props.disabled || props.busy);
+  function maxX() { return track.current ? Math.max(0, track.current.clientWidth - HANDLE - PAD * 2) : 0; }
+  useEffect(function(){ if (!props.busy) setDx(0); }, [props.busy]);
+  function down(e) {
+    if (off) return;
+    st.current = { x: e.clientX };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+  function move(e) {
+    if (!st.current) return;
+    setDx(Math.max(0, Math.min(maxX(), e.clientX - st.current.x)));
+  }
+  function up() {
+    if (!st.current) return;
+    st.current = null;
+    var m = maxX();
+    if (m > 0 && dx >= m * 0.85) { setDx(m); haptic('success'); props.onConfirm(); }
+    else setDx(0);
+  }
+  function key(e) {
+    if (off) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); haptic('success'); props.onConfirm(); }
+  }
+  var m = maxX();
+  var progress = m > 0 ? dx / m : 0;
+  return h('div', { ref: track, className: 'sw' + (props.solid ? ' solid' : '') + (props.busy ? ' busy' : ''), style: props.style || null },
+    h('div', { className: 'sw-fill', style: { width: dx > 0 ? dx + HANDLE + PAD * 2 : 0 } }),
+    h('div', { className: 'sw-label', style: { opacity: Math.max(0, 1 - progress * 1.4) } }, props.busy ? (props.busyLabel || 'Working…') : props.label),
+    h('button', {
+      type: 'button', className: 'mh', 'aria-label': props.label, disabled: off,
+      onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerCancel: up, onKeyDown: key,
+      onClick: function (e) { if (e.detail === 0 && !off) props.onConfirm(); },
+      style: { transform: 'translateX(' + dx + 'px)', transition: st.current ? 'none' : 'transform .25s cubic-bezier(.22,1,.36,1)' }
+    },
+      props.busy ? h(Spin, { size: 16, col: '#0A0A0B', track: 'rgba(10,10,11,.2)' })
+        : h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: CHEV }))));
+}
+
+/* Vehicle photo area. Pass src for a real photograph; otherwise a marked slot. */
+function VehiclePhoto(props) {
+  return h('div', { className: 'px' + (props.light ? ' lt' : ''), style: props.style || null },
+    props.src ? h('img', { src: props.src, alt: props.alt || '' }) : null,
+    props.src ? null : h('span', null, props.label || 'VEHICLE PHOTO'));
+}
+
+/* Screen header: round back button, centred title, optional right slot */
+function ScreenHdr(props) {
+  return h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: props.mb == null ? 18 : props.mb } },
+    props.onBack
+      ? h('button', { type: 'button', className: 'obl', 'aria-label': 'Go back', onClick: function () { haptic('selection'); props.onBack(); } },
+          h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M15 5l-7 7 7 7' })))
+      : h('div', { style: { width: 38 } }),
+    h('span', { className: 'hx', style: { fontSize: 18 } }, props.title),
+    props.right || h('div', { style: { width: 38 } }));
+}
+
+var ARROW_UR = 'M7 17L17 7M9 7h8v8';
+function ArrowBtn(props) {
+  return h('span', { className: props.dark ? 'ob' : 'obl', 'aria-hidden': 'true' },
+    h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: ARROW_UR })));
+}
+
 function HomeScreen(props) {
   var nav = props.nav, user = props.user, notifs = props.notifs;
+  var _vin = useState(''); var vin = _vin[0]; var setVin = _vin[1];
   var unread = notifs.filter(function(n){ return !n.read; }).length;
   var total  = TXNS.reduce(function(a,t){ return a+t.amount; }, 0);
   var myCars = Object.keys(VEHICLES).map(function(k){ return VEHICLES[k]; });
+  var pending = readPendingBooking();
+  var onlineCount = INSPECTORS.filter(function(i){ return i.online; }).length;
 
-  return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'calc(var(--nav) + 16px)'}},
-    h('div',{style:{padding:'var(--safe-top) 22px 20px'}},
-      /* Header */
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:26}},
-        h('div',null,
-          h('p',{className:'lc-cap',style:{marginBottom:6}}, greet()),
-          h('h1',{className:'lc-h1'}, user.first)),
-        h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
-          h('button',{onClick:function(){nav('alerts');},'aria-label':(unread||'No')+' unread notifications',
-            style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s1,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
-            h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:unread>0?C.t:C.t2,strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-              h('path',{d:'M18 8A6 6 0 0 0 6 8C6 14 3 16 3 16H21C21 16 18 14 18 8ZM13.7 21A2 2 0 0 1 10.3 21'})),
-            unread > 0 && h(NBadge,{n:unread})),
-          h(Av,{label:user.init,size:40}))),
+  function lookup(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var v = vin.trim().toUpperCase();
+    if (!v) { nav('search'); return; }
+    PENDING_VIN = v; nav('search');
+  }
 
-      /* Earnings hero with glowing orb */
-      h('div',{className:'glass pressable fu',onClick:function(){nav('earn');},
-        style:{borderRadius:'var(--rx)',padding:'26px 24px 22px',marginBottom:14,cursor:'pointer',position:'relative',overflow:'hidden',minHeight:236}},
-        h('div',{style:{position:'relative'}},
-          h('p',{className:'lc-cap'}, 'Passive earnings'),
-          h('p',{className:'lc-big',style:{marginTop:10}}, R(total)),
-          h('div',{style:{display:'flex',gap:26,marginTop:52,alignItems:'flex-end'}},
-            [{v:String(TXNS.length),l:'Resales'},{v:String(Object.keys(VEHICLES).length),l:'Cars tracked'}].map(function(s){
-              return h('div',{key:s.l},
-                h('p',{style:{fontSize:22,fontWeight:400,color:C.t,letterSpacing:'-.03em'}}, s.v),
-                h('p',{className:'lc-cap',style:{marginTop:2}}, s.l));
-            }),
-            h('div',{style:{marginLeft:'auto'}}, h(ArrowDot,{size:44}))))),
+  var heroTitle = pending
+    ? (pending.venue === 'auction' ? 'Auction' + (pending.lot ? ' · Lot ' + pending.lot : '')
+      : pending.venue === 'dealership' ? 'Dealership' : 'Inspection booked')
+    : 'Book an inspection';
+  var heroSub = pending ? (pending.vehicle || 'Booking in progress') : 'Inspector in minutes';
 
-      /* Quick actions */
-      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:26},className:'fu d1'},
-        [{t:'Search VIN',s:'Reports & history',id:'search',cls:''},
-         {t:'Book now',s:'Inspector in minutes',id:'book',cls:' solid'}]
-        .map(function(a){
-          return h('button',{key:a.id,onClick:function(){nav(a.id);},className:'lc-tile-act pressable'+a.cls},
-            h('div',null,
-              h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:'inherit',letterSpacing:'-.02em',marginBottom:4}}, a.t),
-              h('p',{className:'lc-cap',style:{opacity:.8}}, a.s)),
-            h(ArrowDot,{size:40}));
-        })),
+  return h('div', { style: { minHeight: '100vh', background: C.bg, paddingBottom: 'calc(var(--nav) + 16px)' } },
+    h('div', { style: { padding: 'var(--safe-top) 16px 20px' } },
+
+      /* Header: logo left, alerts + avatar right */
+      h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        h('img', { src: '/cv-logo-ink.svg', alt: 'CheckVertical', style: { height: 22, width: 'auto' } }),
+        h('div', { style: { display: 'flex', gap: 10, alignItems: 'center' } },
+          h('button', { type: 'button', className: 'obl', onClick: function(){ nav('alerts'); }, 'aria-label': (unread || 'No') + ' unread notifications', style: { position: 'relative' } },
+            h('svg', { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+              h('path', { d: 'M18 8A6 6 0 0 0 6 8C6 14 3 16 3 16H21C21 16 18 14 18 8ZM13.7 21A2 2 0 0 1 10.3 21' })),
+            unread > 0 && h(NBadge, { n: unread })),
+          h(Av, { label: user.init, size: 38 }))),
+
+      /* VIN search: pill + black round button */
+      h('form', { onSubmit: lookup, style: { display: 'flex', gap: 8, alignItems: 'center', marginTop: 18 } },
+        h('input', { value: vin, onChange: function(e){ setVin(e.target.value.toUpperCase()); }, placeholder: 'SEARCH A VIN', maxLength: 17, autoCapitalize: 'characters', autoCorrect: 'off', spellCheck: false, 'aria-label': 'Search a VIN', style: { flex: 1, letterSpacing: '.06em', fontSize: 15 } }),
+        h('button', { type: 'submit', className: 'mh', 'aria-label': 'Search', style: { background: '#0A0A0B', color: 'var(--cv-green)' } },
+          h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', 'aria-hidden': 'true' },
+            h('circle', { cx: 11, cy: 11, r: 6.5 }), h('path', { d: 'M16 16l4.5 4.5' })))),
+
+      /* Black hero card: current booking, or book now */
+      h('div', { className: 'dk', style: { marginTop: 16, height: 316, padding: 18 } },
+        h('div', { className: 'row', style: { alignItems: 'flex-start' } },
+          h('div', null,
+            h('div', { className: 'hx', style: { fontSize: 24 } }, heroTitle),
+            h('div', { className: 'lb', style: { marginTop: 2 } }, heroSub)),
+          h(ArrowBtn, { dark: true })),
+        h('div', { style: { display: 'flex', gap: 30, marginTop: 14 } },
+          pending
+            ? [h('div', { key: 'i' }, h('div', { className: 'lb' }, 'Inspector'), h('div', { className: 'sv' }, pending.inspector || '—')),
+               h('div', { key: 'v' }, h('div', { className: 'lb' }, 'Status'), h('div', { className: 'sv' }, 'In progress'))]
+            : [h('div', { key: 'o' }, h('div', { className: 'lb' }, 'Inspectors online'), h('div', { className: 'sv' }, String(onlineCount))),
+               h('div', { key: 'c' }, h('div', { className: 'lb' }, 'Your cars'), h('div', { className: 'sv' }, String(myCars.length)))]),
+        h(VehiclePhoto, { style: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 170 } }),
+        h('div', { style: { position: 'absolute', left: 14, right: 14, bottom: 14, zIndex: 2 } },
+          h(SwipeConfirm, { label: pending ? 'Swipe to view booking' : 'Swipe to book now', onConfirm: function(){ nav('book'); } }))),
+
+      /* Passive earnings: grey card */
+      h('button', { type: 'button', className: 'lg cv-pressable', onClick: function(){ nav('earn'); }, style: { display: 'block', marginTop: 10, padding: 18 } },
+        h('div', { className: 'row', style: { alignItems: 'flex-start' } },
+          h('div', null,
+            h('div', { className: 'lb' }, 'Passive earnings'),
+            h('div', { className: 'hx', style: { fontSize: 28, marginTop: 2 } }, R(total))),
+          h(ArrowBtn, null)),
+        h('div', { style: { display: 'flex', gap: 30, marginTop: 12 } },
+          h('div', null, h('div', { className: 'lb' }, 'Resales'), h('div', { className: 'sv' }, String(TXNS.length))),
+          h('div', null, h('div', { className: 'lb' }, 'Cars tracked'), h('div', { className: 'sv' }, String(myCars.length))))),
 
       /* My cars */
-      h('div',{className:'fu d2'},
-        h(SecTitle,{title:'My Cars',action:'+ Add',onAct:function(){nav('search');}}),
-        myCars.length === 0
-          ? h(Card,{style:{marginBottom:8,borderRadius:'var(--rx)'}},
-              h('div',{style:{padding:'20px 22px'}},
-                h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, 'No cars yet'),
-                h('p',{className:'lc-cap'}, 'Cars you buy a report for or book an inspection on will show up here.')))
-          : myCars.map(function(c){
+      h('div', { className: 'row', style: { marginTop: 24, marginBottom: 10 } },
+        h('span', { className: 'sec' }, 'My cars'),
+        h('button', { type: 'button', className: 'tab', onClick: function(){ nav('search'); } }, '+ Add')),
+      myCars.length === 0
+        ? h('div', { className: 'lg', style: { padding: 18 } },
+            h('div', { className: 'hx', style: { fontSize: 17 } }, 'No cars yet'),
+            h('div', { className: 'lb', style: { marginTop: 4, lineHeight: 1.5 } }, 'Cars you buy a report for or book an inspection on will show up here.'))
+        : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+            myCars.map(function(c){
               var score = c.inspections && c.inspections[0] ? c.inspections[0].score : null;
-              return h(Card,{key:c.vin,onClick:function(){ PENDING_VIN = c.vin; nav('search'); },style:{marginBottom:8,borderRadius:'var(--rx)'}},
-                h('div',{style:{padding:'20px 22px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
-                  h('div',{style:{flex:1,marginRight:14}},
-                    h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}}, [c.year,c.make,c.model].filter(Boolean).join(' ')),
-                    h('p',{className:'lc-cap',style:{marginBottom:score!=null?12:0}}, c.vin),
-                    score!=null && h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
-                      h(Tag,{label:'Score '+score,bg:C.greenDim,c:C.green}))),
-                  score!=null && h(Ring,{score:score,size:68})));
+              return h('button', { key: c.vin, type: 'button', className: 'lg cv-pressable', onClick: function(){ PENDING_VIN = c.vin; nav('search'); }, style: { display: 'block', padding: 18 } },
+                h('div', { className: 'row', style: { alignItems: 'flex-start' } },
+                  h('div', { style: { minWidth: 0 } },
+                    h('div', { className: 'hx', style: { fontSize: 18 } }, [c.year, c.make, c.model].filter(Boolean).join(' ')),
+                    h('div', { className: 'lb', style: { marginTop: 2 } }, c.vin)),
+                  h(ArrowBtn, null)),
+                score != null && h('div', { style: { display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 } },
+                  h(Ring, { score: score, size: 56 }),
+                  h('div', null, h('div', { className: 'lb' }, 'Score'), h('div', { className: 'sv' }, score + ' / 100'))));
             }))),
-    h(Nav,{sc:'home',nav:nav,role:'buyer',nc:unread}));
+    h(Nav, { sc: 'home', nav: nav, role: 'buyer', nc: unread }));
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1176,55 +1276,41 @@ function BookScreen(props) {
     });
   }
 
+  var PAGE = { minHeight: '100vh', background: C.bg };
+  var GAP = { display: 'flex', flexDirection: 'column', gap: 9 };
+  var FLB = { fontSize: 12, color: C.t3, display: 'block', margin: '0 0 5px 6px' };
+  var totalNow = tierMode ? (selectedTier ? selectedTier.buyer_price : 0) + addonFee : null;
+
   /* ── INPUT ── */
-  if (step==='input') return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:40}},
-    h('div',{style:{padding:'var(--safe-top) 20px 0'},className:'fu'},
-      h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
-        h(BackBtn,{onClick:function(){nav('home');},mb:0}),
-        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Book inspection')),
-      tierLoadError && h('div',{role:'alert',style:{padding:12,marginBottom:14,borderRadius:12,background:C.redDim,color:C.red,fontSize:12}},'Inspection pricing could not be verified. '+tierLoadError+' Booking is disabled until pricing loads successfully.'),
-      tierMode&&h(Card,{style:{marginBottom:18}},
-        h('div',{style:{padding:'14px 14px 12px'}},
-          h('label',{style:LBL},'Choose your inspection'),
-          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
-            tiers.map(function(t){
-              var on=t.id===tierId;
-              var detail=t.name==='Basic'?'60 checks · essential safety and visible condition · 4 photos':t.name==='Standard'?'115 checks · expanded mechanical and road observations · 8 photos':'115 checks · 12 photos · measured tests when equipped';
-              return h('button',{key:t.id,type:'button',onClick:function(){setTierId(t.id);},'aria-pressed':on,
-                style:{textAlign:'left',padding:'12px 9px',borderRadius:12,border:'1px solid '+(on?C.lime:'var(--b)'),background:on?C.limeDim:'var(--s2)',color:C.t,minWidth:0}},
-                h('span',{style:{display:'block',fontSize:11,fontWeight:800,color:on?C.lime:C.t3,marginBottom:7}},t.name),
-                h('span',{style:{display:'block',fontSize:18,fontWeight:850,letterSpacing:'-.04em'}},R(t.buyer_price)),
-                h('span',{style:{display:'block',fontSize:10,color:C.t3,marginTop:5}},'Report '+R(t.resale_price)),
-                h('span',{style:{display:'block',fontSize:9,lineHeight:1.45,color:C.t3,marginTop:8}},detail));
-            })),
-          h('p',{style:{fontSize:11,lineHeight:1.5,color:C.t3,margin:'10px 2px 0'}},'Travel is included in the tier price at checkout. Earn toward your inspection cost when another buyer purchases the report.'))),
-      h('div',{style:{marginBottom:16}},
-        h('label',{style:LBL},'Where is the car?'),
-        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}},
-          [{id:'private',l:'Private seller'},{id:'dealership',l:'Dealership'},{id:'auction',l:'Auction'}].map(function(v){
+  if (step==='input') return h('div',{style:Object.assign({},PAGE,{paddingBottom:40}),className:'fu'},
+    h('div',{style:{padding:'var(--safe-top) 16px 0'}},
+      h(ScreenHdr,{title:'Book inspection',onBack:function(){nav('home');}}),
+      h('div',{style:GAP},
+        tierLoadError && h('div',{role:'alert',className:'lc-err'},'Inspection pricing could not be verified. '+tierLoadError+' Booking is disabled until pricing loads successfully.'),
+
+        /* where is the car */
+        h('div',{className:'seg',role:'group','aria-label':'Where is the car?'},
+          [{id:'private',l:'Private'},{id:'dealership',l:'Dealership'},{id:'auction',l:'Auction'}].map(function(v){
             var on = venueKind===v.id;
-            return h('button',{key:v.id,type:'button',onClick:function(){setVenueKind(v.id);},'aria-pressed':on,
-              style:{background:on?C.limeDim:C.s2,color:on?C.lime:C.t3,border:'1px solid '+(on?'var(--ink-dim2)':'var(--b)'),borderRadius:10,padding:'10px 4px',fontSize:'var(--fs-caption)',fontWeight:700}},v.l);
+            return h('button',{key:v.id,type:'button',className:on?'on':'',onClick:function(){setVenueKind(v.id);},'aria-pressed':on},v.l);
           })),
-        venueKind==='auction'&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:8,lineHeight:1.5}},'Get the car inspected before you bid. Tell us the auction and when it starts and we will have a report ready.')),
-      venueKind!=='private'&&h('div',{style:{marginBottom:14}},
-        h('label',{style:LBL},venueKind==='auction'?'Auction house':'Dealership'),
-        h('input',{value:dealer,onChange:function(e){setDealer(e.target.value);},placeholder:venueKind==='auction'?'e.g. Auto Auction house name':'e.g. CMH Toyota Midrand','aria-label':venueKind==='auction'?'Auction house':'Dealership name'})),
-      venueKind==='auction'&&h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}},
-        h('div',null,h('label',{style:LBL},'Lot number'),
-          h('input',{value:lot,onChange:function(e){setLot(e.target.value);},placeholder:'Optional','aria-label':'Lot number'})),
-        h('div',null,h('label',{style:LBL},'Auction starts'),
-          h('input',{type:'datetime-local',value:auctionAt,onChange:function(e){setAuctionAt(e.target.value);},'aria-label':'Auction start'}))),
-      venueKind==='auction'&&h('div',{style:{marginBottom:14}},
-        h('label',{style:LBL},'Need the report by (optional)'),
-        h('input',{type:'datetime-local',value:neededBy,onChange:function(e){setNeededBy(e.target.value);},'aria-label':'Report needed by'}),
-        auctionAt&&new Date(auctionAt).getTime() <= Date.now()+3600000&&h('p',{style:{fontSize:11,color:C.red||C.t3,marginTop:6}},'The auction must start more than an hour from now.'),
-        auctionAt&&neededBy&&new Date(neededBy).getTime() > new Date(auctionAt).getTime()&&h('p',{style:{fontSize:11,color:C.red||C.t3,marginTop:6}},'Report time must be before the auction starts.')),
-      h('div',{style:{marginBottom:14}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
-          h('label',{style:Object.assign({},LBL,{marginBottom:0})},venueKind==='auction'?'Auction venue address (optional)':'Address or area'),
-          h('button',{
-            type:'button',
+        venueKind==='auction'&&h('p',{className:'lb',style:{lineHeight:1.5,padding:'0 6px'}},'Get the car inspected before you bid. Tell us the auction and when it starts and we will have a report ready.'),
+
+        venueKind!=='private'&&h('input',{value:dealer,onChange:function(e){setDealer(e.target.value);},placeholder:venueKind==='auction'?'Auction house name':'Dealership name','aria-label':venueKind==='auction'?'Auction house':'Dealership name'}),
+        venueKind==='auction'&&h('input',{value:lot,onChange:function(e){setLot(e.target.value);},placeholder:'Lot number (optional)','aria-label':'Lot number'}),
+        venueKind==='auction'&&h('div',null,
+          h('label',{style:FLB},'Auction starts'),
+          h('input',{type:'datetime-local',value:auctionAt,onChange:function(e){setAuctionAt(e.target.value);},'aria-label':'Auction start'})),
+        venueKind==='auction'&&h('div',null,
+          h('label',{style:FLB},'Report needed by (optional)'),
+          h('input',{type:'datetime-local',value:neededBy,onChange:function(e){setNeededBy(e.target.value);},'aria-label':'Report needed by'}),
+          auctionAt&&new Date(auctionAt).getTime() <= Date.now()+3600000&&h('p',{style:{fontSize:12,color:C.red,marginTop:6,paddingLeft:6}},'The auction must start more than an hour from now.'),
+          auctionAt&&neededBy&&new Date(neededBy).getTime() > new Date(auctionAt).getTime()&&h('p',{style:{fontSize:12,color:C.red,marginTop:6,paddingLeft:6}},'Report time must be before the auction starts.')),
+
+        /* location */
+        h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+          h('input',{value:loc,onChange:function(e){setLoc(e.target.value);},placeholder:venueKind==='auction'?'Venue address (optional)':'Street, suburb or area','aria-label':'Address',style:{flex:1}}),
+          h('button',{type:'button',className:'obl','aria-label':'Use my location',style:{width:46,height:46},
             onClick:function(){
               setGeoLoading(true);
               getUserLocation().then(function(pos){
@@ -1235,176 +1321,175 @@ function BookScreen(props) {
                   showToast('Location found');
                 });
               }).catch(function(e){ setGeoLoading(false); showToast((e && e.message) || 'Could not get location', true); });
-            },
-            style:{background:'var(--w06)',border:'1px solid var(--w1)',borderRadius:99,color:C.t,fontSize:11,fontWeight:600,padding:'5px 10px'}
-          }, geoLoading ? 'Locating…' : 'Use my location')
-        ),
-        h('input',{value:loc,onChange:function(e){setLoc(e.target.value);},placeholder:'Street, suburb or GPS area','aria-label':'Address'})),
-      h('div',{style:{marginBottom:12}},h('label',{style:LBL},'VIN number'),
-        h('input',{value:vin,onChange:function(e){setVin(e.target.value.toUpperCase());},placeholder:'e.g. ABC123GP',maxLength:17,'aria-label':'VIN',style:{fontWeight:600,letterSpacing:'.04em'}})),
-      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}},
-        h('div',null,h('label',{style:LBL},'Make'),
-          h('select',{value:make,onChange:function(e){setMake(e.target.value);},'aria-label':'Make'},
-            h('option',{value:'',disabled:true},'Select'),
-            MAKES.map(function(m){ return h('option',{key:m,value:m},m); }))),
-        h('div',null,h('label',{style:LBL},'Model'),
-          h('input',{value:model,onChange:function(e){setModel(e.target.value);},placeholder:'e.g. Corolla','aria-label':'Model'}))),
-      h('div',{style:{marginBottom:12}},h('label',{style:LBL},'Year'),
-        h('input',{value:year,onChange:function(e){setYear(e.target.value);},placeholder:'2021',type:'number',min:1995,max:2026,'aria-label':'Year'})),
-      h(Card,{style:{marginBottom:16}},
-        h('div',{style:{padding:'14px 16px'}},
-          h('label',{style:{display:'flex',gap:10,alignItems:'flex-start'}},
-            h('input',{type:'checkbox',checked:wantRw,onChange:function(e){setWantRw(e.target.checked); if(!e.target.checked) setStationId('');},style:{width:20,height:20,marginTop:2,flexShrink:0},'aria-label':'Add official roadworthy test'}),
-            h('span',null,
-              h('span',{style:{display:'block',fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},'Add an official roadworthy test'+(opts&&opts.roadworthy_addon_fee>0?' (+'+R(opts.roadworthy_addon_fee)+')':'')),
-              h('span',{style:{display:'block',fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.5,marginTop:3}},'A registered testing station issues the certificate, not us. The station test fee is paid at the station.'))),
+            }},
+            geoLoading ? h(Spin,{size:16,col:'#0A0A0B',track:'rgba(10,10,11,.15)'}) : Ic('pin',18))),
+
+        /* vehicle */
+        h('input',{value:vin,onChange:function(e){setVin(e.target.value.toUpperCase());},placeholder:'VIN, e.g. AHTBB3CD40-123456',maxLength:17,'aria-label':'VIN',style:{fontWeight:500,letterSpacing:'.04em'}}),
+        h('div',{style:{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:8}},
+          h('select',{value:make,onChange:function(e){setMake(e.target.value);},'aria-label':'Make',style:{color:make?'#0A0A0B':'#8A8B91'}},
+            h('option',{value:'',disabled:true},'Make'),
+            MAKES.map(function(m){ return h('option',{key:m,value:m},m); })),
+          h('input',{value:model,onChange:function(e){setModel(e.target.value);},placeholder:'Model','aria-label':'Model'})),
+        h('input',{value:year,onChange:function(e){setYear(e.target.value);},placeholder:'Year, e.g. 2021',type:'number',min:1995,max:2026,'aria-label':'Year'}),
+
+        /* inspection tier */
+        tierMode&&h('div',{style:{marginTop:6}},
+          h('div',{className:'sec',style:{margin:'0 0 8px 6px'}},'Choose your inspection'),
+          h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}},
+            tiers.map(function(t){
+              var on=t.id===tierId;
+              var detail=t.name==='Basic'?'60 checks · 4 photos':t.name==='Standard'?'115 checks · 8 photos':'115 checks · 12 photos';
+              return h('button',{key:t.id,type:'button',className:(on?'dk':'lg')+' cv-pressable',onClick:function(){setTierId(t.id);},'aria-pressed':on,
+                style:{display:'block',padding:'14px 12px',borderRadius:22,minWidth:0}},
+                h('div',{className:'lb'},t.name),
+                h('div',{className:'hx'+(on?' pr':''),style:{fontSize:19,marginTop:2}},R(t.buyer_price)),
+                h('div',{className:'lb',style:{marginTop:8,fontSize:11,lineHeight:1.4}},detail));
+            })),
+          h('p',{className:'lb',style:{lineHeight:1.5,margin:'8px 6px 0'}},'Travel is included in the tier price. Earn toward your inspection cost when another buyer purchases the report.')),
+
+        /* roadworthy */
+        h('div',{className:'lg',style:{padding:'14px 16px',borderRadius:22,marginTop:2}},
+          h('label',{style:{display:'flex',gap:12,alignItems:'center',cursor:'pointer',margin:0}},
+            h('span',{style:{flex:1}},
+              h('span',{style:{display:'block',fontSize:14,fontWeight:600,color:C.t}},'Official roadworthy test'+(opts&&opts.roadworthy_addon_fee>0?' (+'+R(opts.roadworthy_addon_fee)+')':'')),
+              h('span',{className:'lb',style:{display:'block',lineHeight:1.4,marginTop:2}},'A registered station issues the certificate. Fee paid at the station.')),
+            h('input',{type:'checkbox',className:'cv-switch',checked:wantRw,onChange:function(e){setWantRw(e.target.checked); if(!e.target.checked) setStationId('');},'aria-label':'Add official roadworthy test'})),
           wantRw&&h('div',{style:{marginTop:12}},
-            h('label',{style:LBL},'Testing station'),
-            stations.length===0?h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'No testing stations are listed yet.')
+            stations.length===0?h('p',{className:'lb'},'No testing stations are listed yet.')
             :h('select',{value:stationId,onChange:function(e){setStationId(e.target.value);},'aria-label':'Testing station'},
               h('option',{value:''},'Select a station'),
-              stations.map(function(x){ return h('option',{key:x.id,value:x.id},x.name+' · '+(x.city||'')+' · Grade '+x.grade+' · '+R(x.test_fee)); }))))),
-      h('div',{style:{marginBottom:24}},h('label',{style:LBL},'Notes for inspector'),
-        h('textarea',{value:notes,onChange:function(e){setNotes(e.target.value);},placeholder:'Warning lights, concerns, anything the inspector should know…',rows:3,'aria-label':'Notes'})),
-      h(PBtn,{label:'Find nearby inspectors',onClick:function(){
-        setChoosing(true);
-        var locPromise=geo?Promise.resolve(geo):getUserLocation();
-        locPromise.then(function(pos){
-          setGeo(pos);
-          return Promise.all([Data.fetchOnlineInspectors(),Data.fetchOfflineInspectors()]);
-        }).then(function(rows){
-          INSPECTORS=rows[0].map(mapInspector).concat(rows[1].map(mapInspector));
-          setChoosing(false); setStep('choose');
-        }).catch(function(e){
-          setChoosing(false);
-          showToast((e&&e.message)||'Could not refresh nearby inspectors.',true);
-        });
-      },loading:choosing,disabled:!ready||choosing})));
+              stations.map(function(x){ return h('option',{key:x.id,value:x.id},x.name+' · '+(x.city||'')+' · Grade '+x.grade+' · '+R(x.test_fee)); })))),
+
+        h('textarea',{value:notes,onChange:function(e){setNotes(e.target.value);},placeholder:'Notes for the inspector: warning lights, concerns…',rows:3,'aria-label':'Notes'}),
+
+        totalNow!=null&&h('div',{className:'row',style:{padding:'4px 6px 0'}},
+          h('span',{style:{fontSize:13,color:C.t3}},'Total'),
+          h('span',{className:'hx',style:{fontSize:24}},R(totalNow))),
+
+        h(PBtn,{label:'Find nearby inspectors',onClick:function(){
+          setChoosing(true);
+          var locPromise=geo?Promise.resolve(geo):getUserLocation();
+          locPromise.then(function(pos){
+            setGeo(pos);
+            return Promise.all([Data.fetchOnlineInspectors(),Data.fetchOfflineInspectors()]);
+          }).then(function(rows){
+            INSPECTORS=rows[0].map(mapInspector).concat(rows[1].map(mapInspector));
+            setChoosing(false); setStep('choose');
+          }).catch(function(e){
+            setChoosing(false);
+            showToast((e&&e.message)||'Could not refresh nearby inspectors.',true);
+          });
+        },loading:choosing,disabled:!ready||choosing,style:{marginTop:6}}))));
 
   /* ── CHOOSE INSPECTOR ── */
-  if (step==='choose') return h('div',{style:{minHeight:'100vh',background:C.bg}},
-    h(MapView,{
-      height:'48vh',
-      center: geo || SA_DEFAULT,
-      zoom: 13,
-      userPos: geo || SA_DEFAULT,
-      markers: INSPECTORS.filter(function(i){ return i.online && i.lat != null && i.lng != null; }).map(function(i){
-        return {lat:i.lat,lng:i.lng,label:i.init||'I',color:C.green,size:34,popup:i.name+' · '+(i.cert||'Inspector')};
-      }),
-    },
-      h('div',{style:{position:'absolute',bottom:14,left:14,right:14}},
-        h('div',{style:{background:'var(--s1)',borderRadius:12,padding:'10px 14px',border:'1px solid var(--b)',display:'flex',alignItems:'center',gap:8}},
-          h('div',{style:{width:8,height:8,borderRadius:4,background:C.lime,flexShrink:0}}),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},
-            INSPECTORS.some(function(i){return i.online&&i.lat!=null&&i.lng!=null;})
-              ? 'Green pins show online inspectors. Locations are approximate.'
-              : 'No fresh inspector locations are available yet. Inspectors must enable location and go online.')))),
+  if (step==='choose') {
+    var offline = INSPECTORS.filter(function(i){return !i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0);});
+    var anyPins = INSPECTORS.some(function(i){return i.online&&i.lat!=null&&i.lng!=null;});
+    return h('div',{style:Object.assign({},PAGE,{paddingBottom:40}),className:'fu'},
+      h('div',{style:{padding:'var(--safe-top) 16px 0'}},
+        h(ScreenHdr,{title:'Nearby inspectors',onBack:function(){setStep('input');},mb:14}),
+        h('div',{className:'tabs',role:'group','aria-label':'Sort inspectors'},
+          [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'}].map(function(s){
+            return h('button',{key:s.id,type:'button',className:'tab'+(sort===s.id?' on':''),onClick:function(){setSort(s.id);},'aria-pressed':sort===s.id},s.l);
+          })),
+        h('p',{className:'lb',style:{margin:'10px 6px 0'}},year+' '+make+' '+model),
 
-    h('div',{className:'glass-sheet su',style:{borderRadius:'24px 24px 0 0',marginTop:-16,paddingBottom:32}},
-      h('div',{style:{width:34,height:4,borderRadius:2,background:C.s3,margin:'12px auto 0'}}),
-      h('div',{style:{padding:'14px 18px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
-        h('div',null,
-          h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.03em'}},'Nearby inspectors'),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},year+' '+make+' '+model)),
-        h('button',{onClick:function(){setStep('input');},style:{fontSize:'var(--fs-caption)',fontWeight:600,color:C.t3}},'Edit')),
+        h('div',{className:'lg',style:{marginTop:10,height:170,borderRadius:26,padding:0}},
+          h(MapView,{
+            height:'170px',
+            center: geo || SA_DEFAULT,
+            zoom: 13,
+            userPos: geo || SA_DEFAULT,
+            markers: INSPECTORS.filter(function(i){ return i.online && i.lat != null && i.lng != null; }).map(function(i){
+              return {lat:i.lat,lng:i.lng,label:i.init||'I',color:'#3DDC97',size:34,popup:i.name+' · '+(i.cert||'Inspector')};
+            }),
+          })),
+        h('p',{className:'lb',style:{margin:'8px 6px 0',lineHeight:1.45}},
+          anyPins ? 'Green pins show online inspectors. Locations are approximate.'
+                  : 'No fresh inspector locations are available yet. Inspectors must enable location and go online.'),
 
-      /* FIX: sort filter chips */
-      h('div',{style:{display:'flex',gap:8,padding:'0 18px 12px',overflowX:'auto'}},
-        [{id:'eta',l:'Nearest'},{id:'rating',l:'Top rated'}].map(function(s){
-          var active = sort===s.id;
-          return h('button',{key:s.id,onClick:function(){setSort(s.id);},
-            style:{background:active?C.limeDim:C.s2,color:active?C.lime:C.t3,border:'1px solid '+(active?'var(--ink-dim2)':'var(--b)'),
-              borderRadius:99,padding:'6px 14px',fontSize:'var(--fs-caption)',fontWeight:600,whiteSpace:'nowrap',flexShrink:0,
-              transition:'all .15s'}}, s.l);
-        })),
-
-      h('div',{style:{padding:'0 14px',display:'flex',flexDirection:'column',gap:8}},
-        sorted.length===0 && h('div',{style:{padding:'20px 14px',background:C.s1,border:'1px solid var(--b)',borderRadius:12}},
-          h('p',{style:{fontWeight:800,fontSize:13,color:C.t,marginBottom:6}},tierMode ? 'No inspectors currently offer this tier' : 'No inspectors available right now'),
-          h('p',{style:{fontSize:12,lineHeight:1.6,color:C.t3}},tierMode ? 'Inspectors must select this service in their profile and meet the equipment requirements before they appear here. Try another tier or check back later.' : 'Try again shortly or check back later.')),
-        sorted.map(function(insp){
-          return h('button',{key:insp.id,onClick:function(){setInspector(insp);setStep('confirm');},className:'pressable',
-            style:{width:'100%',background:C.s1,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'14px',display:'flex',alignItems:'center',gap:12,textAlign:'left'}},
-            h(Av,{label:insp.init,size:44}),
-            h('div',{style:{flex:1,minWidth:0}},
-              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}},
-                h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.02em'}},insp.name),
-                /* Lime = price CTA */
-                h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.lime,letterSpacing:'-.03em',flexShrink:0}},tierMode ? 'In '+(selectedTier ? selectedTier.name : 'your tier') : (insp.price == null ? 'Fee at checkout' : R(insp.price)))),
-              h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:6}},
-                h('span',{style:{color:C.t,fontSize:12}},'★'),
-                h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},insp.rating.toFixed(2)),
-                h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+insp.jobs+' jobs')),
-              h('div',{style:{display:'flex',gap:5,flexWrap:'wrap'}},
-                h(Tag,{label:insp.eta == null ? 'ETA unavailable' : 'ETA '+insp.eta+' min',bg:insp.eta == null ? C.s3 : C.greenDim,c:insp.eta == null ? C.t3 : C.green}),
-                insp.top&&h(Tag,{label:'Top rated',bg:C.limeDim,c:C.lime}),
-                h(Tag,{label:insp.spec,bg:C.s3,c:C.t3}),
-                h(BadgeTags,{badges:insp.badges}))));
-        }),
-        /* Offline inspector — greyed, separate */
-        h(Hr,{my:8}),
-        INSPECTORS.filter(function(i){return !i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0);}).map(function(insp){
-          return h('div',{key:insp.id,style:{background:C.s1,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'14px',display:'flex',alignItems:'center',gap:12,opacity:.45}},
-            h(Av,{label:insp.init,size:44}),
-            h('div',{style:{flex:1}},
-              h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.name),
-              h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}},'Currently offline'),
-              h('div',{style:{marginTop:8}},h(Tag,{label:'Offline · not bookable yet',bg:C.s3,c:C.t3}))));
-        }))));
-
-  /* ── CONFIRM (collapsed — was 5 cards, now 2) ── */
-  if (step==='confirm') return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:40},className:'fu'},
-    h('div',{style:{padding:'var(--safe-top) 20px 0'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:24}},
-        h(BackBtn,{onClick:function(){setStep('choose');},mb:0}),
-        h('h1',{style:{fontSize:'var(--fs-title)',fontWeight:800,color:C.t,letterSpacing:'-.04em'}},'Confirm booking')),
-
-      /* Inspector hero row */
-      h(Card,{style:{marginBottom:10}},
-        h('div',{style:{padding:'18px',display:'flex',alignItems:'center',gap:14}},
-          h(Av,{label:inspector.init,size:52}),
-          h('div',{style:{flex:1}},
-            h('p',{style:{fontWeight:800,fontSize:'var(--fs-headline)',color:C.t,letterSpacing:'-.02em',marginBottom:4}},inspector.name),
-            h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-              h('span',{style:{color:C.t,fontSize:13}},'★'),
-              h('span',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}},inspector.rating.toFixed(2)),
-              h('span',{style:{fontSize:'var(--fs-caption)',color:C.t3}},' · '+inspector.jobs+' inspections')),
-            h('div',{style:{display:'flex',gap:5}},
-              h(Tag,{label:inspector.cert,bg:C.s3,c:C.t2}),
-              h(BadgeTags,{badges:inspector.badges}),
-              h(Tag,{label:inspector.eta == null ? 'ETA unavailable' : 'ETA '+inspector.eta+' min',bg:inspector.eta == null ? C.s3 : C.greenDim,c:inspector.eta == null ? C.t3 : C.green}))))),
-
-      /* Summary + price — collapsed into one card */
-      h(Card,{style:{marginBottom:10}},
-        h('div',{style:{padding:'18px'}},
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:4}},year+' '+make+' '+model),
-          venueKind!=='private'&&h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,marginBottom:2}},(venueKind==='auction'?'Auction: ':'Dealership: ')+dealer+(venueKind==='auction'&&lot?' · Lot '+lot:'')),
-          venueKind==='auction'&&auctionAt&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:2}},'Starts '+new Date(auctionAt).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'})+(neededBy?' · report needed by '+new Date(neededBy).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'}):'')),
-          loc&&h('p',{style:{fontWeight:600,fontSize:'var(--fs-body)',color:C.t,marginBottom:2}},loc),
-          station&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4}},'Roadworthy test at '+station.name+' (Grade '+station.grade+'). Station fee '+R(station.test_fee)+' is paid at the station.'),
-          notes&&h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:4,fontStyle:'italic'}},'Note: '+notes),
-          h(Hr,{my:12}),
-          /* Price breakdown */
-          ((tierMode
-            ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included in tier price'}]
-            : [{l:'Inspection fee',v:inspector.price == null ? 'Confirmed at checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
-          ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[])).map(function(row){
-            return h('div',{key:row.l,style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-caption)',marginBottom:7}},
-              h('p',{style:{color:C.t3}},row.l),h('p',{style:{color:C.t,fontWeight:600}},row.v));
+        h('div',{style:{display:'flex',flexDirection:'column',gap:10,marginTop:12}},
+          sorted.length===0 && h('div',{className:'lg',style:{padding:18}},
+            h('div',{className:'hx',style:{fontSize:16,marginBottom:6}},tierMode ? 'No inspectors currently offer this tier' : 'No inspectors available right now'),
+            h('div',{className:'lb',style:{lineHeight:1.6}},tierMode ? 'Inspectors must select this service in their profile and meet the equipment requirements before they appear here. Try another tier or check back later.' : 'Try again shortly or check back later.')),
+          sorted.map(function(insp,idx){
+            var hero = idx===0;
+            var priceTxt = tierMode ? (selectedTier ? R(selectedTier.buyer_price) : 'Your tier') : (insp.price == null ? 'Fee at checkout' : R(insp.price));
+            return h('button',{key:insp.id,type:'button',className:(hero?'dk':'lg')+' cv-pressable',onClick:function(){setInspector(insp);setStep('confirm');},
+              style:{display:'block',padding:18}},
+              h('div',{className:'row',style:{alignItems:'flex-start',gap:10}},
+                h('div',{style:{minWidth:0}},
+                  h('div',{className:'hx',style:{fontSize:20}},insp.name),
+                  h('div',{className:'lb',style:{marginTop:1}},insp.cert||'Inspector')),
+                h('div',{className:'hx'+(hero?' pr':''),style:{fontSize:20,flexShrink:0}},priceTxt)),
+              h('div',{style:{display:'flex',gap:26,marginTop:14}},
+                h('div',null,h('div',{className:'lb'},'Rating'),h('div',{className:'sv'},insp.rating.toFixed(2))),
+                h('div',null,h('div',{className:'lb'},'Jobs'),h('div',{className:'sv'},String(insp.jobs))),
+                h('div',null,h('div',{className:'lb'},'ETA'),h('div',{className:'sv'},insp.eta==null?'—':insp.eta+' min'))),
+              h('div',{style:{display:'flex',gap:6,marginTop:14,flexWrap:'wrap'}},
+                insp.top&&h('span',{className:'ch '+(hero?'vf':'ink')},'Top rated'),
+                insp.spec&&h('span',{className:'ch plain'},insp.spec),
+                h(BadgeTags,{badges:insp.badges,dark:hero})),
+              (insp.badges||[]).length>0&&h('div',{className:'lb',style:{marginTop:12}},'Badges show only after CheckVertical checks the documents.'));
           }),
-          h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,paddingTop:10,borderTop:'1px solid var(--b)',marginTop:7}},
-            h('span',null,'Total'),h('span',{style:{color:C.lime}},tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'Confirmed at checkout' : R(inspector.price+feesTotal)))))),
+          offline.length>0&&h('div',{className:'sec',style:{margin:'10px 6px 0'}},'Offline'),
+          offline.map(function(insp){
+            return h('div',{key:insp.id,className:'lg',style:{padding:'14px 18px',opacity:.6}},
+              h('div',{className:'row'},
+                h('div',null,h('div',{className:'hx',style:{fontSize:16}},insp.name),h('div',{className:'lb'},'Currently offline')),
+                h('span',{className:'ch plain'},'Not bookable yet')));
+          }))));
+  }
 
-      /* Payment */
-      h(Card,{style:{marginBottom:12}},
-        h('div',{style:{padding:'18px'}},
-          h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em',marginBottom:6}},'Payment'),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}},'You will be taken to PayFast to pay securely by card or EFT. CheckVertical never sees your card details. The inspector is only notified once PayFast confirms your payment.'))),
+  /* ── CONFIRM ── */
+  if (step==='confirm') {
+    var rows = (tierMode
+      ? [{l:selectedTier ? selectedTier.name : 'Inspection tier',v:selectedTier ? R(selectedTier.buyer_price) : 'Select tier'},{l:'Travel',v:'Included'}]
+      : [{l:'Inspection',v:inspector.price == null ? 'At checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
+    ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[]);
+    var totalTxt = tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'At checkout' : R(inspector.price+feesTotal));
+    var payLabel = tierMode ? 'Swipe to pay '+totalTxt+' with PayFast' : (inspector.price == null ? 'Swipe to continue to PayFast' : 'Swipe to pay '+totalTxt+' with PayFast');
+    return h('div',{style:Object.assign({},PAGE,{paddingBottom:40}),className:'fu'},
+      h('div',{style:{padding:'var(--safe-top) 16px 0'}},
+        h(ScreenHdr,{title:'Confirm booking',onBack:function(){setStep('choose');}}),
 
-      /* Passive income note — shown after payment, not blocking it */
-      h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:16}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.6}},'Your report goes live after the inspection. You can earn toward your inspection cost when another buyer purchases it.')),
-      h(PBtn,{label:loading?'Confirming…':(tierMode ? 'Pay '+R((selectedTier ? selectedTier.buyer_price : 0)+addonFee)+' via PayFast' : (inspector.price == null ? 'Continue to PayFast' : 'Pay '+R(inspector.price+feesTotal)+' via PayFast')),onClick:confirm,loading:loading})));
+        h('div',{className:'dk',style:{padding:18}},
+          h('div',{className:'row',style:{alignItems:'flex-start',gap:10}},
+            h('div',{style:{minWidth:0}},
+              h('div',{className:'hx',style:{fontSize:22}},inspector.name),
+              h('div',{className:'lb',style:{marginTop:1}},inspector.cert||'Inspector')),
+            h('div',{className:'hx pr',style:{fontSize:22,flexShrink:0}},totalTxt)),
+          h('div',{style:{display:'flex',gap:26,marginTop:14}},
+            h('div',null,h('div',{className:'lb'},'Rating'),h('div',{className:'sv'},inspector.rating.toFixed(2))),
+            h('div',null,h('div',{className:'lb'},'Jobs'),h('div',{className:'sv'},String(inspector.jobs))),
+            h('div',null,h('div',{className:'lb'},'ETA'),h('div',{className:'sv'},inspector.eta==null?'—':inspector.eta+' min'))),
+          (inspector.badges||[]).length>0&&h('div',{style:{display:'flex',gap:6,marginTop:14,flexWrap:'wrap'}},h(BadgeTags,{badges:inspector.badges,dark:true}))),
+
+        h('div',{className:'lg',style:{marginTop:10,padding:18,borderRadius:22}},
+          h('div',{className:'hx',style:{fontSize:18}},year+' '+make+' '+model),
+          h('div',{className:'lb',style:{marginTop:2}},'VIN '+vin),
+          venueKind!=='private'&&h('div',{style:{fontSize:14,fontWeight:500,marginTop:10}},(venueKind==='auction'?'Auction: ':'Dealership: ')+dealer+(venueKind==='auction'&&lot?' · Lot '+lot:'')),
+          venueKind==='auction'&&auctionAt&&h('div',{className:'lb',style:{marginTop:2}},'Starts '+new Date(auctionAt).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'})+(neededBy?' · report needed by '+new Date(neededBy).toLocaleString('en-ZA',{dateStyle:'medium',timeStyle:'short'}):'')),
+          loc&&h('div',{style:{fontSize:14,fontWeight:500,marginTop:8}},loc),
+          station&&h('div',{className:'lb',style:{marginTop:8,lineHeight:1.5}},'Roadworthy test at '+station.name+' (Grade '+station.grade+'). Station fee '+R(station.test_fee)+' is paid at the station.'),
+          notes&&h('div',{className:'lb',style:{marginTop:8,fontStyle:'italic'}},'Note: '+notes),
+          h('div',{style:{height:1,background:'rgba(10,10,11,.1)',margin:'14px 0 10px'}}),
+          rows.map(function(row){
+            return h('div',{key:row.l,className:'row',style:{marginBottom:6}},
+              h('span',{className:'lb'},row.l),h('span',{style:{fontSize:13,fontWeight:500}},row.v));
+          }),
+          h('div',{className:'row',style:{marginTop:8}},
+            h('span',{style:{fontSize:13,color:C.t3}},'Total'),
+            h('span',{className:'hx',style:{fontSize:24}},totalTxt))),
+
+        h('div',{className:'wh',style:{marginTop:10,padding:'13px 16px',borderRadius:22}},
+          h('div',{style:{fontSize:13,fontWeight:600}},'Pay securely with PayFast'),
+          h('div',{className:'lb',style:{marginTop:3,lineHeight:1.5}},'Card or EFT on PayFast. CheckVertical never sees your card details. The inspector is only notified once PayFast confirms your payment.')),
+        h('p',{className:'lb',style:{margin:'12px 6px 16px',lineHeight:1.5}},'Your report goes live after the inspection. You can earn toward your inspection cost when another buyer purchases it.'),
+
+        h(SwipeConfirm,{solid:true,label:payLabel,busy:loading,busyLabel:'Opening PayFast…',onConfirm:confirm})));
+  }
 
   /* ── STATUS (real booking state, polled from the server) ── */
   return h(BookingStatus,{bookingId:bookingId, info:pendingInfo || readPendingBooking(), nav:nav, showToast:showToast});
@@ -1417,7 +1502,7 @@ function badgeLabel(b){
 }
 function BadgeTags(props){
   var list = props.badges||[];
-  return list.map(function(b){ return h(Tag,{key:b.kind,label:badgeLabel(b),bg:C.greenDim,c:C.green}); });
+  return list.map(function(b){ return h('span',{key:b.kind,className:'ch '+(props.dark?'vf':'ink')},badgeLabel(b)); });
 }
 function venueLabel(kind,name,lot){
   return kind==='auction' ? 'Auction'+(name?': '+name:'')+(lot?' · Lot '+lot:'') : kind==='dealership' ? 'Dealership'+(name?': '+name:'') : '';
@@ -2213,7 +2298,6 @@ function App() {
     return Math.round(hrs/24)+'d ago';
   }
   function mapNotif(n){ return {id:n.id, type:n.type, icon:n.icon, title:n.title, body:n.body, time:timeAgo(n.created_at), read:n.read}; }
-  function mapInspector(p){ return {id:p.id, name:p.name, cert:p.cert||'Inspector', rating:Number(p.rating), jobs:p.jobs_completed, eta:p.eta_minutes == null ? null : Number(p.eta_minutes), price:p.price == null ? null : Number(p.price), spec:p.specialty||'All makes', online:p.online, top:p.top_rated, init:p.init, badges:p.badges||[], tierIds:p.tier_ids||[], lat:p.lat==null?null:Number(p.lat), lng:p.lng==null?null:Number(p.lng)}; }
 
   function loadBuyerData(profile){
     Promise.all([
