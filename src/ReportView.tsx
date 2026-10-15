@@ -15,21 +15,21 @@ export interface ReportViewProps {
 }
 
 const css = `\n/* rv-glass */
-.rv{font-family:var(--f,Poppins,system-ui,sans-serif);color:#fff;max-width:820px;margin:0 auto;padding:20px 20px 56px;font-size:14px;line-height:1.55}
+.rv{font-family:var(--f,Poppins,system-ui,sans-serif);color:var(--t,#0a0a0b);max-width:820px;margin:0 auto;padding:20px 20px 56px;font-size:14px;line-height:1.55}
 .rv h1{font-size:28px;font-weight:400;letter-spacing:-.025em;margin:20px 0 10px;line-height:1.15}
-.rv .meta{color:rgba(255,255,255,.95)}
-.rv .lead{color:rgba(255,255,255,.82);margin:10px 0}
+.rv .meta{color:rgba(10,10,11,.8)}
+.rv .lead{color:rgba(10,10,11,.7);margin:10px 0}
 .rv h2{font-size:18px;font-weight:500;letter-spacing:-.02em;margin:32px 0 12px;display:flex;align-items:center;gap:10px;border:none;padding:0}
-.rv h2::before{content:"";width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#fff}
-.rv .tw{margin:10px 0;border:1px solid rgba(255,255,255,.3);border-radius:24px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:rgba(58,60,68,.2);box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
+.rv h2::before{content:"";width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#0a0a0b}
+.rv .tw{margin:10px 0;border:1px solid rgba(10,10,11,.1);border-radius:24px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
 .rv table{width:100%;border-collapse:collapse;background:transparent}
 .rv table.wide{min-width:600px}
-.rv th{text-align:left;font-weight:500;color:rgba(255,255,255,.85);background:rgba(255,255,255,.1)}
-.rv th,.rv td{padding:11px 14px;border:none;border-bottom:1px solid rgba(255,255,255,.2);vertical-align:top}
+.rv th{text-align:left;font-weight:500;color:rgba(10,10,11,.75);background:rgba(10,10,11,.05)}
+.rv th,.rv td{padding:11px 14px;border:none;border-bottom:1px solid rgba(10,10,11,.08);vertical-align:top}
 .rv tr:last-child th,.rv tr:last-child td{border-bottom:none}
 .rv .pass{color:var(--green,#9cf2bf);font-weight:500}.rv .fail{color:var(--red,#ffb9b1);font-weight:500}.rv .warn{color:var(--amber,#ffdf9a);font-weight:500}
 .rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}.rv .grid img{width:100%;border-radius:20px;aspect-ratio:4/3;object-fit:cover}
-.rv .box{margin:18px 0;padding:18px 20px;border-radius:28px;border:1px solid rgba(255,255,255,.3);background:rgba(58,60,68,.2);box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
+.rv .box{margin:18px 0;padding:18px 20px;border-radius:28px;border:1px solid rgba(10,10,11,.1);background:#fff;box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
 .rv .box ul{margin:8px 0 0;padding-left:18px}
 .rv .rw{text-align:center}
 .rv button.noprint{background:#000;color:#fff;border:none;border-radius:999px;padding:13px 24px;font:500 14px var(--f,Poppins,system-ui,sans-serif);cursor:pointer;box-shadow:0 14px 26px -12px rgba(0,0,0,.7)}

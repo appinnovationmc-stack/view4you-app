@@ -24,12 +24,12 @@ var C = {
   bg:'var(--bg)', s1:'var(--s1)', s2:'var(--s2)', s3:'var(--s3)',
   b:'var(--b)', b2:'var(--b2)',
   t:'var(--t)', t2:'var(--t2)', t3:'var(--t3)',
-  lime:'#ffffff', ink:'#000000', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim2)',
+  lime:'var(--vx-ink)', ink:'#000000', limeDim:'var(--ink-dim)', limeDim2:'var(--ink-dim2)',
   green:'var(--green)', greenDim:'var(--green-dim)',
   red:'var(--red)', redDim:'var(--red-dim)',
   amber:'var(--amber)', amberDim:'var(--amber-dim)',
   blue:'var(--blue)', blueDim:'var(--blue-dim)',
-  brand:'#ffffff',
+  brand:'var(--vx-ink)',
 };
 /* THEME-V3 (light + dark) */
 
@@ -372,7 +372,9 @@ var IC = {
   check:'M20 6L9 17l-5-5',
   shield:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
   sun:'M12 17a5 5 0 100-10 5 5 0 000 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
-  moon:'M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z'
+  moon:'M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z',
+  lock:'M7 11V8a5 5 0 0110 0v3M5 11h14v10H5z',
+  arrow:'M7 17L17 7M8 7h9v9'
 };
 function Ic(name, size, col) {
   return h('svg',{width:size||20,height:size||20,viewBox:'0 0 24 24',fill:'none',stroke:col||'currentColor',
@@ -433,7 +435,7 @@ function SkeletonInspectorList() {
 
 function Av(props) {
   var sz = props.size || 40;
-  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:500,color:'#000',flexShrink:0,letterSpacing:'-.02em',boxShadow:'0 10px 20px -10px rgba(0,0,0,.5)'}}, props.label);
+  return h('div', {style:{width:sz,height:sz,borderRadius:'50%',background:props.bg||'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:sz*.36,fontWeight:500,color:'#000',flexShrink:0,letterSpacing:'-.02em',border:'1px solid var(--b)',boxShadow:'0 8px 18px -10px rgba(10,10,11,.35)'}}, props.label);
 }
 
 /* FIX: Ring — animated fill on mount, sub-label for context, thicker fill stroke */
@@ -448,7 +450,7 @@ function Ring(props) {
     h('svg', {width:sz, height:sz, viewBox:'0 0 '+sz+' '+sz,
               role:'img', 'aria-label':'Condition score: '+sc+' out of 100 — '+m.sub},
       /* Track */
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(255,255,255,.28)',strokeWidth:3.5}),
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:'rgba(10,10,11,.12)',strokeWidth:3.5}),
       /* FIX: fill stroke is thicker (5) than track (3.5), ring-fill animation */
       h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:m.col,strokeWidth:5,
                    strokeDasharray:cir+' '+cir,strokeDashoffset:cir-fill,strokeLinecap:'round',
@@ -596,8 +598,85 @@ function ArrowDot(props) {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FIX: ONBOARDING  (first-run, per role)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VOLTIX-STYLE PARTS: car art, swipe slider, splash, tier card
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+var PENDING_TIER = null; /* tier tapped on Home; BookScreen preselects it */
+
+/* Neutral line-art car. Placeholder until real photos are supplied. */
+function CarArt() {
+  return h('svg',{viewBox:'0 0 400 150',fill:'none',stroke:'currentColor',strokeWidth:3,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
+    h('path',{d:'M20 112 V98 C20 92 24 88 32 86 L92 76 L130 52 C134 49 138 48 144 48 H246 C252 48 257 50 261 54 L298 82 L350 90 C362 92 368 98 368 106 V112 H329 A24 24 0 0 0 281 112 H119 A24 24 0 0 0 71 112 Z'}),
+    h('path',{d:'M126 78 L146 56 H182 V78 Z M192 78 V56 H244 L274 78 Z M187 80 V106'}),
+    h('circle',{cx:95,cy:112,r:19}), h('circle',{cx:95,cy:112,r:7}),
+    h('circle',{cx:305,cy:112,r:19}), h('circle',{cx:305,cy:112,r:7}));
+}
+
+/* Drag the yellow knob to the end to confirm. Enter or Space on the knob also confirms. */
+function SwipeBtn(props) {
+  var track = useRef(null), knob = useRef(null), lab = useRef(null);
+  var st = useRef({x:0,drag:false,max:0});
+  function setX(x, snap) {
+    st.current.x = x;
+    if (knob.current) { knob.current.className = 'vx-knob' + (snap ? ' snap' : ''); knob.current.style.transform = 'translateX(' + x + 'px)'; }
+    if (lab.current) lab.current.style.opacity = String(1 - Math.min(1, x / Math.max(1, st.current.max * 0.55)));
+  }
+  function fire() {
+    haptic('medium');
+    setX(st.current.max, true);
+    props.onDone();
+    setTimeout(function(){ setX(0, true); }, 500);
+  }
+  function down(e) {
+    if (!track.current) return;
+    st.current.max = track.current.offsetWidth - 46;
+    st.current.drag = true;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    setX(st.current.x, false);
+  }
+  function move(e) {
+    if (!st.current.drag || !track.current) return;
+    var left = track.current.getBoundingClientRect().left;
+    setX(Math.max(0, Math.min(st.current.max, e.clientX - left - 23)), false);
+  }
+  function up() {
+    if (!st.current.drag) return;
+    st.current.drag = false;
+    if (st.current.x >= st.current.max * 0.85) fire(); else setX(0, true);
+  }
+  return h('div',{className:'vx-swipe',ref:track},
+    h('span',{className:'lbl',ref:lab}, props.label, h('em',null,'>>')),
+    h('button',{type:'button',className:'vx-knob',ref:knob,'aria-label':props.label,
+      onPointerDown:down,onPointerMove:move,onPointerUp:up,onPointerCancel:up,
+      onKeyDown:function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } }},
+      Ic('lock',18,'currentColor')));
+}
+
+function Splash(props) {
+  return h('div',{className:'vx-splash'},
+    h('div',{className:'vx-logo'}, h(Logo,{size:64}), h(Wordmark)),
+    h('p',{className:'vx-tag'}, APP_TAGLINE),
+    h('div',{className:'vx-hero'}, h(CarArt)),
+    h('button',{className:'vx-cta',onClick:function(){ haptic('light'); props.onStart(); }}, 'Get started'));
+}
+
+function TierCard(props) {
+  var t = props.tier;
+  return h('div',{className:'vx-card'+(props.dark?' dark':''),style:{animation:'fu .45s cubic-bezier(.22,1,.36,1) backwards',animationDelay:(props.i*0.06)+'s'}},
+    h('h2',null,t.name),
+    h('div',{className:'vx-spec'},
+      h('small',null,'Inspection'), h('b',null,R(t.buyer_price)),
+      h('small',null,'Report resale'), h('b',null,R(t.resale_price))),
+    h('div',{className:'vx-corner'},
+      h('button',{className:'vx-round','aria-label':'Open '+t.name,onClick:props.onGo}, Ic('arrow',18,'currentColor'))),
+    h('div',{className:'vx-art'}, h(CarArt)),
+    h(SwipeBtn,{label:'Swipe to book',onDone:props.onGo}));
+}
+
 function Onboarding(props) {
   var _s = useState(0); var step = _s[0]; var setStep = _s[1];
+  var _sp = useState(true); var showSplash = _sp[0]; var setShowSplash = _sp[1];
+  if (showSplash) return h(Splash,{onStart:function(){ setShowSplash(false); }});
   var slides = ONBOARD[props.role] || ONBOARD.buyer;
   var cur    = slides[step];
   var isLast = step === slides.length - 1;
@@ -606,7 +685,7 @@ function Onboarding(props) {
     h('div',{className:'lc-auth-in'},
       h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
-        h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#fff')),
+        h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#0a0a0b')),
         h('h1',{className:'lc-title'}, cur.title),
         h('p',{className:'lc-sub',style:{fontSize:15}}, cur.body)),
       h('div',{className:'lc-dots'},
@@ -684,7 +763,7 @@ function AuthScreen(props) {
       h('button',{className:'lc-role light',onClick:function(){haptic('selection');setPickedRole('insp');},'aria-label':'Continue as inspector'},
         h('span',null, h('b',null,"I'm an inspector"), h('small',null,'Accept jobs. Earn per inspection + resales.')),
         h(ArrowDot,{size:42})),
-      h('p',{style:{textAlign:'center',fontSize:13,color:'rgba(255,255,255,.85)',marginTop:18}}, 'Secured by PayFast \u00b7 South Africa')));
+      h('p',{style:{textAlign:'center',fontSize:13,color:'var(--t3)',marginTop:18}}, 'Secured by PayFast \u00b7 South Africa')));
 
   /* Credentials step */
   var signup = mode === 'signup';
@@ -716,21 +795,41 @@ function HomeScreen(props) {
   var unread = notifs.filter(function(n){ return !n.read; }).length;
   var total  = TXNS.reduce(function(a,t){ return a+t.amount; }, 0);
   var myCars = Object.keys(VEHICLES).map(function(k){ return VEHICLES[k]; });
+  var _tr = useState([]); var tiers = _tr[0]; var setTiers = _tr[1];
+  var _mn = useState(false); var menuOpen = _mn[0]; var setMenuOpen = _mn[1];
+  var _hq = useState(''); var hq = _hq[0]; var setHq = _hq[1];
+  useEffect(function(){ Data.fetchInspectionTiers().then(setTiers).catch(function(){}); }, []);
+  function goSearch(e){ if (e && e.preventDefault) e.preventDefault(); if (hq.trim()) PENDING_VIN = hq.trim().toUpperCase(); nav('search'); }
+  function bookTier(t){ PENDING_TIER = t.id; nav('book'); }
+  var menuItems = [
+    {l:'Alerts'+(unread?' ('+unread+')':''), id:'alerts'}, {l:'Search a VIN', id:'search'}, {l:'Book an inspection', id:'book'},
+    {l:'Earnings', id:'earn'}, {l:'Support', id:'support'}];
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'calc(var(--nav) + 16px)'}},
+    menuOpen && h('div',{role:'dialog','aria-label':'Menu',onClick:function(){ setMenuOpen(false); },
+      style:{position:'fixed',inset:0,zIndex:400,background:'rgba(10,10,11,.45)',display:'flex',alignItems:'flex-start',justifyContent:'center'}},
+      h('div',{onClick:function(e){ e.stopPropagation(); },className:'su',style:{width:'100%',maxWidth:430,background:'#fff',borderRadius:'0 0 34px 34px',padding:'var(--safe-top) 22px 24px'}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+          h('span',{className:'vx-brand'}, h(Logo,{size:30}), h(Wordmark)),
+          h('button',{className:'vx-menu',onClick:function(){ setMenuOpen(false); }}, 'CLOSE')),
+        menuItems.map(function(m){
+          return h('button',{key:m.id,onClick:function(){ setMenuOpen(false); nav(m.id); },
+            style:{display:'flex',width:'100%',justifyContent:'space-between',alignItems:'center',padding:'16px 2px',borderTop:'1px solid var(--b)',fontSize:17,letterSpacing:'-.02em',color:'var(--t)'}},
+            m.l, h('span',{style:{color:'var(--t3)'}}, '\u203a'));
+        }))),
     h('div',{style:{padding:'var(--safe-top) 22px 20px'}},
-      /* Header */
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:26}},
-        h('div',null,
-          h('p',{className:'lc-cap',style:{marginBottom:6}}, greet()),
-          h('h1',{className:'lc-h1'}, user.first)),
-        h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
-          h('button',{onClick:function(){nav('alerts');},'aria-label':(unread||'No')+' unread notifications',
-            style:{position:'relative',width:40,height:40,borderRadius:'50%',background:C.s1,border:'1px solid var(--b)',display:'flex',alignItems:'center',justifyContent:'center'}},
-            h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:unread>0?C.t:C.t2,strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-              h('path',{d:'M18 8A6 6 0 0 0 6 8C6 14 3 16 3 16H21C21 16 18 14 18 8ZM13.7 21A2 2 0 0 1 10.3 21'})),
-            unread > 0 && h(NBadge,{n:unread})),
-          h(Av,{label:user.init,size:40}))),
+      /* Header: logo left, MENU right */
+      h('div',{className:'vx-head'},
+        h('span',{className:'vx-brand'}, h(Logo,{size:34}), h(Wordmark)),
+        h('button',{className:'vx-menu',onClick:function(){ setMenuOpen(true); },'aria-label':'Open menu'}, h('i'), 'MENU')),
+      h('div',{className:'vx-hello'}, h('p',null,greet()), h('h1',null,user.first)),
+      /* Pill search: opens the real VIN lookup */
+      h('form',{className:'lc-search',onSubmit:goSearch,style:{marginBottom:18}},
+        h('input',{value:hq,onChange:function(e){ setHq(e.target.value); },placeholder:'SEARCH VIN OR REGISTRATION','aria-label':'Search VIN or registration',style:{border:'none',textTransform:'uppercase',fontSize:13,letterSpacing:'.02em'}}),
+        h('button',{type:'submit',className:'lc-go','aria-label':'Search'},
+          h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.2,strokeLinecap:'round','aria-hidden':'true'}, h('path',{d:'M21 21L15.5 15.5M18 11A7 7 0 1 1 4 11A7 7 0 0 1 18 11Z'})))),
+      /* Tier cards (shown when tiers are enabled) */
+      tiers.map(function(t,i){ return h(TierCard,{key:t.id,tier:t,i:i,dark:i%2===0,onGo:function(){ bookTier(t); }}); }),
 
       /* Earnings hero with glowing orb */
       h('div',{className:'glass pressable fu',onClick:function(){nav('earn');},
@@ -747,7 +846,7 @@ function HomeScreen(props) {
             h('div',{style:{marginLeft:'auto'}}, h(ArrowDot,{size:44}))))),
 
       /* Quick actions */
-      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:26},className:'fu d1'},
+      (tiers.length > 0 ? null : h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:26},className:'fu d1'},
         [{t:'Search VIN',s:'Reports & history',id:'search',cls:''},
          {t:'Book now',s:'Inspector in minutes',id:'book',cls:' solid'}]
         .map(function(a){
@@ -756,7 +855,7 @@ function HomeScreen(props) {
               h('p',{style:{fontWeight:500,fontSize:'var(--fs-headline)',color:'inherit',letterSpacing:'-.02em',marginBottom:4}}, a.t),
               h('p',{className:'lc-cap',style:{opacity:.8}}, a.s)),
             h(ArrowDot,{size:40}));
-        })),
+        }))),
 
       /* My cars */
       h('div',{className:'fu d2'},
@@ -1044,7 +1143,11 @@ function BookScreen(props) {
     Data.fetchTestingStations().then(setStations).catch(function(){});
     Data.fetchInspectionTiers().then(function(rows){
       setTiers(rows);
-      if(rows.length) setTierId(rows[0].id);
+      if(rows.length) {
+        var pre = rows.filter(function(t){ return t.id === PENDING_TIER; })[0];
+        PENDING_TIER = null;
+        setTierId((pre || rows[0]).id);
+      }
     }).catch(function(){});
   }, []);
   var _locs = useState([]); var inspLocs = _locs[0]; var setInspLocs = _locs[1];
