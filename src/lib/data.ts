@@ -63,23 +63,26 @@ export async function fetchProfile(id: string): Promise<Profile> {
   return data as Profile
 }
 
+/** Publish a fresh private location for an approved inspector. Directory RPC returns only coarse coordinates. */
+export async function updateMyInspectorLocation(): Promise<void> {
+  if (!navigator.geolocation) throw new Error('Location services are required to publish your location.')
+  const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, (error) => {
+      reject(new Error(error.code === 1
+        ? 'Allow location access to publish your location.'
+        : 'Could not verify your location. Please try again.'))
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 })
+  })
+  const { error } = await supabase.rpc('update_my_inspector_location', {
+    p_lat: position.coords.latitude,
+    p_lng: position.coords.longitude,
+  })
+  if (error) throw error
+}
+
 /** Goes online/offline. Only approved inspectors can; the database enforces it. */
 export async function setOnlineStatus(online: boolean) {
-  if (online) {
-    if (!navigator.geolocation) throw new Error('Location services are required to go online.')
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, (error) => {
-        reject(new Error(error.code === 1
-          ? 'Allow location access to go online.'
-          : 'Could not verify your location. Please try again.'))
-      }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 })
-    })
-    const { error: locationError } = await supabase.rpc('update_my_inspector_location', {
-      p_lat: position.coords.latitude,
-      p_lng: position.coords.longitude,
-    })
-    if (locationError) throw locationError
-  }
+  if (online) await updateMyInspectorLocation()
   const { error } = await supabase.rpc('set_online', { p_online: online })
   if (error) throw error
 }
