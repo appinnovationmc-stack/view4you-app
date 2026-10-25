@@ -16,24 +16,24 @@ export interface ReportViewProps {
 }
 
 const css = `\n/* rv-glass */
-.rv{font-family:var(--f,Poppins,system-ui,sans-serif);color:#fff;max-width:820px;margin:0 auto;padding:20px 20px 56px;font-size:14px;line-height:1.55}
-.rv h1{font-size:28px;font-weight:400;letter-spacing:-.025em;margin:20px 0 10px;line-height:1.15}
-.rv .meta{color:rgba(255,255,255,.95)}
-.rv .lead{color:rgba(255,255,255,.82);margin:10px 0}
-.rv h2{font-size:18px;font-weight:500;letter-spacing:-.02em;margin:32px 0 12px;display:flex;align-items:center;gap:10px;border:none;padding:0}
-.rv h2::before{content:"";width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#fff}
-.rv .tw{margin:10px 0;border:1px solid rgba(255,255,255,.3);border-radius:24px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:rgba(58,60,68,.2);box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
+.rv{font-family:var(--f,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);color:#17191c;background:#f7f7f5;max-width:900px;margin:0 auto;padding:clamp(16px,3vw,36px) clamp(14px,3vw,28px) 56px;font-size:14px;line-height:1.6}
+.rv h1{font-size:clamp(28px,4vw,42px);font-weight:650;letter-spacing:-.045em;margin:24px 0 12px;line-height:1.08;color:#101114}
+.rv .meta{color:#565b62;font-size:12px;line-height:1.7}
+.rv .lead{color:#565b62;margin:12px 0 24px;max-width:760px}
+.rv h2{font-size:18px;font-weight:650;letter-spacing:-.025em;margin:32px 0 12px;display:flex;align-items:center;gap:10px;border:none;padding:0;color:#17191c}
+.rv h2::before{content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#17191c}
+.rv .tw{margin:10px 0;border:1px solid #e1e2e4;border-radius:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;box-shadow:0 4px 18px rgba(20,22,28,.035)}
 .rv table{width:100%;border-collapse:collapse;background:transparent}
 .rv table.wide{min-width:600px}
-.rv th{text-align:left;font-weight:500;color:rgba(255,255,255,.85);background:rgba(255,255,255,.1)}
-.rv th,.rv td{padding:11px 14px;border:none;border-bottom:1px solid rgba(255,255,255,.2);vertical-align:top}
+.rv th{text-align:left;font-weight:600;color:#565b62;background:#f0f1f2}
+.rv th,.rv td{padding:11px 14px;border:none;border-bottom:1px solid #e8e9eb;vertical-align:top}
 .rv tr:last-child th,.rv tr:last-child td{border-bottom:none}
 .rv .pass{color:var(--green,#9cf2bf);font-weight:500}.rv .fail{color:var(--red,#ffb9b1);font-weight:500}.rv .warn{color:var(--amber,#ffdf9a);font-weight:500}
-.rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}.rv .grid img{width:100%;border-radius:20px;aspect-ratio:4/3;object-fit:cover}
-.rv .box{margin:18px 0;padding:18px 20px;border-radius:28px;border:1px solid rgba(255,255,255,.3);background:rgba(58,60,68,.2);box-shadow:0 16px 40px -18px rgba(20,22,28,.45),inset 0 1px 0 rgba(255,255,255,.28);-webkit-backdrop-filter:blur(26px) saturate(1.25);backdrop-filter:blur(26px) saturate(1.25)}
+.rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}.rv .grid img{width:100%;border-radius:14px;aspect-ratio:4/3;object-fit:cover;background:#e9eaec}
+.rv .box{margin:18px 0;padding:18px 20px;border-radius:18px;border:1px solid #e1e2e4;background:#fff;box-shadow:0 4px 18px rgba(20,22,28,.035)}
 .rv .box ul{margin:8px 0 0;padding-left:18px}
 .rv .rw{text-align:center}
-.rv button.noprint{background:#000;color:#fff;border:none;border-radius:999px;padding:13px 24px;font:500 14px var(--f,Poppins,system-ui,sans-serif);cursor:pointer;box-shadow:0 14px 26px -12px rgba(0,0,0,.7)}
+.rv button.noprint{background:#111315;color:#fff;border:none;border-radius:999px;padding:13px 22px;min-height:44px;font:600 14px var(--f,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);cursor:pointer;box-shadow:none}.rv button.noprint:focus-visible{outline:3px solid #176bff;outline-offset:3px}
 @media (max-width:480px){.rv{padding:16px 14px 56px}.rv th,.rv td{padding:9px 8px;font-size:13px}.rv th{font-size:12px}.rv .rw{width:1%}}
 @media print{
   .rv{color:#111;max-width:none;padding:0}
@@ -67,7 +67,7 @@ export default function ReportView(p: ReportViewProps) {
 
       <h1>CheckVertical Condition Report</h1>
       <div className="meta"><b>{p.tierName || 'Standard'}</b> inspection · Report no. <b>{p.reportNumber}</b>{p.inspectedAt && <> · Inspected {p.inspectedAt}</>}{p.inspectorName && <> · by {p.inspectorName}</>}</div>
-      <p className="lead">This report covers the {p.tierName || 'Standard'} inspection scope and reflects the vehicle's condition at the time of inspection only. It is a non-invasive condition report, not an official roadworthy certificate, and it cannot guarantee that hidden faults or future failures will be found.</p>
+      <p className="lead">This report records the {p.tierName || 'Standard'} inspection scope and the vehicle's observed condition at the time of inspection. It is a non-invasive condition report, not an official roadworthy certificate. Uninspected areas, hidden faults and future failures may not be represented.</p>
 
       <div className="grid">{photosFor('overview').map((x, i) => <img key={i} src={x.url} alt={x.caption ?? 'Overview'} />)}</div>
 
@@ -79,7 +79,7 @@ export default function ReportView(p: ReportViewProps) {
       </tbody></table></div>
 
       <div className="box">
-        <b>Roadworthy compliance: </b><span className={v.roadworthy}>{v.roadworthy === 'pass' ? 'No roadworthy issues found' : 'Roadworthy issues found'}</span>
+        <b>Roadworthiness-related findings (not a certification): </b><span className={v.roadworthy}>{v.roadworthy === 'pass' ? 'No issues were recorded in the inspected items' : 'One or more issues were recorded'}</span>
         {v.faults.length > 0 && <ul>{v.faults.map((f, i) => <li key={i} className="fail">{f}</li>)}</ul>}
         {v.warnings.length > 0 && <><div style={{ marginTop: 10 }}><b>Items to watch</b></div><ul>{v.warnings.map((w, i) => <li key={i} className="warn">{w}</li>)}</ul></>}
       </div>
