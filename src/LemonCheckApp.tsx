@@ -983,7 +983,7 @@ function SearchScreen(props) {
         found: true, src: row.history?.source || 'CheckVertical records', owners: row.history?.owners ?? 'Not available',
         reg: row.history?.first_registered || 'Not available', province: row.history?.province || 'Not available',
         stolen: row.history?.stolen ?? null, taxi: row.history?.taxi_history ?? null,
-        cc: row.history?.colour_changes ?? null, finance: row.history?.outstanding_finance ?? false,
+        cc: row.history?.colour_changes ?? null, finance: row.history?.outstanding_finance ?? null,
         fb: row.history?.finance_house || '',
         accidents: row.accidents.map(function(a){ return {date:new Date(a.date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}), sev:a.severity, desc:a.description}; }),
         odo: row.odometer.map(function(o){ return {date:new Date(o.date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'}), km:o.km}; }),
@@ -1103,7 +1103,7 @@ function SearchScreen(props) {
                       h('p',{style:{fontWeight:700,fontSize:'var(--fs-caption)',color:C.t,letterSpacing:'-.01em'}}, 'Overview'),
                       h(Tag,{label:hist.src,bg:C.blueDim,c:C.blue})),
                     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-                      [{l:'First registered',v:hist.reg},{l:'Province',v:hist.province},{l:'Owner changes',v:String(hist.owners)},{l:'Colour changes',v:hist.cc===0?'None recorded':(hist.cc==null?'Not available':String(hist.cc))},{l:'Stolen',v:hist.stolen===true?'YES':(hist.stolen===false?'No flag in stored records':'Not checked')},{l:'Taxi history',v:hist.taxi===true?'Yes':(hist.taxi===false?'No stored flag':'Not available')}]
+                      [{l:'First registered',v:hist.reg},{l:'Province',v:hist.province},{l:'Owner changes',v:String(hist.owners)},{l:'Colour changes',v:hist.cc===0?'None recorded':(hist.cc==null?'Not available':String(hist.cc))},{l:'Stolen',v:hist.stolen===true?'Flag recorded':(hist.stolen===false?'No stored flag':'Not checked')},{l:'Outstanding finance',v:hist.finance===true?'Flag recorded':(hist.finance===false?'No stored flag':'Not available')},{l:'Taxi history',v:hist.taxi===true?'Yes':(hist.taxi===false?'No stored flag':'Not available')}]
                       .map(function(x){
                         return h('div',{key:x.l,style:{background:C.s2,borderRadius:8,padding:'10px',border:'1px solid var(--b)'}},
                           h('p',{style:{fontSize:10,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:3}}, x.l),
