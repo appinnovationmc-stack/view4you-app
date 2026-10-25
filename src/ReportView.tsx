@@ -28,13 +28,13 @@ const css = `\n/* rv-glass */
 .rv th{text-align:left;font-weight:600;color:#565b62;background:#f0f1f2}
 .rv th,.rv td{padding:11px 14px;border:none;border-bottom:1px solid #e8e9eb;vertical-align:top}
 .rv tr:last-child th,.rv tr:last-child td{border-bottom:none}
-.rv .pass{color:var(--green,#9cf2bf);font-weight:500}.rv .fail{color:var(--red,#ffb9b1);font-weight:500}.rv .warn{color:var(--amber,#ffdf9a);font-weight:500}
+.rv .pass{color:#087443;font-weight:650}.rv .fail{color:#b42318;font-weight:650}.rv .warn{color:#8a5200;font-weight:650}
 .rv .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}.rv .grid img{width:100%;border-radius:14px;aspect-ratio:4/3;object-fit:cover;background:#e9eaec}
 .rv .box{margin:18px 0;padding:18px 20px;border-radius:18px;border:1px solid #e1e2e4;background:#fff;box-shadow:0 4px 18px rgba(20,22,28,.035)}
 .rv .box ul{margin:8px 0 0;padding-left:18px}
 .rv .rw{text-align:center}
 .rv button.noprint{background:#111315;color:#fff;border:none;border-radius:999px;padding:13px 22px;min-height:44px;font:600 14px var(--f,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);cursor:pointer;box-shadow:none}.rv button.noprint:focus-visible{outline:3px solid #176bff;outline-offset:3px}
-@media (max-width:480px){.rv{padding:16px 14px 56px}.rv th,.rv td{padding:9px 8px;font-size:13px}.rv th{font-size:12px}.rv .rw{width:1%}}
+@media (max-width:480px){.rv{padding:16px 14px 56px}.rv th,.rv td{padding:9px 8px;font-size:13px}.rv th{font-size:12px}.rv .rw{width:1%}.rv .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rv .box{padding:15px 14px}.rv table.wide{min-width:560px}}
 @media print{
   .rv{color:#111;max-width:none;padding:0}
   .rv h1,.rv h2{color:#111;text-shadow:none}
