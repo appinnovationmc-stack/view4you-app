@@ -222,6 +222,13 @@ export async function fetchInspectionTiers(): Promise<InspectionTier[]> {
   return (data || []) as InspectionTier[]
 }
 
+/** Signed-out visitors: published tier names and prices (no buyer sign-in needed). */
+export async function fetchPublicInspectionTiers(): Promise<Pick<InspectionTier, 'id' | 'name' | 'buyer_price'>[]> {
+  const { data, error } = await supabase.rpc('list_public_inspection_tiers')
+  if (error) throw error
+  return (data || []) as Pick<InspectionTier, 'id' | 'name' | 'buyer_price'>[]
+}
+
 export async function createBooking(params: {
   vin: string; make: string; model: string; year: number
   location: string; notes: string; inspectorId: string
