@@ -500,24 +500,24 @@ function PBtn(props) {
     className: props.dark ? 'btn-ghost' : 'btn-primary',
     style: Object.assign({
       width:'100%',
-      background: props.dark ? 'rgba(255,255,255,.92)' : '#0A0A0B',
-      color: props.dark ? '#0A0A0B' : '#3DDC97',
-      border: props.dark ? '1px solid #D0D0D4' : 'none',
+      background: props.dark ? 'var(--mt-card)' : 'var(--mt-prim)',
+      color: props.dark ? 'var(--mt-text)' : 'var(--mt-on-prim)',
+      border: 'none',
       borderRadius:'var(--pill)',
       padding:'17px 24px',
-      fontSize:14,
-      fontWeight:600,
-      letterSpacing:'.04em',
+      fontSize:15,
+      fontWeight:500,
+      letterSpacing:'.01em',
       display:'flex',
       alignItems:'center',
       justifyContent:'center',
       gap:10,
       opacity: dis ? 0.4 : 1,
       cursor: dis ? 'default' : 'pointer',
-      boxShadow: props.dark ? 'none' : '0 8px 20px rgba(10,10,11,.18)',
+      boxShadow: props.dark ? 'var(--mt-shadow)' : 'var(--mt-btn-shadow)',
     }, props.style||{})
   },
-    props.loading ? h(Spin,{size:18,col:props.dark?'#0A0A0B':'#3DDC97',track:props.dark?'rgba(0,0,0,.15)':'rgba(255,255,255,.2)'}) : null,
+    props.loading ? h(Spin,{size:18,col:'currentColor',track:'rgba(128,128,128,.25)'}) : null,
     props.label
   );
 }
@@ -528,9 +528,10 @@ function GBtn(props) {
     className: 'btn-ghost pressable',
     style: Object.assign({
       width:'100%',
-      background:'rgba(255,255,255,.92)',
-      color:'#0A0A0B',
-      border:'1px solid #D0D0D4',
+      background:'var(--mt-card)',
+      color:'var(--mt-text)',
+      border:'none',
+      boxShadow:'var(--mt-shadow)',
       borderRadius:'var(--pill)',
       padding:'16px 22px',
       fontSize:'var(--fs-body)',
@@ -1261,7 +1262,7 @@ function BookScreen(props) {
     (props.user ? Data.fetchInspectionTiers() : Data.fetchPublicInspectionTiers()).then(function(rows){
       if(!alive) return;
       setTiers(rows);
-      setTierLoadError('');
+      setTierLoadError(rows.length ? '' : 'No inspection tiers are available right now.');
       setTierId(function(cur){
         if (rows.some(function(t){ return t.id===cur; })) return cur;
         var pre = rows.filter(function(t){ return t.id===presetRef.current.tierId; })[0];
@@ -1365,7 +1366,7 @@ function BookScreen(props) {
   /* ── 1 · VEHICLE ── */
   if (step==='vehicle') return h('div',{style:STEPPAGE,className:'fu'},
     head('Your vehicle',0,function(){nav('home');}),
-    h('div',{style:Object.assign({},GAP,{marginTop:14})},
+    h('div',{className:'mt-card',style:Object.assign({},GAP,{marginTop:14,gap:14})},
       h('div',null,h('label',{style:FLB,htmlFor:'bk-vin'},'VIN'),
         h('input',{id:'bk-vin',value:vin,onChange:function(e){setVin(e.target.value.toUpperCase());},placeholder:'e.g. AHTBB3CD40123456',maxLength:17,autoCapitalize:'characters',autoCorrect:'off',spellCheck:false,style:{letterSpacing:'.04em'}})),
       h('div',null,h('label',{style:FLB,htmlFor:'bk-make'},'Make'),
@@ -1409,12 +1410,12 @@ function BookScreen(props) {
   /* ── 3 · PLACE ── */
   if (step==='place') return h('div',{style:STEPPAGE,className:'fu'},
     head('Where is the car?',2,function(){setStep('service');}),
-    h('div',{style:Object.assign({},GAP,{marginTop:14})},
-      h('div',{className:'seg',role:'group','aria-label':'Where is the car?'},
-        [{id:'private',l:'Private'},{id:'dealership',l:'Dealership'},{id:'auction',l:'Auction'}].map(function(v){
-          var on = venueKind===v.id;
-          return h('button',{key:v.id,type:'button',className:on?'on':'',onClick:function(){setVenueKind(v.id);},'aria-pressed':on},v.l);
-        })),
+    h('div',{className:'seg',style:{marginTop:14},role:'group','aria-label':'Where is the car?'},
+      [{id:'private',l:'Private'},{id:'dealership',l:'Dealership'},{id:'auction',l:'Auction'}].map(function(v){
+        var on = venueKind===v.id;
+        return h('button',{key:v.id,type:'button',className:on?'on':'',onClick:function(){setVenueKind(v.id);},'aria-pressed':on},v.l);
+      })),
+    h('div',{className:'mt-card',style:Object.assign({},GAP,{marginTop:10,gap:12})},
       venueKind==='auction'&&h('p',{className:'mt-note',style:{margin:'0 4px'}},'Get the car inspected before you bid. Tell us the auction and when it starts and we will have a report ready.'),
       venueKind!=='private'&&h('input',{value:dealer,onChange:function(e){setDealer(e.target.value);},placeholder:venueKind==='auction'?'Auction house name':'Dealership name','aria-label':venueKind==='auction'?'Auction house':'Dealership name'}),
       venueKind==='auction'&&h('input',{value:lot,onChange:function(e){setLot(e.target.value);},placeholder:'Lot number (optional)','aria-label':'Lot number'}),

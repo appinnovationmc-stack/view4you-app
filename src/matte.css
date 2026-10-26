@@ -48,6 +48,7 @@
   --glass-shadow: var(--mt-shadow);
   --shadow-soft: 0 10px 24px rgba(0,0,0,.14);
   --map-bg: #dcdcdc;
+  --r: 12px; --rl: 14px; --rx: 18px;
   --f: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -258,3 +259,12 @@ label { color: var(--mt-text-3); font-weight: 500; }
 
 /* switch keeps its pill shape (inputs default to 12px radius / 44px min height) */
 input[type="checkbox"].cv-switch { width: 46px; height: 26px; min-height: 0; border-radius: 13px; }
+.mt-card input, .mt-card select, .mt-card textarea { background: var(--mt-field); }
+
+/* page-level fields sit on the ground, so they use the card colour in dark */
+@media (prefers-color-scheme: dark) {
+  .lc-search, .pill { background: var(--mt-card); box-shadow: none; }
+  .lc-search input, .lc-search input:focus { background: transparent; box-shadow: none; }
+  .lc-search .lc-go { background: var(--mt-chip); }
+  .lc-auth input, .lc-auth select, .lc-auth textarea { background: var(--mt-card); }
+}
