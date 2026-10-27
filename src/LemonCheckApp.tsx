@@ -847,8 +847,35 @@ function ArrowBtn(props) {
 var BOOK_PRESET = null; /* { tierId, vin } handed from Home to the booking steps */
 var CAR_SVG = '<svg width="100%" height="120" viewBox="0 0 340 140" fill="none" role="img" aria-label="Illustration of a vehicle" style="display:block;margin-top:6px"><defs><radialGradient id="cvglow" cx="50%" cy="60%" r="55%"><stop offset="0%" style="stop-color:var(--mt-chip)" stop-opacity=".9"/><stop offset="100%" style="stop-color:var(--mt-chip)" stop-opacity="0"/></radialGradient><linearGradient id="cvbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d3d3d"/><stop offset="55%" stop-color="#1e1e1e"/><stop offset="100%" stop-color="#0d0d0d"/></linearGradient><linearGradient id="cvrim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4b4b4b"/><stop offset="100%" stop-color="#1b1b1b"/></linearGradient></defs><ellipse cx="170" cy="76" rx="160" ry="62" fill="url(#cvglow)"/><ellipse cx="170" cy="134" rx="138" ry="6" fill="#000" opacity=".3"/><path d="M18 104V92c0-10 8-16 20-19l50-11c10-8 24-20 44-25 20-4 52-6 78-4 22 2 36 9 46 19l16 16 32 6c12 3 18 12 18 24v6c0 4-4 6-8 6H22c-2 0-4-2-4-6z" fill="url(#cvbody)"/><path d="M104 62c10-10 22-18 38-21h54c20 1 34 6 44 16l10 9H104z" fill="#070707" opacity=".72"/><path d="M40 74l48-11c10-8 24-20 44-25 20-4 52-6 78-4" stroke="#fff" stroke-opacity=".24" stroke-width="1.6" stroke-linecap="round"/><rect x="306" y="84" width="14" height="5" rx="2.5" fill="#47d7ac"/><circle cx="88" cy="110" r="25" fill="#060606"/><circle cx="88" cy="110" r="15" fill="url(#cvrim)"/><circle cx="88" cy="110" r="4" fill="#5a5a5a"/><circle cx="252" cy="110" r="25" fill="#060606"/><circle cx="252" cy="110" r="15" fill="url(#cvrim)"/><circle cx="252" cy="110" r="4" fill="#5a5a5a"/></svg>';
 function tierBlurb(name){ return name==='Basic' ? '60 checks' : name==='Standard' ? '115 checks' : '+ measured tests'; }
-function tierDetail(name){ return name==='Basic' ? '60 checks · 4 photos' : name==='Standard' ? '115 checks · 8 photos' : '115 checks · 12 photos'; }
 var MT_ARROW = 'M5 12h14M13 6l6 6-6 6';
+/* What each inspection really covers. Counts come from the report checklist (lib/reportTemplate.ts). */
+var TIER_INFO = {
+  Basic: { lead: 'Essential safety and visible condition.',
+    points: ['60 checks across 6 areas', 'Underbody, chassis, steering and suspension', 'Engine bay: belts, battery, oil, coolant and brake fluid', 'Lights, wipers, windscreen, mirrors and bumpers', 'Seatbelts, warning lights, locks and pedals', 'Short test drive and all four tyres', 'At least 4 photos'],
+    note: 'Anything outside this list is not marked as passed.' },
+  Standard: { lead: 'The full inspection.',
+    points: ['115 checks across 6 areas', 'Everything in Basic, plus the rest of the underbody, engine bay, body and lights', 'Full interior: aircon, audio, seats, windows, controls', 'Full test drive: handling, stability, suspension, gears', 'Rims and tyres, all corners', 'At least 8 photos'] },
+  Comprehensive: { lead: 'The full inspection, plus measured tests.',
+    points: ['Everything in Standard (115 checks)', '7 measured tests with test equipment: brakes front, rear and handbrake; shock absorbers front and rear; wheel alignment front and rear', 'At least 12 photos'],
+    note: 'Measured tests are only reported when they were actually done.' }
+};
+function tierInfo(name){ return TIER_INFO[name] || TIER_INFO.Comprehensive; }
+function TierExplainer(props) {
+  var _o = useState(false); var open = _o[0]; var setOpen = _o[1];
+  var tiers = props.tiers;
+  return h('div', null,
+    h('button', { type: 'button', className: 'mt-ghost', style: { marginTop: 10, height: 44 }, 'aria-expanded': open, onClick: function(){ setOpen(!open); } }, open ? 'Hide what is included' : 'What do I get?'),
+    open && h('div', { className: 'mt-list', style: { marginTop: 10 } },
+      tiers.map(function(t){
+        var info = tierInfo(t.name);
+        return h('div', { key: t.id, className: 'mt-card' },
+          h('div', { className: 'mt-row' }, h('b', { style: { fontSize: 15 } }, t.name), h('b', { style: { fontSize: 15 } }, R(t.buyer_price))),
+          h('p', { className: 'mt-muted', style: { margin: '4px 0 8px' } }, info.lead),
+          h('ul', { className: 'mt-points' }, info.points.map(function(x, i){ return h('li', { key: i }, x); })),
+          info.note && h('p', { className: 'mt-muted', style: { marginTop: 8 } }, info.note));
+      }),
+      h('p', { className: 'mt-note', style: { margin: '0 4px' } }, 'Every inspection includes travel and a written report with photos and a score. The official roadworthy test is a separate option when you book.')));
+}
 
 function HomeScreen(props) {
   var nav = props.nav, user = props.user, notifs = props.notifs, gate = props.gate;
@@ -921,6 +948,7 @@ function HomeScreen(props) {
           }))
       : h('button', { type: 'button', className: 'mt-ghost', style: { marginTop: 0 }, onClick: function(){ startBooking(null); } }, 'Book an inspection'),
     tiers.length > 0 && h('p', { className: 'mt-note' }, 'Travel is included. You choose the time and place next.'),
+    tiers.length > 0 && h(TierExplainer, { tiers: tiers }),
 
     !guest && h('button', { type: 'button', className: 'mt-car cv-pressable', style: { marginTop: 14 }, onClick: function(){ nav('earn'); } },
       h('div', { className: 'mt-row' },
@@ -1387,9 +1415,11 @@ function BookScreen(props) {
         guest && h('button',{type:'button',className:'mt-ghost',onClick:function(){ props.gate('book','Sign in to see live inspection prices. Your vehicle details are kept.'); }},'Sign in')),
       tiers.map(function(t){
         var on=t.id===tierId;
-        return h('button',{key:t.id,type:'button',className:'mt-tier'+(on?' on':''),style:{padding:'16px 18px'},onClick:function(){setTierId(t.id);},'aria-pressed':on},
+        return h('button',{key:t.id,type:'button',className:'mt-tier'+(on?' on':''),style:{padding:'16px 18px',height:'auto'},onClick:function(){setTierId(t.id);},'aria-pressed':on},
           h('div',{className:'mt-row'},h('b',{style:{fontSize:16,color:'inherit',opacity:on?1:.9}},t.name),h('strong',{style:{marginTop:0}},R(t.buyer_price))),
-          h('small',null,tierDetail(t.name)));
+          h('small',null,tierInfo(t.name).lead),
+          h('ul',{className:'mt-points'},tierInfo(t.name).points.map(function(x,i){ return h('li',{key:i},x); })),
+          tierInfo(t.name).note&&h('small',{style:{marginTop:6}},tierInfo(t.name).note));
       }),
       tierMode && h('p',{className:'mt-note',style:{margin:'0 4px'}},'Travel is included in the price. Earn toward your inspection cost when another buyer purchases the report.'),
 
