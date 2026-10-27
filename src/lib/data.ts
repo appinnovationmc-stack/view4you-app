@@ -349,7 +349,7 @@ export interface JobRow extends Omit<Booking, 'buyer_id'> {
 export async function fetchInspectorJobs(_inspectorId?: string): Promise<JobRow[]> {
   const [{ data, error }, tiers] = await Promise.all([
     supabase.from('inspector_jobs').select('*').order('created_at', { ascending: false }),
-    fetchInspectionTiers(),
+    fetchPublicInspectionTiers().catch(() => []),
   ])
   if (error) throw error
   const tierNames = new Map(tiers.map(t => [t.id, t.name]))
