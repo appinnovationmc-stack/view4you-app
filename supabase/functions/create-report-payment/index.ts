@@ -1,8 +1,8 @@
 // Starts a PayFast payment for buying an existing CheckVertical report. The price is the report_price stored by the
 // server when the inspector submitted the report; the request only names the inspection.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { adminClient, checkoutResponse, cors, json, requireUser } from '../_shared/edge.ts'
-import { orderRef } from '../_shared/payfast.ts'
+import { adminClient, checkoutResponse, cors, json, requireUser } from './edge.ts'
+import { orderRef } from './payfast.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
