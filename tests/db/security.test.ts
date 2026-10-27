@@ -126,7 +126,9 @@ describe('integrity trigger scope', () => {
 
 
 describe('tier pricing boundary', () => {
-  it('authenticated buyers cannot call the legacy booking overload without a tier argument', async () => {
+  it('the database trigger rejects legacy tierless bookings while tier pricing is enabled', async () => {
+    await db.query(`update public.lc_settings set tiers_enabled = true where id = 1`)
+    await db.query(`update public.profiles set approved = true, online = true, price = 500 where id = $1`, [INSP])
     const r = await attempt(() => asUser(db, OTHER, () => db.query(
       `select public.create_booking(
         'TESTVIN0000000002', 'VW', 'Polo', 2019, 'Sandton', null, $1,
@@ -134,6 +136,6 @@ describe('tier pricing boundary', () => {
       )`, [INSP]
     )))
     expect(r.ok).toBe(false)
-    expect(r.error || '').toMatch(/permission denied/i)
+    expect(r.error || '').toMatch(/inspection tier/i)
   })
 })
