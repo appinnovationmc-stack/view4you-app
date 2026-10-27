@@ -286,3 +286,7 @@ textarea { border-radius: 18px; }
 .mt-primary { height: 48px; font-weight: 600; }
 .mt-hero { padding: 16px; }
 .mt-tier { padding: 14px 12px; }
+
+/* brand lockup in headers */
+.mt-brand { height: 30px; }
+.lc-brand { height: 40px; }

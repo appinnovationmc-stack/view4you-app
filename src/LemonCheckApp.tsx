@@ -584,7 +584,13 @@ function NBadge(props) {
 /* REDESIGN-HELPERS-START */
 var APP_NAME = 'CheckVertical';
 var APP_TAGLINE = 'Discovery awaits.';
-function Wordmark() { return h('span',{className:'cv-word'},'Check',h('b',null,'Vertical')); }
+/* Official CheckVertical lockup (the tick is the V). White version on dark, ink version on light. */
+function Wordmark(props) {
+  var ht = (props && props.height) || 24;
+  return h('picture',{style:{display:'block',lineHeight:0}},
+    h('source',{media:'(prefers-color-scheme: dark)',srcSet:'/cv-logo-white.svg'}),
+    h('img',{src:'/cv-logo-ink.svg',alt:'CheckVertical',height:ht,style:{height:ht,width:'auto',display:'block'}}));
+}
 
 /* Circle arrow detail (reference 1) */
 function ArrowDot(props) {
@@ -606,7 +612,7 @@ function Onboarding(props) {
 
   return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
+      h('div',{className:'lc-brand'}, h(Wordmark,{height:26})),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
         h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#3DDC97')),
         h('h1',{className:'lc-title'}, cur.title),
@@ -671,7 +677,7 @@ function AuthScreen(props) {
   useEffect(function(){
     if (pickedRole !== 'insp' || mode !== 'signup') return;
     var alive = true;
-    Data.fetchInspectionTiers().then(function(rows){
+    Data.fetchPublicInspectionTiers().then(function(rows){
       if (!alive) return;
       setSignupTiers(rows);
       setSelectedTierIds(function(current){
@@ -708,7 +714,7 @@ function AuthScreen(props) {
 
   if (!pickedRole) return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in fu'},
-      h('div',{className:'lc-brand'}, h(Logo,{size:40}), h(Wordmark)),
+      h('div',{className:'lc-brand'}, h(Wordmark,{height:26})),
       h('div',{style:{flex:1}}),
       h('h1',{className:'lc-title',style:{fontSize:30}}, 'Car inspections,', h('br'), 'on demand.'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
@@ -728,8 +734,9 @@ function AuthScreen(props) {
     h('div',{className:'lc-auth-in fu'},
       h('button',{className:'lc-back',onClick:back,'aria-label':'Go back'},
         h('svg',{width:16,height:16,viewBox:'0 0 16 16',fill:'none','aria-hidden':'true'},
-          h('path',{d:'M10 3L5 8L10 13',stroke:'#fff',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}))),
-      h('h1',{className:'lc-title',style:{marginTop:72}}, signup?'Create':'Log into', h('br'), 'your account'),
+          h('path',{d:'M10 3L5 8L10 13',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}))),
+      h('div',{style:{marginTop:48}}, h(Logo,{size:56})),
+      h('h1',{className:'lc-title',style:{marginTop:24}}, signup?'Create':'Log into', h('br'), 'your account'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
       signup && h('input',{className:'lc-line',value:name,onChange:function(e){setName(e.target.value);},placeholder:'Full name','aria-label':'Full name',autoComplete:'name'}),
       signup && pickedRole==='insp' && h('div',{style:{margin:'4px 0 22px'}},
@@ -908,10 +915,7 @@ function HomeScreen(props) {
 
   return h('div', { className: 'mt-page fu' },
     h('div', { className: 'mt-top' },
-      h('div', { className: 'mt-brand' },
-        h('span', { className: 'mt-mark', 'aria-hidden': 'true' },
-          h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M5 12.5l4.5 4.5L19 7.5' }))),
-        'CheckVertical'),
+      h('div', { className: 'mt-brand' }, h(Wordmark, { height: 24 })),
       guest
         ? h('button', { type: 'button', className: 'mt-pillbtn', onClick: function(){ gate('home'); } }, 'Sign in')
         : h('div', { style: { display: 'flex', gap: 10, alignItems: 'center' } },
@@ -2236,7 +2240,7 @@ function InspProfileScreen(props) {
   var _tierNotice=useState(''); var tierNotice=_tierNotice[0]; var setTierNotice=_tierNotice[1];
   var _canMeasure=useState(false); var canMeasure=_canMeasure[0]; var setCanMeasure=_canMeasure[1];
   useEffect(function(){
-    Promise.all([Data.fetchInspectionTiers(),Data.fetchMyInspectorTiers(),Data.fetchMyInspectorCanMeasure()]).then(function(res){
+    Promise.all([Data.fetchPublicInspectionTiers(),Data.fetchMyInspectorTiers(),Data.fetchMyInspectorCanMeasure()]).then(function(res){
       setTierRows(res[0]); setMyTierIds(res[1]); setCanMeasure(res[2]);
     }).catch(function(e){ setTierNotice((e&&e.message)||'Could not load service tiers.'); });
   },[]);
@@ -2485,7 +2489,7 @@ function App() {
     return h('div', {style:{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}},
       h(Spin, {size:28}),
       h(Logo,{size:56}),
-      h('p', {style:{color:C.t,fontSize:22,margin:0}}, h(Wordmark)),
+      h(Wordmark,{height:24}),
       h('p', {style:{color:C.t2,fontSize:13,fontWeight:400,margin:0}}, APP_TAGLINE));
   }
   if (showOnb) return h('div',null,h(Toast,{t:toast}),h(Onboarding,{role:role,onDone:doneOnb}));
