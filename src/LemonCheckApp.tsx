@@ -612,7 +612,6 @@ function Onboarding(props) {
 
   return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in'},
-      h('div',{className:'lc-brand'}, h(Wordmark,{height:26})),
       h('div',{key:step,style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',animation:'onb .32s cubic-bezier(.22,1,.36,1) both'}},
         h('div',{className:'lc-tile'}, Ic(cur.icon,32,'#3DDC97')),
         h('h1',{className:'lc-title'}, cur.title),
@@ -714,8 +713,8 @@ function AuthScreen(props) {
 
   if (!pickedRole) return h('div',{className:'lc-auth'},
     h('div',{className:'lc-auth-in fu'},
-      h('div',{className:'lc-brand'}, h(Wordmark,{height:26})),
-      h('div',{style:{flex:1}}),
+      h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,minHeight:220}},
+        h(Logo,{size:88}), h(Wordmark,{height:28})),
       h('h1',{className:'lc-title',style:{fontSize:30}}, 'Car inspections,', h('br'), 'on demand.'),
       h('p',{className:'lc-sub',style:{marginBottom:40}}, 'Certified inspectors at your location. Real reports. Passive income.'),
       h('button',{className:'lc-role dark',onClick:function(){haptic('selection');setPickedRole('buyer');},'aria-label':'Continue as buyer'},
