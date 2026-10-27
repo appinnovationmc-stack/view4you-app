@@ -123,3 +123,17 @@ describe('integrity trigger scope', () => {
     expect(r.rows.length).toBe(1)
   })
 })
+
+
+describe('tier pricing boundary', () => {
+  it('authenticated buyers cannot call the legacy booking overload without a tier argument', async () => {
+    const r = await attempt(() => asUser(db, OTHER, () => db.query(
+      `select public.create_booking(
+        'TESTVIN0000000002', 'VW', 'Polo', 2019, 'Sandton', null, $1,
+        'private', null, null, null, null, null
+      )`, [INSP]
+    )))
+    expect(r.ok).toBe(false)
+    expect(r.error || '').toMatch(/permission denied/i)
+  })
+})
