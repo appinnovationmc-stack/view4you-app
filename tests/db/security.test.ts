@@ -123,3 +123,19 @@ describe('integrity trigger scope', () => {
     expect(r.rows.length).toBe(1)
   })
 })
+
+
+describe('tier pricing boundary', () => {
+  it('the database trigger rejects legacy tierless bookings while tier pricing is enabled', async () => {
+    await db.query(`update public.lc_settings set tiers_enabled = true where id = 1`)
+    await db.query(`update public.profiles set approved = true, online = true, price = 500 where id = $1`, [INSP])
+    const r = await attempt(() => asUser(db, OTHER, () => db.query(
+      `select public.create_booking(
+        'TESTVIN0000000002', 'VW', 'Polo', 2019, 'Sandton', null, $1,
+        'private', null, null, null, null, null
+      )`, [INSP]
+    )))
+    expect(r.ok).toBe(false)
+    expect(r.error || '').toMatch(/inspection tier/i)
+  })
+})
