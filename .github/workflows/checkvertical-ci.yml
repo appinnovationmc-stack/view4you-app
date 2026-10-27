@@ -30,6 +30,8 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts
       - name: Install dependencies
         run: npm ci
+      - name: Show generated lockfile changes
+        run: git diff -- package-lock.json
       - name: Report dependency vulnerabilities
         run: |
           npm audit --json > npm-audit.json || true
