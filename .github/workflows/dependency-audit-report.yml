@@ -1,0 +1,27 @@
+name: Dependency remediation report
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-remediation-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Test compatible audit remediation
+        run: npm audit fix || true
+      - name: Report remaining vulnerabilities and lockfile changes
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e "const r=JSON.parse(require('fs').readFileSync('npm-audit.json','utf8')); console.log('AUDIT SUMMARY', JSON.stringify(r.metadata?.vulnerabilities || {})); for (const [name,v] of Object.entries(r.vulnerabilities || {})) { const via=(v.via||[]).map(x => typeof x === 'string' ? x : (x.title + ' [' + x.range + ']')).join('; '); console.log('AUDIT PACKAGE', name, 'severity=' + v.severity, 'range=' + v.range, 'fix=' + JSON.stringify(v.fixAvailable), 'via=' + via); }"
+          git diff -- package-lock.json
