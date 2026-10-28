@@ -643,3 +643,17 @@ export async function updateMyProfile(p: { licence?: string; cert?: string; expe
   const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
   if (error) throw error
 }
+
+/** Presentation mode: when the server flag app_flags.demo_payments is on, bookings and report purchases skip PayFast. */
+export async function demoPaymentsEnabled(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('demo_payments_enabled')
+  return !error && data === true
+}
+export async function demoConfirmBooking(bookingId: string): Promise<void> {
+  const { error } = await supabase.rpc('demo_confirm_booking', { p_booking_id: bookingId })
+  if (error) throw new Error(error.message)
+}
+export async function demoConfirmReport(inspectionId: string): Promise<void> {
+  const { error } = await supabase.rpc('demo_confirm_report', { p_inspection_id: inspectionId })
+  if (error) throw new Error(error.message)
+}
