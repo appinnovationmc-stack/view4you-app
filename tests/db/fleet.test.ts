@@ -370,7 +370,7 @@ describe('incidents and location', () => {
 
 describe('reporting maths: cost recovery and dashboard', () => {
   const T_R = uid(802), R_ADMIN = uid(740), U_R = uid(815)
-  let RV1 = '', RV2 = ''
+  let RV1 = ''
   beforeAll(async () => {
     await addUser(db, R_ADMIN, 'buyer', 'report admin')
     await db.query(`insert into public.fleet_tenants (id, name, kind) values ($1,'Report Co','company')`, [T_R])
@@ -378,7 +378,7 @@ describe('reporting maths: cost recovery and dashboard', () => {
     await db.query(`insert into public.fleet_members (tenant_id, user_id, role) values ($1,$2,'tenant_admin')`, [T_R, R_ADMIN])
     const ins = (sql: string) => as(R_ADMIN, sql)
     RV1 = (await ins(`insert into public.fleet_vehicles (tenant_id, reg_number, category, tracker_installed, acquisition_date) values ('${T_R}','R1','bakkie',true, current_date - 730) returning id`)).rows[0].id
-    RV2 = (await ins(`insert into public.fleet_vehicles (tenant_id, reg_number, category, ownership, rental_rate_per_day, rental_start, rental_end) values ('${T_R}','R2','sedan','rented',500,'2025-03-01','2025-03-10') returning id`)).rows[0].id
+    await ins(`insert into public.fleet_vehicles (tenant_id, reg_number, category, ownership, rental_rate_per_day, rental_start, rental_end) values ('${T_R}','R2','sedan','rented',500,'2025-03-01','2025-03-10') returning id`)
     await ins(`insert into public.fleet_vehicles (tenant_id, reg_number, category, status) values ('${T_R}','R3','tractor','in_workshop')`)
     await ins(`insert into public.fleet_vehicles (tenant_id, reg_number, category, status) values ('${T_R}','R4','truck','disposed')`)
     for (const [at, l, c] of [['2025-03-05T10:00:00Z', 40, 800], ['2025-03-20T10:00:00Z', 30, 600], ['2025-04-02T10:00:00Z', 99, 999]])

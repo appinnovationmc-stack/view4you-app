@@ -19,17 +19,23 @@ Deno.serve(async (req) => {
   const d = Object.fromEntries(pairs)
   const raw = redactItn(pairs)
 
+  // Rows are written to payment_events only for requests that carry a valid PayFast signature. Anonymous callers can
+  // hit this public endpoint, so unauthenticated rejections are logged but never persisted (no table-flood vector).
+  let signed = false
   const reject = async (reason: string, status = 400) => {
-    await admin.from('payment_events').insert({
-      kind: 'unknown', order_id: null, pf_payment_id: d.pf_payment_id ?? null, payment_status: d.payment_status ?? null,
-      outcome: 'rejected_' + reason, raw,
-    })
-    console.warn('ITN rejected:', reason, 'm_payment_id=', d.m_payment_id)
+    if (signed) {
+      await admin.from('payment_events').insert({
+        kind: 'unknown', order_id: null, pf_payment_id: d.pf_payment_id ?? null, payment_status: d.payment_status ?? null,
+        outcome: 'rejected_' + reason, raw,
+      })
+    }
+    console.warn('ITN rejected:', reason, 'signed=', signed, 'm_payment_id=', String(d.m_payment_id ?? '').slice(0, 64))
     return text('rejected', status)
   }
 
   if (!cfg.merchantId || d.merchant_id !== cfg.merchantId) return reject('merchant')
   if (!(await itnSignatureValid(pairs, cfg.passphrase, md5))) return reject('signature')
+  signed = true
 
   // Source IP. Enforced unless explicitly disabled (never disable in production).
   if (Deno.env.get('PAYFAST_ENFORCE_IP') !== 'false') {

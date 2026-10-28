@@ -1,5 +1,14 @@
 // PayFast helpers shared by the Edge Functions. Pure functions (no Deno APIs) so they are unit-tested in Node.
 // md5 is injected: Deno's WebCrypto supports MD5, Node's does not.
+//
+// Behaviour follows PayFast's published rules for custom integrations:
+//  - Signature = md5 of the urlencoded `key=value` pairs joined with `&`, then `&passphrase=...` if set.
+//    Encoding is PHP urlencode compatible: uppercase hex, spaces as `+`, and `!'()*~` percent-encoded.
+//  - Checkout form: fields in PayFast's documented order, blank values omitted.
+//  - ITN: fields in the order received, signature excluded, blank values INCLUDED (PayFast signs what it sends).
+//  - ITN checks: signature, source IP, order + amount compared with our own record, and server confirmation POST.
+// NOTE: these were written from PayFast's support articles and prior knowledge; the owner must re-verify the IP list
+// and endpoints against https://developers.payfast.co.za before going live (see docs/RELEASE_CHECKLIST.md).
 
 export type Md5 = (s: string) => Promise<string> | string
 
@@ -9,6 +18,7 @@ export function pfEncode(value: string): string {
     .replace(/%20/g, '+')
 }
 
+/** Order PayFast documents for the checkout form. Unknown keys are appended afterwards in insertion order. */
 export const CHECKOUT_ORDER = [
   'merchant_id', 'merchant_key', 'return_url', 'cancel_url', 'notify_url',
   'name_first', 'name_last', 'email_address', 'cell_number',
@@ -30,6 +40,7 @@ export async function checkoutSignature(fields: Record<string, string>, passphra
   return md5(raw)
 }
 
+/** Builds the checkout form payload: ordered fields (blanks dropped) plus signature, in posting order. */
 export async function buildCheckoutFields(fields: Record<string, string>, passphrase: string, md5: Md5): Promise<Record<string, string>> {
   const ordered = orderCheckoutFields(fields).filter(([, v]) => v.trim() !== '')
   const out: Record<string, string> = {}
@@ -38,6 +49,7 @@ export async function buildCheckoutFields(fields: Record<string, string>, passph
   return out
 }
 
+/** Parses an ITN body keeping PayFast's field order. */
 export function parseItnBody(body: string): [string, string][] {
   return Array.from(new URLSearchParams(body).entries())
 }
@@ -61,6 +73,9 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return r === 0
 }
 
+// ---- Source IP -----------------------------------------------------------------------------------------------
+// Ranges PayFast has published for ITN callbacks. MUST be re-verified by the owner against PayFast's current docs;
+// override without a code change via the PAYFAST_ALLOWED_IPS env var (comma-separated IPs or CIDRs).
 export const DEFAULT_PAYFAST_RANGES = ['197.97.145.144/28', '41.74.179.192/27', '102.216.36.0/28', '102.216.36.128/28', '144.126.193.139/32']
 
 function ipv4ToInt(ip: string): number | null {
@@ -85,12 +100,21 @@ export function ipAllowed(ip: string | null | undefined, ranges: string[] = DEFA
   })
 }
 
+/**
+ * Caller IP. `cf-connecting-ip` is set by Cloudflare in front of Supabase's edge and cannot be supplied by the caller,
+ * so it wins. Otherwise fall back to the first X-Forwarded-For entry, then x-real-ip. The IP check is only one layer:
+ * signature and PayFast server confirmation remain the authoritative checks.
+ */
 export function clientIp(headers: { get(name: string): string | null }): string | null {
+  const cf = headers.get('cf-connecting-ip')
+  if (cf) return cf.trim()
   const xff = headers.get('x-forwarded-for')
   if (xff) return xff.split(',')[0].trim()
-  return headers.get('cf-connecting-ip') ?? headers.get('x-real-ip')
+  return headers.get('x-real-ip')
 }
 
+// ---- Amounts and references -----------------------------------------------------------------------------------
+/** Compares a PayFast decimal string to an integer-Rand amount without float error. */
 export function amountMatches(amountGross: string, expectedRand: number): boolean {
   if (!/^\d+(\.\d{1,2})?$/.test(amountGross.trim())) return false
   const cents = Math.round(Number(amountGross) * 100)
@@ -113,6 +137,7 @@ export function payfastHosts(sandbox: boolean) {
   return { process: `https://${host}/eng/process`, validate: `https://${host}/eng/query/validate` }
 }
 
+/** Keys that must never be stored in payment_events.raw or logged. */
 export function redactItn(pairs: [string, string][]): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [k, v] of pairs) if (!['signature', 'merchant_key', 'passphrase'].includes(k)) out[k] = v

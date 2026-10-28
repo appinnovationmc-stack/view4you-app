@@ -5,7 +5,8 @@
 - [ ] Inventory every file under `supabase/migrations/` and apply all pending migrations in filename order to staging. The list in this document is historical and is not a complete inventory. Include `20261014000100_checkvertical_integrity_guards.sql` and every later migration present in the release commit. Review each migration before applying; do not blindly replay migrations already recorded by Supabase.
 - [ ] `supabase functions deploy create-booking-payment create-report-payment` and `supabase functions deploy payfast-itn --no-verify-jwt`. PayFast cannot send a JWT, so `payfast-itn` authenticates by signature, source IP and server confirmation instead. The other two keep JWT verification on.
 - [ ] Remove the old `payfast-report-itn` function once `payfast-itn` is live and PayFast notifies the new URL.
-- [ ] Set secrets (see `.env.example`): merchant id/key, passphrase, `PAYFAST_SANDBOX=true`, return/cancel/notify URLs.
+- [ ] Set secrets (see `.env.example`): merchant id/key, passphrase, `PAYFAST_SANDBOX=true`, return/cancel/notify URLs. `PAYFAST_PASSPHRASE` is **required** when `PAYFAST_SANDBOX` is not `true`; payment start returns 503 without it.
+- [ ] `supabase/config.toml` records `verify_jwt` per function; deploy with the CLI from the repo root so it is honoured (ITN receivers and `release-resale-rewards` are `false`).
 
 ## 2. Verify with PayFast sandbox
 - [ ] Re-check the PayFast ITN IP list and validate endpoint at https://developers.payfast.co.za/docs.

@@ -1,0 +1,19 @@
+# Function auth settings, recorded in the repo so a redeploy cannot silently change them.
+# PayFast cannot send a JWT: the ITN receivers authenticate by merchant id, signature, source IP and PayFast's own
+# server confirmation instead (see supabase/functions/payfast-itn/index.ts).
+[functions.payfast-itn]
+verify_jwt = false
+
+[functions.payfast-report-itn]
+verify_jwt = false
+
+# The scheduler calls this with the service-role key as a bearer token, which the function compares itself.
+[functions.release-resale-rewards]
+verify_jwt = false
+
+# Called by signed-in users: JWT verification stays on.
+[functions.create-booking-payment]
+verify_jwt = true
+
+[functions.create-report-payment]
+verify_jwt = true

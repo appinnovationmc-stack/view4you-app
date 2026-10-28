@@ -37,7 +37,6 @@ var C = {
    DATA
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 var MAKES = ['BMW','Ford','Honda','Hyundai','Kia','Mazda','Mercedes-Benz','Nissan','Toyota','Volkswagen'];
-var AREAS = ['Engine','Transmission','Brakes','Tyres','Suspension','Electricals','Body & Paint','Interior','Lights','Exhaust','Battery','Charging System'];
 
 /* FIX: these were static demo arrays/objects. They're now mutable module
    bindings that App() repopulates from Supabase (see Data.* calls wired
@@ -52,8 +51,6 @@ var SA_HIST = {};
 var JOBS = [];
 var TXNS = [];
 var NOTIFS_INIT = [];
-var BUYER = null;
-var INSP_USER = null;
 
 /* Onboarding copy per role */
 var ONBOARD = {
@@ -126,59 +123,9 @@ function reverseGeocode(lat, lng) {
 }
 
 /** Fetch a real driving route via public OSRM (no API key). Returns {coords:[[lat,lng],...], distanceM, durationS} */
-function fetchRoute(from, to) {
-  var url = 'https://router.project-osrm.org/route/v1/driving/' +
-    from.lng + ',' + from.lat + ';' + to.lng + ',' + to.lat +
-    '?overview=full&geometries=geojson';
-  return fetch(url).then(function(r){ return r.json(); }).then(function(data){
-    if (!data || data.code !== 'Ok' || !data.routes || !data.routes[0]) {
-      return { coords: [[from.lat, from.lng], [to.lat, to.lng]], distanceM: 0, durationS: 0 };
-    }
-    var route = data.routes[0];
-    var coords = route.geometry.coordinates.map(function(c){ return [c[1], c[0]]; }); // lng,lat → lat,lng
-    return { coords: coords, distanceM: route.distance, durationS: route.duration };
-  }).catch(function(){
-    return { coords: [[from.lat, from.lng], [to.lat, to.lng]], distanceM: 0, durationS: 0 };
-  });
-}
 
 /** Interpolate position along a polyline by progress 0..1 */
-function pointAlongRoute(coords, progress) {
-  if (!coords || coords.length === 0) return SA_DEFAULT;
-  if (coords.length === 1 || progress <= 0) return { lat: coords[0][0], lng: coords[0][1] };
-  if (progress >= 1) { var last = coords[coords.length - 1]; return { lat: last[0], lng: last[1] }; }
-  // cumulative distances
-  var seg = [];
-  var total = 0;
-  for (var i = 1; i < coords.length; i++) {
-    var dy = coords[i][0] - coords[i-1][0];
-    var dx = coords[i][1] - coords[i-1][1];
-    var d = Math.sqrt(dx*dx + dy*dy);
-    seg.push(d);
-    total += d;
-  }
-  if (total === 0) return { lat: coords[0][0], lng: coords[0][1] };
-  var target = total * progress;
-  var acc = 0;
-  for (var j = 0; j < seg.length; j++) {
-    if (acc + seg[j] >= target) {
-      var t = seg[j] === 0 ? 0 : (target - acc) / seg[j];
-      return {
-        lat: coords[j][0] + (coords[j+1][0] - coords[j][0]) * t,
-        lng: coords[j][1] + (coords[j+1][1] - coords[j][1]) * t,
-      };
-    }
-    acc += seg[j];
-  }
-  var end = coords[coords.length - 1];
-  return { lat: end[0], lng: end[1] };
-}
 
-function formatDistance(m) {
-  if (!m || m < 1) return '—';
-  if (m < 1000) return Math.round(m) + ' m';
-  return (m / 1000).toFixed(1) + ' km';
-}
 
 function makePinIcon(color, label, size) {
   size = size || 36;
@@ -192,7 +139,7 @@ function MapView(props) {
   var ref = useRef(null);
   var mapRef = useRef(null);
   var layersRef = useRef([]); // markers + polylines
-  var _tv = useState(0); var themeV = _tv[0]; var setThemeV = _tv[1];
+  var _tv = useState(0); var themeV = _tv[0];
   var _ready = useState(!!(typeof window !== 'undefined' && window.L));
   var leafletReady = _ready[0]; var setLeafletReady = _ready[1];
   var center = props.center || SA_DEFAULT;
@@ -259,7 +206,7 @@ function MapView(props) {
     }
 
     mapRef.current = map;
-    var fix = function(){ try { map.invalidateSize({ animate: false }); } catch(e){} };
+    var fix = function(){ try { map.invalidateSize({ animate: false }); } catch{} };
     setTimeout(fix, 50);
     setTimeout(fix, 200);
     setTimeout(fix, 500);
@@ -277,7 +224,7 @@ function MapView(props) {
     if (!map || !window.L) return;
     var L = window.L;
 
-    layersRef.current.forEach(function(layer){ try { map.removeLayer(layer); } catch(e){} });
+    layersRef.current.forEach(function(layer){ try { map.removeLayer(layer); } catch{} });
     layersRef.current = [];
 
     var boundsPts = [];
@@ -323,14 +270,14 @@ function MapView(props) {
     if (boundsPts.length >= 2 && props.fit !== false) {
       try {
         map.fitBounds(boundsPts, { padding: [48, 48], maxZoom: 16, animate: true });
-      } catch(e) {
+      } catch {
         map.setView([center.lat, center.lng], zoom);
       }
     } else if (center) {
       map.setView([center.lat, center.lng], zoom, { animate: true });
     }
 
-    setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, 100);
+    setTimeout(function(){ try { map.invalidateSize(); } catch{} }, 100);
   }, [
     leafletReady,
     center && center.lat, center && center.lng, zoom,
@@ -392,7 +339,7 @@ function Logo(props) {
         h('circle',{className:'cv-spark',cx:72,cy:12.4,r:6,fill:'#3DDC97'}))));
 }
 function inkNow() {
-  try { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#000'; } catch(e) { return '#000'; }
+  try { return getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#000'; } catch { return '#000'; }
 }
 
 function Spin(props) {
@@ -420,17 +367,6 @@ function SkeletonHistoryCard() {
     h(Skeleton,{w:'50%',h:16}),
     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
       [1,2,3,4,5,6].map(function(i){ return h('div',{key:i,style:{background:C.s2,borderRadius:8,padding:10}},h(Skeleton,{w:'60%',h:11}),h('div',{style:{height:6}}),h(Skeleton,{w:'80%',h:14})); })));
-}
-function SkeletonInspectorList() {
-  return h('div', {style:{display:'flex',flexDirection:'column',gap:8}},
-    [1,2,3].map(function(i){
-      return h('div',{key:i,style:{background:C.s1,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'14px',display:'flex',alignItems:'center',gap:12},className:'fi',style2:{animationDelay:(i-1)*0.06+'s'}},
-        h(Skeleton,{w:44,h:44,r:22}),
-        h('div',{style:{flex:1}},
-          h(Skeleton,{w:'55%',h:15}), h('div',{style:{height:8}}),
-          h(Skeleton,{w:'40%',h:12}), h('div',{style:{height:8}}),
-          h('div',{style:{display:'flex',gap:6}},h(Skeleton,{w:72,h:22,r:99}),h(Skeleton,{w:60,h:22,r:99}))));
-    }));
 }
 
 function Av(props) {
@@ -461,15 +397,6 @@ function Ring(props) {
     props.showLabel && h('span', {style:{fontSize:10,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap'}}, m.sub));
 }
 
-function SBadge(props) {
-  var mp = {
-    pass:{bg:C.greenDim,c:C.green,l:'PASS'},
-    warn:{bg:C.amberDim,c:C.amber,l:'ADVISORY'},
-    fail:{bg:C.redDim,  c:C.red,  l:'FAIL'},
-  };
-  var s = mp[props.s] || {bg:C.s3,c:C.t3,l:String(props.s).toUpperCase()};
-  return h('span', {style:{background:s.bg,color:s.c,fontSize:10,fontWeight:700,padding:'4px 9px',borderRadius:99,letterSpacing:'.05em',whiteSpace:'nowrap'}}, s.l);
-}
 
 /* FIX: Tag default color is blue-info, not lime */
 function Tag(props) {
@@ -562,11 +489,6 @@ function XIcon(props) {
 
 function Hr(props) { return h('div',{style:{height:'1px',background:'var(--b)',margin:((props&&props.my)||14)+'px 0'}}); }
 
-function SecTitle(props) {
-  return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
-    h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:700,color:C.t,letterSpacing:'-.02em'}}, props.title),
-    props.action && h('button',{onClick:props.onAct,style:{fontSize:'var(--fs-caption)',fontWeight:600,color:C.t3}}, props.action));
-}
 
 function Toast(props) {
   if (!props.t) return null;
@@ -582,7 +504,6 @@ function NBadge(props) {
 }
 
 /* REDESIGN-HELPERS-START */
-var APP_NAME = 'CheckVertical';
 var APP_TAGLINE = 'Discovery awaits.';
 /* Official CheckVertical lockup (the tick is the V). White version on dark, ink version on light. */
 function Wordmark(props) {
@@ -618,7 +539,7 @@ function Onboarding(props) {
         h('p',{className:'lc-sub',style:{fontSize:15}}, cur.body)),
       h('div',{className:'lc-dots'},
         slides.map(function(_,i){ return h('i',{key:i,className:i===step?'on':''}); })),
-      h('button',{className:'lc-btn-pill dark',onClick:function(){ haptic('light'); isLast?props.onDone():setStep(function(s){return s+1;}); }}, isLast?'Get started':'Continue'),
+      h('button',{className:'lc-btn-pill dark',onClick:function(){ haptic('light'); if (isLast) props.onDone(); else setStep(function(s){return s+1;}); }}, isLast?'Get started':'Continue'),
       h('button',{className:'lc-btn-pill light',onClick:props.onDone}, 'Skip')));
 }
 
@@ -779,59 +700,11 @@ function AuthScreen(props) {
    DESIGN-V4 SHARED PIECES
    Swipe to confirm, vehicle photo slot, screen header, chips
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-var CHEV = 'M9 6l6 6-6 6';
 
 /* Swipe to confirm. Drag the mint handle to the end (85%+) to confirm.
    Keyboard / screen-reader users activate the handle itself (click with detail 0, Enter, Space). */
-function SwipeConfirm(props) {
-  var _d = useState(0); var dx = _d[0]; var setDx = _d[1];
-  var track = useRef(null);
-  var st = useRef(null);
-  var HANDLE = 42, PAD = 5;
-  var off = !!(props.disabled || props.busy);
-  function maxX() { return track.current ? Math.max(0, track.current.clientWidth - HANDLE - PAD * 2) : 0; }
-  useEffect(function(){ if (!props.busy) setDx(0); }, [props.busy]);
-  function down(e) {
-    if (off) return;
-    st.current = { x: e.clientX };
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
-  }
-  function move(e) {
-    if (!st.current) return;
-    setDx(Math.max(0, Math.min(maxX(), e.clientX - st.current.x)));
-  }
-  function up() {
-    if (!st.current) return;
-    st.current = null;
-    var m = maxX();
-    if (m > 0 && dx >= m * 0.85) { setDx(m); haptic('success'); props.onConfirm(); }
-    else setDx(0);
-  }
-  function key(e) {
-    if (off) return;
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); haptic('success'); props.onConfirm(); }
-  }
-  var m = maxX();
-  var progress = m > 0 ? dx / m : 0;
-  return h('div', { ref: track, className: 'sw' + (props.solid ? ' solid' : '') + (props.busy ? ' busy' : ''), style: props.style || null },
-    h('div', { className: 'sw-fill', style: { width: dx > 0 ? dx + HANDLE + PAD * 2 : 0 } }),
-    h('div', { className: 'sw-label', style: { opacity: Math.max(0, 1 - progress * 1.4) } }, props.busy ? (props.busyLabel || 'Working…') : props.label),
-    h('button', {
-      type: 'button', className: 'mh', 'aria-label': props.label, disabled: off,
-      onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerCancel: up, onKeyDown: key,
-      onClick: function (e) { if (e.detail === 0 && !off) props.onConfirm(); },
-      style: { transform: 'translateX(' + dx + 'px)', transition: st.current ? 'none' : 'transform .25s cubic-bezier(.22,1,.36,1)' }
-    },
-      props.busy ? h(Spin, { size: 16, col: '#0A0A0B', track: 'rgba(10,10,11,.2)' })
-        : h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: CHEV }))));
-}
 
 /* Vehicle photo area. Pass src for a real photograph; otherwise a marked slot. */
-function VehiclePhoto(props) {
-  return h('div', { className: 'px' + (props.light ? ' lt' : ''), style: props.style || null },
-    props.src ? h('img', { src: props.src, alt: props.alt || '' }) : null,
-    props.src ? null : h('span', null, props.label || 'VEHICLE PHOTO'));
-}
 
 /* Screen header: round back button, centred title, optional right slot */
 function ScreenHdr(props) {
@@ -844,11 +717,6 @@ function ScreenHdr(props) {
     props.right || h('div', { style: { width: 38 } }));
 }
 
-var ARROW_UR = 'M7 17L17 7M9 7h8v8';
-function ArrowBtn(props) {
-  return h('span', { className: props.dark ? 'ob' : 'obl', 'aria-hidden': 'true' },
-    h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: ARROW_UR })));
-}
 
 var BOOK_PRESET = null; /* { tierId, vin } handed from Home to the booking steps */
 var CAR_SVG = '<svg width="100%" height="120" viewBox="0 0 340 140" fill="none" role="img" aria-label="Illustration of a vehicle" style="display:block;margin-top:6px"><defs><radialGradient id="cvglow" cx="50%" cy="60%" r="55%"><stop offset="0%" style="stop-color:var(--mt-chip)" stop-opacity=".9"/><stop offset="100%" style="stop-color:var(--mt-chip)" stop-opacity="0"/></radialGradient><linearGradient id="cvbody" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d3d3d"/><stop offset="55%" stop-color="#1e1e1e"/><stop offset="100%" stop-color="#0d0d0d"/></linearGradient><linearGradient id="cvrim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4b4b4b"/><stop offset="100%" stop-color="#1b1b1b"/></linearGradient></defs><ellipse cx="170" cy="76" rx="160" ry="62" fill="url(#cvglow)"/><ellipse cx="170" cy="134" rx="138" ry="6" fill="#000" opacity=".3"/><path d="M18 104V92c0-10 8-16 20-19l50-11c10-8 24-20 44-25 20-4 52-6 78-4 22 2 36 9 46 19l16 16 32 6c12 3 18 12 18 24v6c0 4-4 6-8 6H22c-2 0-4-2-4-6z" fill="url(#cvbody)"/><path d="M104 62c10-10 22-18 38-21h54c20 1 34 6 44 16l10 9H104z" fill="#070707" opacity=".72"/><path d="M40 74l48-11c10-8 24-20 44-25 20-4 52-6 78-4" stroke="#fff" stroke-opacity=".24" stroke-width="1.6" stroke-linecap="round"/><rect x="306" y="84" width="14" height="5" rx="2.5" fill="#47d7ac"/><circle cx="88" cy="110" r="25" fill="#060606"/><circle cx="88" cy="110" r="15" fill="url(#cvrim)"/><circle cx="88" cy="110" r="4" fill="#5a5a5a"/><circle cx="252" cy="110" r="25" fill="#060606"/><circle cx="252" cy="110" r="15" fill="url(#cvrim)"/><circle cx="252" cy="110" r="4" fill="#5a5a5a"/></svg>';
@@ -1268,13 +1136,10 @@ function BookScreen(props) {
   var _geo  = useState(null);   var geo  = _geo[0];  var setGeo  = _geo[1];
   var _geoLoading = useState(false); var geoLoading = _geoLoading[0]; var setGeoLoading = _geoLoading[1];
   var _choosing = useState(false); var choosing = _choosing[0]; var setChoosing = _choosing[1];
-  var _card = useState('saved');var card = _card[0]; var setCard = _card[1];
   var _load = useState(false);  var loading=_load[0];var setLoading=_load[1];
-  var _secs = useState(0);      var secs = _secs[0]; var setSecs = _secs[1];
+  var _secs = useState(0);      var setSecs = _secs[1];
   var _bkid = useState(pendingInfo ? pendingInfo.id : null);   var bookingId=_bkid[0]; var setBookingId=_bkid[1];
   var _bookingFingerprint = useState(''); var bookingFingerprint=_bookingFingerprint[0]; var setBookingFingerprint=_bookingFingerprint[1];
-  var _rt = useState(null); var route = _rt[0]; var setRoute = _rt[1];
-  var _ts = useState(0);    var totalSecs = _ts[0]; var setTotalSecs = _ts[1];
   var _vk = useState('private'); var venueKind = _vk[0]; var setVenueKind = _vk[1];
   var _lot = useState('');  var lot = _lot[0]; var setLot = _lot[1];
   var _aat = useState('');  var auctionAt = _aat[0]; var setAuctionAt = _aat[1];
@@ -1326,7 +1191,6 @@ function BookScreen(props) {
   var vehicleOk = !!(vin.trim()&&make&&model&&year);
   var serviceOk = !!(!tierLoadError&&tierMode&&tierId&&(!wantRw||stationId));
   var ready = vehicleOk&&serviceOk&&venueOk;
-  var LBL = {fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.08em',display:'block',marginBottom:8};
 
   /* FIX: sort inspectors */
   var online = INSPECTORS.filter(function(i){ return i.online && (!tierMode || (i.tierIds||[]).indexOf(tierId)>=0); });
@@ -1556,7 +1420,6 @@ function BookScreen(props) {
       : [{l:'Inspection',v:inspector.price == null ? 'At checkout' : R(inspector.price)},{l:'Travel',v:R(travelFee)},{l:'Platform',v:R(platformFee)}]
     ).concat(addonFee>0?[{l:'Roadworthy add-on',v:R(addonFee)}]:[]);
     var totalTxt = tierMode ? R((selectedTier ? selectedTier.buyer_price : 0)+addonFee) : (inspector.price == null ? 'At checkout' : R(inspector.price+feesTotal));
-    var payLabel = tierMode ? 'Swipe to pay '+totalTxt+' with PayFast' : (inspector.price == null ? 'Swipe to continue to PayFast' : 'Swipe to pay '+totalTxt+' with PayFast');
     return h('div',{style:Object.assign({},PAGE,{paddingBottom:120}),className:'fu'},
       h('div',{style:{padding:'var(--safe-top) 16px 0'}},
         h(ScreenHdr,{title:'Confirm booking',onBack:function(){setStep('choose');}}),
@@ -1667,9 +1530,9 @@ function CertificateCard(props){
 }
 
 var PENDING_KEY='lc_pending_booking';
-function readPendingBooking(){ try { var r=localStorage.getItem(PENDING_KEY); return r?JSON.parse(r):null; } catch(e){ return null; } }
-function savePendingBooking(v){ try { localStorage.setItem(PENDING_KEY, JSON.stringify(v)); } catch(e){} }
-function clearPendingBooking(){ try { localStorage.removeItem(PENDING_KEY); } catch(e){} }
+function readPendingBooking(){ try { var r=localStorage.getItem(PENDING_KEY); return r?JSON.parse(r):null; } catch{ return null; } }
+function savePendingBooking(v){ try { localStorage.setItem(PENDING_KEY, JSON.stringify(v)); } catch{} }
+function clearPendingBooking(){ try { localStorage.removeItem(PENDING_KEY); } catch{} }
 
 function BookingStatus(props) {
   var nav=props.nav, showToast=props.showToast, bookingId=props.bookingId, info=props.info||{};
@@ -1753,9 +1616,8 @@ function BookingStatus(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function ReportScreen(props) {
   var nav=props.nav, car=props.car, showToast=props.showToast;
-  var _paid=useState(false); var paid=_paid[0];var setPaid=_paid[1];
+  var _paid=useState(false); var paid=_paid[0];
   var _pl=useState(false); var pl=_pl[0];var setPl=_pl[1];
-  var _tab=useState('overview'); var tab=_tab[0];var setTab=_tab[1];
   var _detail=useState(null); var detail=_detail[0];var setDetail=_detail[1];
   var _dl=useState(false); var dl=_dl[0];var setDl=_dl[1];
   var _ex=useState(null); var extras=_ex[0];var setExtras=_ex[1];
@@ -1885,7 +1747,7 @@ function AlertsScreen(props) {
         grouped bar chart showing inspection + resale split
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function EarnScreen(props) {
-  var nav=props.nav, showToast=props.showToast;
+  var nav=props.nav;
   var total=TXNS.reduce(function(a,t){return a+t.amount;},0);
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
     h('div',{style:{padding:'var(--safe-top) 22px 24px',position:'relative',overflow:'hidden',isolation:'isolate'}},
@@ -2049,136 +1911,28 @@ function InspHomeScreen(props) {
    FIX: safe-top, lime on pay CTA, green status dots,
         fixed bottom bar with safe-bot, XIcon, aria labels
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function JobScreen(props) {
-  var nav=props.nav, job=props.job, showToast=props.showToast;
-  var initF=function(){var o={};AREAS.forEach(function(a){o[a]='pass';});return o;};
-  var initN=function(){var o={};AREAS.forEach(function(a){o[a]='';});return o;};
-  var _f=useState(initF);var findings=_f[0];var setFindings=_f[1];
-  var _n=useState(initN);var fnotes=_n[0];var setFnotes=_n[1];
-  var _a=useState(null); var active=_a[0]; var setActive=_a[1];
-  var _d=useState(false);var done=_d[0];   var setDone=_d[1];
-  var _l=useState(false);var loading=_l[0];var setLoading=_l[1];
-  if (!job) return null;
-
-  var vals=Object.keys(findings).map(function(k){return findings[k];});
-  var score=Math.round(vals.reduce(function(a,f){return a+(f==='pass'?10:f==='warn'?5:0);},0)/AREAS.length*10);
-  var m=sm(score);
-
-  function submit(){
-    setLoading(true);
-    Data.submitInspection({
-      bookingId: job.id, vin: job.vin, inspectorId: props.user.id,
-      findings: findings, notes: fnotes, score: score, fullPrice: job.pay,
-    }).then(function(){
-      setDone(true); setLoading(false); haptic('success'); showToast('Report submitted. Payment within 24h.');
-    }).catch(function(err){
-      console.error(err); setLoading(false); showToast('Submission failed. Try again.', true);
-    });
-  }
-
-  if (done) return h('div',{style:{minHeight:'100vh',background:C.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:32,textAlign:'center'},className:'fu'},
-    h('div',{style:{width:80,height:80,borderRadius:40,background:C.greenDim,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,marginBottom:22,border:'1px solid rgba(50,215,75,.18)'}},Ic('check',40,C.green)),
-    h('p',{style:{fontSize:26,fontWeight:800,color:C.t,letterSpacing:'-.035em',marginBottom:8}},'Report submitted'),
-    h('p',{style:{fontSize:'var(--fs-body)',color:C.t3,lineHeight:1.7,marginBottom:6}},
-      'Score: ',h('strong',{style:{color:m.col,fontWeight:800}},score+'/100'),
-      '. Payment of ',h('strong',{style:{color:C.lime}},R(job.pay)),' within 24 hrs.'),
-    h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--rl)',padding:'18px',marginBottom:24,textAlign:'left',width:'100%'}},
-      h('p',{style:{fontSize:'var(--fs-body)',color:C.lime,lineHeight:1.65}},'Resale payouts depend on the current server-set report price and payout rules. Check your earnings ledger for recorded amounts.')),
-    h(PBtn,{label:'Back to jobs',onClick:function(){nav('ijobs');}}));
-
-  return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:110}},
-    h('div',{style:{padding:'var(--safe-top) 20px 0'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:14,marginBottom:18}},
-        h(BackBtn,{onClick:function(){nav('ijobs');},mb:0}),
-        h('div',{style:{flex:1}},
-          h('p',{style:{fontSize:'var(--fs-headline)',fontWeight:800,color:C.t,letterSpacing:'-.02em',lineHeight:1.2}},job.year+' '+job.make+' '+job.model),
-          h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:3}},'VIN: '+job.vin)),
-        h(Ring,{score:score,size:58})),
-
-      h(Card,{style:{marginBottom:10}},
-        h('div',{style:{padding:'12px 16px',display:'flex',gap:7,flexWrap:'wrap'}},
-          h(Tag,{label:job.location,bg:C.s3,c:C.t2}),
-          h(Tag,{label:'From '+job.customer,bg:C.s3,c:C.t2}),
-          h(Tag,{label:job.date,bg:C.s3,c:C.t2}))),
-
-      job.notes&&h('div',{style:{background:C.blueDim,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.blue,lineHeight:1.5}},'"'+job.notes+'"')),
-
-      /* Photo slots */
-      h('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7,marginBottom:10}},
-        ['Engine','Tyres','Body','Interior'].map(function(a){
-          return h('div',{key:a,'aria-label':'Add photo for '+a,style:{background:C.s2,borderRadius:10,aspectRatio:'1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,border:'1px dashed var(--b)',cursor:'pointer'}},
-            h('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:C.t3,strokeWidth:1.5,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'},
-              h('path',{d:'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'}),
-              h('circle',{cx:12,cy:13,r:4})),
-            h('span',{style:{fontSize:9,color:C.t3,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}},a));
-        })),
-
-      h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em',marginBottom:8}},'Inspection checklist'),
-      h(Card,{style:{overflow:'hidden',marginBottom:10}},
-        AREAS.map(function(area,i){
-          var isA=active===area;
-          var scol={pass:C.green,warn:C.amber,fail:C.red}[findings[area]]||C.t3;
-          return h('div',{key:area,style:{borderBottom:i<AREAS.length-1?'1px solid var(--b)':'none'}},
-            h('div',{onClick:function(){setActive(isA?null:area);},'aria-expanded':isA,
-              style:{padding:'13px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}},
-              h('div',{style:{display:'flex',alignItems:'center',gap:10}},
-                h('div',{style:{width:9,height:9,borderRadius:'50%',background:scol,flexShrink:0,transition:'background .2s'}}),
-                h('p',{style:{fontWeight:600,fontSize:'var(--fs-body)',color:C.t,letterSpacing:'-.01em'}},area)),
-              h('div',{style:{display:'flex',alignItems:'center',gap:7}},
-                h(SBadge,{s:findings[area]}),
-                h('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:C.t3,strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round',style:{transform:isA?'rotate(180deg)':'none',transition:'transform .2s'},'aria-hidden':'true'},
-                  h('path',{d:'M6 9l6 6 6-6'})))),
-            isA&&h('div',{style:{padding:'10px 18px 14px',background:C.s2,borderTop:'1px solid var(--b)'},className:'fu'},
-              h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7,marginBottom:10}},
-                [['pass',C.green,C.greenDim,'Pass'],['warn',C.amber,C.amberDim,'Advisory'],['fail',C.red,C.redDim,'Fail']].map(function(o){
-                  var sel=findings[area]===o[0];
-                  return h('button',{key:o[0],'aria-pressed':sel,
-                    onClick:function(){haptic('selection');var nf=Object.assign({},findings);nf[area]=o[0];setFindings(nf);},
-                    style:{background:sel?o[2]:C.s3,border:'1px solid '+(sel?o[1]:'var(--b)'),borderRadius:8,padding:'9px',fontSize:'var(--fs-caption)',fontWeight:700,color:sel?o[1]:C.t3,transition:'all .15s'}},o[3]);
-                })),
-              h('input',{'aria-label':'Notes for '+area,placeholder:'Add notes…',value:fnotes[area],
-                onChange:function(e){var v=e.target.value;var nn=Object.assign({},fnotes);nn[area]=v;setFnotes(nn);},
-                style:{fontSize:'var(--fs-caption)',borderRadius:8,background:C.s3,border:'1px solid var(--b)'}})));
-        })),
-
-      h('div',{style:{background:C.limeDim2,border:'1px solid var(--b)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.lime,lineHeight:1.5}},'Resale payouts depend on the current server-set report price and payout rules. Check your earnings ledger for recorded amounts.'))),
-
-    /* Fixed bottom — safe-bot */
-    h('div',{style:{position:'fixed',bottom:0,left:0,right:0,maxWidth:430,margin:'0 auto',
-      background:'var(--bg)',
-      borderTop:'1px solid var(--b)',padding:'12px 20px',
-      paddingBottom:'max(20px, var(--safe-bot))',zIndex:100}},
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
-        h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}},'Live score'),
-        h('p',{style:{fontSize:19,fontWeight:800,color:m.col,letterSpacing:'-.04em',},'aria-live':'polite'},score+' / 100')),
-      h(PBtn,{label:'Submit report  ·  Earn '+R(job.pay),onClick:submit,loading:loading})));
-}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    INSPECTOR EARNINGS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function InspEarnScreen(props) {
-  var nav=props.nav, user=props.user, showToast=props.showToast;
+  var nav=props.nav, user=props.user;
   // Build a real weekly series from completed jobs + resale TXNS (no demo numbers)
   var week=[{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0},{insp:0,resale:0}];
-  var now = new Date();
   var dayIdx = function(d){ var x = new Date(d); var day = (x.getDay()+6)%7; return day; }; // Mon=0
   JOBS.filter(function(j){ return j.status==='done'; }).forEach(function(j){
     // approximate: put all completed into "today" slot if no date parse
     var i = 6; // default Sunday-ish recent
-    try { if (j.date) i = Math.min(6, dayIdx(j.date)); } catch(e){}
+    try { if (j.date) i = Math.min(6, dayIdx(j.date)); } catch{}
     week[i].insp += (j.pay || 0);
   });
   TXNS.forEach(function(t){
     var i = 6;
-    try { if (t.date) i = Math.min(6, dayIdx(t.date)); } catch(e){}
+    try { if (t.date) i = Math.min(6, dayIdx(t.date)); } catch{}
     week[i].resale += (t.amount || 0);
   });
   var days=['M','T','W','T','F','S','S'];
   var maxW=Math.max.apply(null, week.map(function(w){return w.insp+w.resale;}).concat([1]));
-  var weekTotal = week.reduce(function(a,w){ return a + w.insp + w.resale; }, 0);
   var resaleTotal = TXNS.reduce(function(a,t){ return a + (t.amount||0); }, 0);
 
   return h('div',{style:{minHeight:'100vh',background:C.bg,paddingBottom:'var(--nav)'}},
@@ -2479,7 +2233,6 @@ function App() {
     if (user) Data.markAllNotificationsRead(user.id).catch(function(e){ console.error(e); });
   }
 
-  var nc = notifs.filter(function(n){ return !n.read; }).length;
   var ui = {C:C, Card:Card, PBtn:PBtn, GBtn:GBtn, BackBtn:BackBtn, Spin:Spin, R:R};
   var sh = {nav:nav, navBack:navBack, showToast:showToast, user:user, logout:logout, gate:gate};
   var homeOf = role === 'insp' ? 'iearnings' : 'earn';
