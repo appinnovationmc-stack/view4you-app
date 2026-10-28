@@ -2191,6 +2191,26 @@ function App() {
     }).catch(function(e){ console.error(e); });
   }
 
+  /* Inspectors: keep jobs fresh without a manual refresh, and say when a new request arrives. */
+  useEffect(function(){
+    if (role !== 'insp' || !user || !user.id) return;
+    var stop = false, busy = false;
+    function refresh(){
+      if (busy || stop || document.hidden) return; busy = true;
+      var before = JOBS.filter(function(j){ return j.status==='pending'; }).length;
+      Data.fetchInspectorJobs(user.id).then(function(rows){
+        if (stop) return;
+        JOBS = mapJobRows(rows);
+        var after = JOBS.filter(function(j){ return j.status==='pending'; }).length;
+        if (after > before) { haptic('success'); showToast('New inspection request'); }
+        setDataVersion(function(x){return x+1;});
+      }).catch(function(){}).then(function(){ busy = false; });
+    }
+    var iv = setInterval(refresh, 6000);
+    document.addEventListener('visibilitychange', refresh);
+    return function(){ stop = true; clearInterval(iv); document.removeEventListener('visibilitychange', refresh); };
+  }, [role, user && user.id]);
+
   function loadInspectorData(profile){
     Promise.all([
       Data.fetchInspectorJobs(profile.id), Data.fetchNotifications(profile.id),
