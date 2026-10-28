@@ -1120,7 +1120,9 @@ function SearchScreen(props) {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function BookScreen(props) {
   var nav = props.nav, showToast = props.showToast;
-  var _pend = useState(readPendingBooking); var pendingInfo = _pend[0];
+  var _pend = useState(readPendingBooking); var pendingInfo = _pend[0]; var setPendingInfo = _pend[1];
+  var _demo = useState(false); var demo = _demo[0]; var setDemo = _demo[1];
+  useEffect(function(){ Data.demoPaymentsEnabled().then(setDemo).catch(function(){}); },[]);
   var _step = useState(pendingInfo ? 'status' : 'vehicle'); var step = _step[0]; var setStep = _step[1];
   var presetRef = useRef(null); if (presetRef.current === null) { presetRef.current = BOOK_PRESET || {}; BOOK_PRESET = null; }
   var guest = !props.user;
@@ -1230,9 +1232,12 @@ function BookScreen(props) {
       setBookingId(booking.id);
       setBookingFingerprint(draftKey);
       savePendingBooking({id:booking.id, inspector:inspector.name, vehicle:year+' '+make+' '+model, venue:venueKind, venueName:dealer.trim(), lot:lot.trim()});
-      return Data.startBookingPayment(booking.id);
-    }).then(function(payment){
-      redirectToPayFast(payment); // leaves the app for PayFast's hosted page; we resume on the status screen
+      return Data.demoPaymentsEnabled().then(function(demo){
+        if (demo) return Data.demoConfirmBooking(booking.id).then(function(){ setLoading(false); setPendingInfo(readPendingBooking()); setStep('status'); });
+        return Data.startBookingPayment(booking.id).then(function(payment){
+          redirectToPayFast(payment); // leaves the app for PayFast's hosted page; we resume on the status screen
+        });
+      });
     }).catch(function(err){
       console.error(err); setLoading(false);
       showToast((err && err.message) || 'Could not start payment. Try again.', true);
@@ -1454,11 +1459,11 @@ function BookScreen(props) {
             h('span',{className:'hx',style:{fontSize:24}},totalTxt))),
 
         h('div',{className:'wh',style:{marginTop:10,padding:'13px 16px',borderRadius:22}},
-          h('div',{style:{fontSize:13,fontWeight:600}},'Pay securely with PayFast'),
-          h('div',{className:'lb',style:{marginTop:3,lineHeight:1.5}},'Card or EFT on PayFast. CheckVertical never sees your card details. The inspector is only notified once PayFast confirms your payment.')),
+          h('div',{style:{fontSize:13,fontWeight:600}},demo?'Demo booking: no payment taken':'Pay securely with PayFast'),
+          h('div',{className:'lb',style:{marginTop:3,lineHeight:1.5}},demo?'This is a demo, so your booking is confirmed straight away and the inspector is notified.':'Card or EFT on PayFast. CheckVertical never sees your card details. The inspector is only notified once PayFast confirms your payment.')),
         h('p',{className:'lb',style:{margin:'12px 6px 16px',lineHeight:1.5}},'Your report goes live after the inspection. You can earn toward your inspection cost when another buyer purchases it.'),
 
-        bar(tierMode ? 'Pay '+totalTxt+' with PayFast' : (inspector.price == null ? 'Continue to PayFast' : 'Pay '+totalTxt+' with PayFast'),true,confirm,loading)));
+        bar(demo ? 'Confirm booking' : tierMode ? 'Pay '+totalTxt+' with PayFast' : (inspector.price == null ? 'Continue to PayFast' : 'Pay '+totalTxt+' with PayFast'),true,confirm,loading)));
   }
 
   /* ── STATUS (real booking state, polled from the server) ── */
@@ -1649,8 +1654,9 @@ function ReportScreen(props) {
 
   function pay(){
     setPl(true);
-    Data.purchaseReport(insp.id).then(function(payment){
-      redirectToPayFast(payment);
+    Data.demoPaymentsEnabled().then(function(demo){
+      if (demo) return Data.demoConfirmReport(insp.id).then(function(){ setPl(false); loadDetailed(); });
+      return Data.purchaseReport(insp.id).then(redirectToPayFast);
     }).catch(function(err){
       console.error(err); setPl(false);
       showToast(String(err && err.message || 'Payment could not be started.'), true);

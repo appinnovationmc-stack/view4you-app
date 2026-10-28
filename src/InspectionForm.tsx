@@ -90,7 +90,8 @@ interface PhotoEntry { id: string; blob: Blob; url: string }
 
 // ---- small UI pieces ----
 const card: CSSProperties = { background: C.s1, borderRadius: 'var(--rl)', border: '1px solid var(--b)', overflow: 'hidden', marginBottom: 10 }
-const inputStyle: CSSProperties = { fontSize: 16, borderRadius: 0, backgroundColor: 'transparent', border: 'none', borderBottom: '2px solid rgba(255,255,255,.95)', padding: '8px 2px 8px', width: '100%', color: '#fff' }
+const inputStyle: CSSProperties = { fontSize: 16, borderRadius: 14, padding: '12px 14px', width: '100%' }
+const invalidStyle: CSSProperties = { boxShadow: `inset 0 0 0 2px ${C.red}` }
 const caption: CSSProperties = { fontSize: 'var(--fs-caption)', color: C.t2 }
 
 const COND_STYLE: Record<Condition, { c: string; bg: string; short: string }> = {
@@ -146,7 +147,7 @@ const ItemRow = memo(function ItemRow({ k, label, rw, priority, cond, note, onCo
       {needsNote && (
         <input aria-label={`Note for ${label}`} placeholder={cond === 'poor' ? 'What is wrong? (required)' : 'Note (optional)'}
           value={note} onChange={e => onNote(k, e.target.value)}
-          style={{ ...inputStyle, marginTop: 8, ...(cond === 'poor' && !note.trim() ? { borderBottomColor: C.red } : null) }} />
+          style={{ ...inputStyle, marginTop: 8, ...(cond === 'poor' && !note.trim() ? invalidStyle : null) }} />
       )}
     </div>
   )
@@ -158,7 +159,7 @@ function Field(p: { label: string; value: string; onChange: (v: string) => void;
       <span style={{ ...caption, display: 'block', marginBottom: 4 }}>{p.label}</span>
       <input value={p.value} onChange={e => p.onChange(e.target.value)} placeholder={p.placeholder}
         inputMode={p.numeric ? 'decimal' : undefined} autoCapitalize="characters" autoComplete="off"
-        style={{ ...inputStyle, ...(p.invalid ? { borderBottomColor: C.red } : null) }} />
+        style={{ ...inputStyle, ...(p.invalid ? invalidStyle : null) }} />
     </label>
   )
 }
@@ -170,7 +171,7 @@ function PhotoPicker(p: { title: string; entries: PhotoEntry[]; busy: boolean; o
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: p.entries.length ? 8 : 0 }}>
         <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: C.t2 }}>{p.title} · {p.entries.length}</span>
         <button type="button" disabled={p.busy} onClick={() => ref.current?.click()}
-          style={{ background: 'rgba(255,255,255,.2)', border: '1px solid var(--b2)', color: '#fff', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 500 }}>
+          style={{ background: 'var(--mt-chip)', border: 0, color: 'var(--mt-text)', borderRadius: 999, padding: '8px 16px', fontSize: 12, fontWeight: 500 }}>
           Add photo
         </button>
         <input ref={ref} type="file" accept="image/*" multiple hidden
@@ -406,16 +407,16 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           <div style={{ background: C.amberDim, border: '1px solid rgba(255,159,10,.25)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 14, width: '100%' }}>
             <p style={{ fontSize: 'var(--fs-caption)', color: C.amber, marginBottom: 8 }}>{failedPhotos.length} photo{failedPhotos.length === 1 ? '' : 's'} didn't upload.</p>
             <button type="button" onClick={() => uploadPhotos(result.inspectionId, failedPhotos)}
-              style={{ background: '#fff', color: '#000', borderRadius: 999, padding: '9px 20px', fontWeight: 500, fontSize: 'var(--fs-caption)' }}>Retry upload</button>
+              style={{ background: 'var(--mt-prim)', color: 'var(--mt-on-prim)', borderRadius: 999, padding: '9px 20px', fontWeight: 500, fontSize: 'var(--fs-caption)' }}>Retry upload</button>
           </div>
         )}
         <div style={{ width: '100%', display: 'grid', gap: 10 }}>
           <button type="button" onClick={openReport} disabled={loadingView || photoStatus === 'uploading'}
-            style={{ background: '#fff', color: '#000', border: 'none', borderRadius: 999, padding: '16px', fontWeight: 500, fontSize: 16, boxShadow: '0 14px 26px -14px rgba(0,0,0,.5)', opacity: loadingView || photoStatus === 'uploading' ? .5 : 1 }}>
+            style={{ background: 'var(--mt-prim)', color: 'var(--mt-on-prim)', border: 'none', borderRadius: 999, padding: '16px', fontWeight: 500, fontSize: 16, boxShadow: '0 14px 26px -14px rgba(0,0,0,.5)', opacity: loadingView || photoStatus === 'uploading' ? .5 : 1 }}>
             {loadingView ? 'Loading…' : 'View full report'}
           </button>
           <button type="button" onClick={() => nav('ijobs')} disabled={photoStatus === 'uploading'}
-            style={{ background: '#000', color: '#fff', borderRadius: 999, padding: '16px', fontWeight: 500, fontSize: 16, boxShadow: '0 14px 26px -12px rgba(0,0,0,.7)', opacity: photoStatus === 'uploading' ? .5 : 1 }}>
+            style={{ background: 'var(--mt-prim)', color: 'var(--mt-on-prim)', borderRadius: 999, padding: '16px', fontWeight: 500, fontSize: 16, boxShadow: '0 14px 26px -12px rgba(0,0,0,.7)', opacity: photoStatus === 'uploading' ? .5 : 1 }}>
             Back to jobs
           </button>
         </div>
@@ -572,7 +573,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
         </Accordion>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 430, margin: '0 auto', background: 'transparent', backdropFilter: 'blur(24px)',
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 430, margin: '0 auto', background: 'var(--mt-bg)', backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)', borderTop: '1px solid var(--b)', padding: '10px 20px', paddingBottom: 'max(18px, var(--safe-bot))', zIndex: 100 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: issues.length ? 4 : 8 }}>
           <span style={caption}>Score</span>
@@ -586,7 +587,7 @@ export default function InspectionForm({ job, nav, showToast, onSubmitted }: Ins
           </p>
         )}
         <button type="button" onClick={submit} disabled={issues.length > 0 || saving}
-          style={{ width: '100%', background: issues.length || saving ? 'var(--ink-dim2)' : '#000', color: issues.length || saving ? C.t2 : '#fff',
+          style={{ width: '100%', background: issues.length || saving ? 'var(--ink-dim2)' : 'var(--mt-prim)', color: issues.length || saving ? C.t2 : 'var(--mt-on-prim)',
             borderRadius: 999, padding: '16px 22px', fontSize: 16, fontWeight: 500, boxShadow: issues.length || saving ? 'none' : '0 14px 26px -12px rgba(0,0,0,.7)', opacity: issues.length || saving ? .6 : 1 }}>
           {saving ? 'Saving report…' : `Submit report · Earn R ${job.pay.toLocaleString()}`}
         </button>
