@@ -452,12 +452,12 @@ function Ring(props) {
   return h('div', {style:{flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}},  /* showLabel=true adds sub text */
     h('svg', {width:sz, height:sz, viewBox:'0 0 '+sz+' '+sz,
               role:'img', 'aria-label':'Condition score: '+sc+' out of 100 — '+m.sub},
-      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:dark?'#2A2B30':'#C4C4C9',strokeWidth:sw}),
+      h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:dark?'#2A2B30':'var(--mt-chip)',strokeWidth:sw}),
       h('circle', {cx:cx,cy:cy,r:r,fill:'none',stroke:strokeCol,strokeWidth:sw,
                    strokeDasharray:cir+' '+cir,strokeDashoffset:cir-fill,strokeLinecap:'round',
                    transform:'rotate(-90 '+cx+' '+cy+')',
                    style:{'--ring-cir':cir,'--ring-gap':cir-fill,strokeDashoffset:cir-fill,animation:'ring-draw .85s cubic-bezier(.22,1,.36,1) both'}}),
-      h('text', {x:cx,y:cy,textAnchor:'middle',dominantBaseline:'central',fill:dark?'#fff':'#0A0A0B',fontSize:sz*.28,fontWeight:700,fontFamily:"'Poppins',sans-serif",letterSpacing:'-.03em'}, sc)),
+      h('text', {x:cx,y:cy,textAnchor:'middle',dominantBaseline:'central',style:{fill:dark?'#fff':'var(--mt-text)'},fontSize:sz*.28,fontWeight:700,fontFamily:"'Poppins',sans-serif",letterSpacing:'-.03em'}, sc)),
     props.showLabel && h('span', {style:{fontSize:10,fontWeight:700,color:m.col,textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap'}}, m.sub));
 }
 
@@ -546,11 +546,11 @@ function BackBtn(props) {
   return h('button', {
     onClick:function(){ haptic('selection'); props.onClick(); },
     'aria-label': 'Go back',
-    style:{width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,.92)',border:'1px solid #D0D0D4',
+    style:{width:38,height:38,borderRadius:'50%',background:'var(--mt-card)',border:0,color:'var(--mt-text)',boxShadow:'var(--mt-shadow)',
       display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
       marginBottom: props.mb != null ? props.mb : 20}},
     h('svg',{width:16,height:16,viewBox:'0 0 16 16',fill:'none','aria-hidden':'true'},
-      h('path',{d:'M10 3L5 8L10 13',stroke:C.t,strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'})));
+      h('path',{d:'M10 3L5 8L10 13',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'})));
 }
 
 /* FIX: Proper SVG ✕ icon — replaces the bare 'x' character */
@@ -1132,7 +1132,7 @@ function SearchScreen(props) {
                     h('div',{style:{flex:1,marginRight:12}},
                       h('p',{style:{fontSize:11,fontWeight:700,color:C.t3,textTransform:'uppercase',letterSpacing:'.07em',marginBottom:6}}, 'Vehicle'),
                       h('p',{style:{fontSize:20,fontWeight:800,color:C.t,letterSpacing:'-.03em',marginBottom:4}}, result.year+' '+result.make+' '+result.model),
-                      h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}}, result.vin+' · '+result.colour+' · '+result.mileage.toLocaleString()+' km'),
+                      h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginBottom:10}}, [result.vin,result.colour,result.mileage!=null?Number(result.mileage).toLocaleString()+' km':null].filter(Boolean).join(' · ')),
                       h('div',{style:{display:'flex',gap:6,flexWrap:'wrap'}},
                         h(Tag,{label:result.engine,      bg:C.s3,c:C.t2}),
                         h(Tag,{label:result.transmission,bg:C.s3,c:C.t2}))),
@@ -1218,7 +1218,7 @@ function SearchScreen(props) {
                     hist.odo.map(function(o,i){
                       return h('div',{key:i,style:{display:'flex',justifyContent:'space-between',marginBottom:i<hist.odo.length-1?8:0}},
                         h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3}}, o.date),
-                        h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}}, o.km.toLocaleString()+' km'));
+                        h('p',{style:{fontSize:'var(--fs-caption)',fontWeight:700,color:C.t}}, Number(o.km||0).toLocaleString()+' km'));
                     })))),
 
               hist && !hist.found && h('div',{style:{textAlign:'center',padding:'44px 0'},className:'fi'},
@@ -1826,7 +1826,7 @@ function ReportScreen(props) {
         h(Ring,{score:insp.score,size:74,showLabel:true})),
       h(Card,{style:{marginBottom:12}},
         h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',gap:12}},
-          h(Av,{label:'LC',size:42}),
+          h(Av,{label:(insp.inspector||'CV').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase(),size:42}),
           h('div',{style:{flex:1}},
             h('p',{style:{fontWeight:700,fontSize:'var(--fs-body)',color:C.t}},insp.inspector||'CheckVertical Inspector'),
             h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,marginTop:2}},insp.date||'Inspection report')),
