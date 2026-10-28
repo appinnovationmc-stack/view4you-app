@@ -38,7 +38,8 @@ export function payfastConfig() {
     notifyUrl: Deno.env.get('PAYFAST_NOTIFY_URL') ?? '',
     sandbox: Deno.env.get('PAYFAST_SANDBOX') === 'true',
   }
-  const ok = !!(c.merchantId && c.merchantKey && c.returnUrl && c.cancelUrl && c.notifyUrl)
+  // A passphrase is mandatory outside the sandbox: without it the ITN signature can be forged from public fields.
+  const ok = !!(c.merchantId && c.merchantKey && c.returnUrl && c.cancelUrl && c.notifyUrl && (c.sandbox || c.passphrase))
   return { ...c, ok }
 }
 

@@ -11,7 +11,21 @@ Live: https://view4you-client.vercel.app
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Latest commit includes all screens (Booking, BookingDetail, DealerIndex, etc.) and `src/vite-env.d.ts`.
+## Apps in this repo
+
+| App | Dev | Build | Output |
+|-----|-----|-------|--------|
+| Customer / inspector app (Capacitor) | `npm run dev` | `npm run build` | `dist/` |
+| Admin console (`docs/ADMIN_CONSOLE.md`) | `npm run dev:admin` | `npm run build:admin` | `dist-admin/` |
+| Fleet portal (`fleet/README.md`) | `npm run dev:fleet` | `npm run build:fleet` | `dist-fleet/` |
+
+`npm test` runs the Postgres (PGlite) and PayFast test suites; `npm run lint` runs oxlint.
+
+## Edge Functions
+
+`supabase/functions/_shared` is the source of truth for the PayFast/Edge helpers. `create-report-payment` and
+`payfast-report-itn` keep self-contained copies: after editing `_shared`, run `node scripts/sync-edge-helpers.mjs`
+(`npm test` fails if a copy is stale). Function JWT settings live in `supabase/config.toml`.
 
 ## Run it on a phone (Android)
 ```

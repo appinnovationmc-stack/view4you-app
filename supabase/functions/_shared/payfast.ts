@@ -100,11 +100,17 @@ export function ipAllowed(ip: string | null | undefined, ranges: string[] = DEFA
   })
 }
 
-/** First entry of X-Forwarded-For (set by Supabase's edge), falling back to other proxy headers. */
+/**
+ * Caller IP. `cf-connecting-ip` is set by Cloudflare in front of Supabase's edge and cannot be supplied by the caller,
+ * so it wins. Otherwise fall back to the first X-Forwarded-For entry, then x-real-ip. The IP check is only one layer:
+ * signature and PayFast server confirmation remain the authoritative checks.
+ */
 export function clientIp(headers: { get(name: string): string | null }): string | null {
+  const cf = headers.get('cf-connecting-ip')
+  if (cf) return cf.trim()
   const xff = headers.get('x-forwarded-for')
   if (xff) return xff.split(',')[0].trim()
-  return headers.get('cf-connecting-ip') ?? headers.get('x-real-ip')
+  return headers.get('x-real-ip')
 }
 
 // ---- Amounts and references -----------------------------------------------------------------------------------

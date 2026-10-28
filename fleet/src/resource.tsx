@@ -79,7 +79,7 @@ export function FieldInput({ f, value, onChange, lk, ctx, recordId }: { f: Field
 function FormModal({ def, ctx, row, fixed, onClose, onSaved }: { def: ResourceDef; ctx: Ctx; row: api.Row | null; fixed: api.Row; onClose: () => void; onSaved: () => void }) {
   const mode = row ? 'edit' : 'create'
   const recordId = useMemo(() => (row?.id as string) ?? crypto.randomUUID(), [row])
-  const [values, setValues] = useState<api.Row>(() => ({ ...(def.defaults ?? {}), ...(row ?? {}), ...fixed }))
+  const [values, setValues] = useState<api.Row>(() => ({ ...def.defaults, ...row, ...fixed }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fields = def.fields.filter((f) => !(mode === 'edit' && f.createOnly) && !(f.key in fixed))
