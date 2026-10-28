@@ -1345,9 +1345,9 @@ function BookScreen(props) {
     bar(guest?'Continue':'Find nearby inspectors',!!ready,function(){
       if (guest) { props.gate('book','Create a free account to see inspectors near you and pay. Everything you entered is kept.'); return; }
       setChoosing(true);
-      var locPromise=geo?Promise.resolve(geo):getUserLocation();
+      var locPromise=geo?Promise.resolve(geo):getUserLocation().catch(function(){ return null; }); /* no location is fine: inspectors are still listed */
       locPromise.then(function(pos){
-        setGeo(pos);
+        if (pos) setGeo(pos);
         return Promise.all([Data.fetchOnlineInspectors(),Data.fetchOfflineInspectors()]);
       }).then(function(rows){
         INSPECTORS=rows[0].map(mapInspector).concat(rows[1].map(mapInspector));
