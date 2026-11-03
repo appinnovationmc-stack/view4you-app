@@ -6,6 +6,32 @@ const base = () => rowDefaults()
 const set = (items: ReportItem[], s: string, c: string, condition: ReportItem['condition'], explanation = '') =>
   items.map(i => (i.section === s && i.component === c ? { ...i, condition, explanation } : i))
 
+const EST = [
+  { key: 'drive_system.brake_lines', label: 'Replace brake line', low: 800, high: 2500, premium_factor: 1.4 },
+  { key: 'tyre.replace', label: 'Replace tyre', low: 900, high: 3500, premium_factor: 1.5 },
+  { key: 'drive_system.chassis', label: 'Chassis repair', low: null, high: null, premium_factor: 1.5 },
+]
+describe('repair estimates', () => {
+  it('prices an issue and totals fix-now and fix-soon', () => {
+    const s = buildSummary(set(base(), 'drive_system', 'brake_lines', 'poor'), [], [{ position: 'Front Left', tread_mm: 0.5 }], CHECKLIST, { rows: EST, make: 'Toyota' })
+    expect(s.total).toEqual({ low: 1700, high: 6000 }); expect(s.issues[0].cost).toMatchObject({ low: 800, high: 2500 })
+  })
+  it('applies the premium factor for premium makes', () => {
+    const s = buildSummary(set(base(), 'drive_system', 'brake_lines', 'poor'), [], [], CHECKLIST, { rows: EST, make: 'BMW' })
+    expect(s.total).toEqual({ low: 1100, high: 3500 })
+  })
+  it('counts a tyre only once when it is both measured and marked poor', () => {
+    const s = buildSummary(set(base(), 'wheels', 'fl_tyre', 'poor'), [], [{ position: 'Front Left', tread_mm: 0.5 }], CHECKLIST, { rows: EST })
+    expect(s.total).toEqual({ low: 900, high: 3500 })
+  })
+  it('never guesses a price: unpriced and quote-only items are flagged', () => {
+    const s = buildSummary(set(base(), 'drive_system', 'chassis', 'poor'), [], [], CHECKLIST, { rows: EST })
+    expect(s.total).toBeUndefined(); expect(s.quotesNeeded).toBe(1)
+    const none = buildSummary(set(base(), 'interior', 'seats', 'poor'), [], [], CHECKLIST, { rows: EST })
+    expect(none.total).toBeUndefined(); expect(none.issues[0].cost).toBeUndefined()
+  })
+})
+
 describe('buildSummary', () => {
   it('is a good buy when nothing is wrong', () => {
     const s = buildSummary(base(), [], [], CHECKLIST)

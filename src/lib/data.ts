@@ -8,6 +8,7 @@ import type {
   Booking, Inspection, InspectionFinding, ReportPurchase, AppNotification,
   UserRole, FindingStatus, VenueKind, BookingOptions, TestingStation, ReportExtras, RoadworthyCertificate,
 } from '../types'
+import type { RepairEstimate } from './reportSummary'
 import { evaluate, checklistForTier, type Measurement, type ReportItem, type ReportPhoto, type Tyre } from './reportTemplate'
 import { deriveFindings, scoreFromFindings, buildVerdictText } from './reportMapping'
 import type { ReportViewProps } from '../ReportView'
@@ -464,6 +465,12 @@ export async function uploadReportPhotos(inspectionId: string, photos: PhotoUplo
 }
 
 /** Loads a full detailed report for ReportView. Photos come back as short-lived signed URLs. */
+export async function fetchRepairEstimates(): Promise<RepairEstimate[]> {
+  const { data, error } = await supabase.from('repair_estimates').select('key,label,low,high,premium_factor')
+  if (error) throw error
+  return (data ?? []) as RepairEstimate[]
+}
+
 export async function fetchDetailedReport(inspectionId: string): Promise<ReportViewProps | null> {
   const { data: insp, error } = await supabase
     .from('inspections')
@@ -501,6 +508,7 @@ export async function fetchDetailedReport(inspectionId: string): Promise<ReportV
       odometer_km: insp.odometer_km ?? undefined,
       colour: v?.colour ?? undefined, transmission: v?.transmission ?? undefined,
     },
+    estimates: await fetchRepairEstimates().catch(() => []),
     items: (items.data ?? []) as ReportItem[],
     measurements: (meas.data ?? []) as Measurement[],
     tyres: (tyres.data ?? []) as Tyre[],

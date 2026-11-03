@@ -7,6 +7,13 @@ import { LIMITS, labelFor, type Condition, type Measurement, type ReportItem, ty
 export type Urgency = 'now' | 'soon' | 'watch'
 export type VerdictLevel = 'good' | 'negotiate' | 'avoid'
 
+export interface RepairEstimate { key: string; label: string; low: number | null; high: number | null; premium_factor: number }
+export interface Cost { low: number; high: number; label: string }
+
+const PREMIUM_MAKES = ['bmw', 'mercedes', 'audi', 'volvo', 'land rover', 'range rover', 'jaguar', 'porsche', 'lexus', 'mini', 'alfa']
+export const isPremiumMake = (make?: string | null) => !!make && PREMIUM_MAKES.some(m => make.toLowerCase().includes(m))
+const round50 = (n: number) => Math.round(n / 50) * 50
+
 export interface Issue {
   key: string
   urgency: Urgency
@@ -15,6 +22,9 @@ export interface Issue {
   why: string          // why it matters, in plain language
   note?: string        // the inspector's own words, or a measured fact when fact is true
   fact?: boolean
+  cost?: Cost          // estimated repair range in rand
+  quote?: boolean      // no price on file: a mechanic quote is needed
+  costGroup?: string   // issues that are the same repair (e.g. one tyre) are only counted once in the total
 }
 export interface Summary {
   level: VerdictLevel
@@ -23,6 +33,8 @@ export interface Summary {
   issues: Issue[]
   counts: { now: number; soon: number; watch: number; ok: number }
   notInspectedSafety: number
+  total?: { low: number; high: number }  // fix now + fix soon, priced items only
+  quotesNeeded: number
 }
 
 const SECTION_WHY: Record<string, string> = {
@@ -99,7 +111,9 @@ export function plainWhy(section: string, component: string): string {
   return WHY[`${section}.${component}`] ?? SECTION_WHY[section] ?? 'This was flagged by the inspector.'
 }
 
-export function buildSummary(items: ReportItem[], tests: Measurement[], tyres: Tyre[], checklist: Section[]): Summary {
+const TYRE_ITEM_POS: Record<string, string> = { fl_tyre: 'Front Left', fr_tyre: 'Front Right', rl_tyre: 'Rear Left', rr_tyre: 'Rear Right' }
+
+export function buildSummary(items: ReportItem[], tests: Measurement[], tyres: Tyre[], checklist: Section[], est?: { rows: RepairEstimate[]; make?: string | null }): Summary {
   const issues: Issue[] = []
   let ok = 0
 
@@ -140,6 +154,25 @@ export function buildSummary(items: ReportItem[], tests: Measurement[], tyres: T
     }
   }
 
+  const rows = new Map((est?.rows ?? []).map(r => [r.key, r] as const))
+  const premium = isPremiumMake(est?.make)
+  const price = (i: Issue, key: string, group?: string) => {
+    const r = rows.get(key)
+    if (!r) { if (rows.size) i.quote = true; return }
+    if (r.low == null || r.high == null) { i.quote = true; return }
+    const f = premium ? r.premium_factor : 1
+    i.cost = { low: round50(r.low * f), high: round50(r.high * f), label: r.label }
+    if (group) i.costGroup = group
+  }
+  for (const i of issues) {
+    if (i.key.startsWith('tyre.')) price(i, 'tyre.replace', i.key)
+    else if (i.key.startsWith('brake.')) price(i, 'test.brake', i.key)
+    else if (i.key.startsWith('shock.')) price(i, 'test.shock', i.key)
+    else if (i.key.startsWith('slip.')) price(i, 'test.slip', i.key)
+    else if (i.key.startsWith('wheels.') && TYRE_ITEM_POS[i.key.slice(7)]) price(i, 'tyre.replace', `tyre.${TYRE_ITEM_POS[i.key.slice(7)]}`)
+    else price(i, i.key)
+  }
+
   const rank: Record<Urgency, number> = { now: 0, soon: 1, watch: 2 }
   issues.sort((a, b) => rank[a.urgency] - rank[b.urgency])
   const counts = { now: 0, soon: 0, watch: 0, ok }
@@ -164,5 +197,14 @@ export function buildSummary(items: ReportItem[], tests: Measurement[], tyres: T
     level = 'good'; headline = 'Good buy'
     reason = counts.watch ? `No safety problems found. ${counts.watch} small thing${counts.watch === 1 ? '' : 's'} to keep an eye on.` : 'No problems were found in what was inspected.'
   }
-  return { level, headline, reason, issues, counts, notInspectedSafety }
+  const seenGroup = new Set<string>()
+  let lo = 0, hi = 0, priced = 0, quotesNeeded = 0
+  for (const i of issues) {
+    if (i.urgency === 'watch') continue
+    if (i.quote) { quotesNeeded++; continue }
+    if (!i.cost) continue
+    if (i.costGroup) { if (seenGroup.has(i.costGroup)) continue; seenGroup.add(i.costGroup) }
+    lo += i.cost.low; hi += i.cost.high; priced++
+  }
+  return { level, headline, reason, issues, counts, notInspectedSafety, quotesNeeded, total: priced ? { low: lo, high: hi } : undefined }
 }

@@ -1,4 +1,4 @@
-import { buildSummary, type Issue } from './lib/reportSummary'
+import { buildSummary, type Issue, type RepairEstimate } from './lib/reportSummary'
 import {
   CONDITION_LABEL, TYRE_POSITIONS, evaluate, labelFor, summariseSection, checklistForTier,
   type Measurement, type ReportItem, type ReportPhoto, type Tyre,
@@ -8,6 +8,7 @@ export interface ReportViewProps {
   reportNumber: string
   tierName?: string
   vehicle: { make?: string; model?: string; year?: number | string; odometer_km?: number; colour?: string; fuel?: string; transmission?: string; body?: string; vin?: string; plate?: string }
+  estimates?: RepairEstimate[]
   items: ReportItem[]
   measurements: Measurement[]
   tyres: Tyre[]
@@ -50,6 +51,14 @@ const css = `
 .rv .issue.now .st{color:var(--red)}.rv .issue.soon .st{color:var(--amber)}
 .rv .issue p{margin:0 0 6px;color:var(--mt-text-2);font-size:13px}
 .rv .issue .nt{padding:8px 12px;border-radius:10px;background:var(--mt-chip);color:var(--mt-text);font-size:13px}
+.rv .cost{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;margin:0 0 8px;padding:10px 12px;border-radius:10px;background:var(--mt-bg)}
+.rv .cost span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt-text-3);width:100%}
+.rv .cost b{font-size:16px;letter-spacing:-.01em}.rv .cost em{font-style:normal;font-size:12px;color:var(--mt-text-2)}
+.rv .total{margin-top:14px;padding-top:14px;border-top:1px solid var(--mt-chip)}
+.rv .total span{display:block;font-size:12px;color:var(--mt-text-2)}
+.rv .total b{display:block;font-size:22px;letter-spacing:-.03em;margin:2px 0}
+.rv .total em{display:block;font-style:normal;font-size:13px;color:var(--mt-text-2)}
+.rv .total .est,.rv .verdict .total small.est{display:block;margin-top:8px;font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--mt-text-3)}
 .rv .grp{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt-text-3);margin:22px 0 4px}
 .rv details.fold{margin:12px 0;border-radius:16px;background:var(--mt-card);box-shadow:var(--mt-shadow)}
 .rv details.fold>summary{cursor:pointer;padding:16px 18px;font-weight:650;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:44px}
@@ -68,7 +77,7 @@ const css = `
   .rv h2{break-after:avoid}
   .rv .tw,.rv .box,.rv .verdict,.rv .issue,.rv details.fold{background:#fff;color:#111;border:1px solid #cfcfcf;box-shadow:none;border-radius:12px;overflow:visible;break-inside:avoid}
   .rv .verdict p,.rv .issue p,.rv .issue .st,.rv .grp,.rv .cap{color:#333}
-  .rv .issue .nt{background:#f1f1f1;color:#111}
+  .rv .issue .nt,.rv .cost{background:#f1f1f1;color:#111}.rv .cost span,.rv .cost em,.rv .total span,.rv .total em,.rv .total .est{color:#444}.rv .total{border-top:1px solid #ddd}
   .rv .tally span{background:#eee;color:#222}.rv .tally .t-now{background:#fbe4e1;color:#b42318}.rv .tally .t-soon{background:#fbeccf;color:#8a5200}.rv .tally .t-ok{background:#dff3e8;color:#087443}
   .rv .issue.now .st{color:#b42318}.rv .issue.soon .st{color:#8a5200}.rv .verdict{border-left:6px solid #087443}.rv .verdict.negotiate{border-left-color:#c27a00}.rv .verdict.avoid{border-left-color:#b42318}.rv .issue.now{border-left:4px solid #b42318}.rv .issue.soon{border-left:4px solid #c27a00}
   .rv table.wide{min-width:0}
@@ -89,13 +98,14 @@ export default function ReportView(p: ReportViewProps) {
   const photosFor = (s: string) => (p.photos ?? []).filter(x => x.section === s)
   const tests = (t: Measurement['test']) => p.measurements.filter(m => m.test === t)
   const veh = p.vehicle
-  const sum = buildSummary(p.items, p.measurements, p.tyres, activeChecklist)
+  const sum = buildSummary(p.items, p.measurements, p.tyres, activeChecklist, { rows: p.estimates ?? [], make: veh.make })
   const printAll = () => { document.querySelectorAll<HTMLDetailsElement>('.rv details').forEach(d => { d.open = true }); window.print() }
+  const rand = (n: number) => 'R\u00a0' + n.toLocaleString('en-ZA')
   const group = (u: Issue['urgency'], title: string) => {
     const list = sum.issues.filter(i => i.urgency === u)
     if (!list.length) return null
     return <section key={u}><div className="grp">{title}</div>{list.map(i => (
-      <div key={i.key} className={`issue ${i.urgency}`}><b>{i.title}</b><div className="st">{i.state}</div><p>{i.why}</p>{i.note && <div className="nt">{i.fact ? 'Measured: ' : 'Inspector: '}{i.note}</div>}</div>))}</section>
+      <div key={i.key} className={`issue ${i.urgency}`}><b>{i.title}</b><div className="st">{i.state}</div><p>{i.why}</p>{i.cost && <div className="cost"><span>Estimated repair</span><b>{rand(i.cost.low)} to {rand(i.cost.high)}</b><em>{i.cost.label}</em></div>}{i.quote && i.urgency !== 'watch' && <div className="cost"><span>Estimated repair</span><b>Quote needed</b><em>A mechanic needs to look at this first</em></div>}{i.note && <div className="nt">{i.fact ? 'Measured: ' : 'Inspector: '}{i.note}</div>}</div>))}</section>
   }
 
   return (
@@ -111,6 +121,7 @@ export default function ReportView(p: ReportViewProps) {
         <small>Our verdict</small>
         <b>{sum.headline}</b>
         <p>{sum.reason}</p>
+        {sum.total && <div className="total"><span>Repairs to expect (fix now + fix soon)</span><b>{rand(sum.total.low)} to {rand(sum.total.high)}</b>{sum.quotesNeeded > 0 && <em>plus {sum.quotesNeeded} item{sum.quotesNeeded === 1 ? '' : 's'} needing a mechanic's quote</em>}<small className="est">Estimates only, based on typical South African workshop prices. Get a quote before you agree to any repair.</small></div>}
         <div className="tally">
           {sum.counts.now > 0 && <span className="t-now">{sum.counts.now} fix now</span>}
           {sum.counts.soon > 0 && <span className="t-soon">{sum.counts.soon} fix soon</span>}
