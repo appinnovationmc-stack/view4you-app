@@ -158,7 +158,7 @@ export function buildSummary(items: ReportItem[], tests: Measurement[], tyres: T
   const premium = isPremiumMake(est?.make)
   const price = (i: Issue, key: string, group?: string) => {
     const r = rows.get(key)
-    if (!r) { if (rows.size) i.quote = true; return }
+    if (!r) { i.quote = true; return }
     if (r.low == null || r.high == null) { i.quote = true; return }
     const f = premium ? r.premium_factor : 1
     i.cost = { low: round50(r.low * f), high: round50(r.high * f), label: r.label }

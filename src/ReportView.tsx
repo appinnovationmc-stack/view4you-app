@@ -121,7 +121,7 @@ export default function ReportView(p: ReportViewProps) {
         <small>Our verdict</small>
         <b>{sum.headline}</b>
         <p>{sum.reason}</p>
-        {sum.total && <div className="total"><span>Repairs to expect (fix now + fix soon)</span><b>{rand(sum.total.low)} to {rand(sum.total.high)}</b>{sum.quotesNeeded > 0 && <em>plus {sum.quotesNeeded} item{sum.quotesNeeded === 1 ? '' : 's'} needing a mechanic's quote</em>}<small className="est">Estimates only, based on typical South African workshop prices. Get a quote before you agree to any repair.</small></div>}
+        {(sum.total || sum.quotesNeeded > 0) && <div className="total">{sum.total && <><span>Repairs to expect (fix now + fix soon)</span><b>{rand(sum.total.low)} to {rand(sum.total.high)}</b></>}{!sum.total && <span>Repair costs</span>}{sum.quotesNeeded > 0 && <em>{sum.total ? 'plus ' : ''}{sum.quotesNeeded} item{sum.quotesNeeded === 1 ? '' : 's'} need{sum.quotesNeeded === 1 ? 's' : ''} a mechanic's quote</em>}<small className="est">Estimates only, from workshop prices. Get a quote before you agree to any repair.</small></div>}
         <div className="tally">
           {sum.counts.now > 0 && <span className="t-now">{sum.counts.now} fix now</span>}
           {sum.counts.soon > 0 && <span className="t-soon">{sum.counts.soon} fix soon</span>}

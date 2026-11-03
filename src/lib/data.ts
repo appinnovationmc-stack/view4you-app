@@ -466,7 +466,7 @@ export async function uploadReportPhotos(inspectionId: string, photos: PhotoUplo
 
 /** Loads a full detailed report for ReportView. Photos come back as short-lived signed URLs. */
 export async function fetchRepairEstimates(): Promise<RepairEstimate[]> {
-  const { data, error } = await supabase.from('repair_estimates').select('key,label,low,high,premium_factor')
+  const { data, error } = await supabase.from('repair_estimates').select('key,label,low,high,premium_factor').eq('verified', true)
   if (error) throw error
   return (data ?? []) as RepairEstimate[]
 }
