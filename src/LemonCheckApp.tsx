@@ -5,6 +5,7 @@ import { redirectToPayFast } from './lib/payfastRedirect';
 import InspectionForm from './InspectionForm';
 import ReportView from './ReportView';
 import { WithdrawScreen, SupportScreen, DocumentsScreen } from './AccountScreens';
+import { WorkshopInboxScreen, WorkshopQuoteScreen, WorkshopQuotesScreen, WorkshopProfileScreen } from './WorkshopScreens';
 
 var h = React.createElement;
 
@@ -561,7 +562,12 @@ function Nav(props) {
     {id:'iearnings', l:'Earnings', d:'M12 8c3.9 0 7-1.3 7-3s-3.1-3-7-3-7 1.3-7 3 3.1 3 7 3zM5 5v4c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 9v4c0 1.7 3.1 3 7 3s7-1.3 7-3V9M5 13v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4'},
     {id:'iprofile',  l:'Profile',  d:'M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21M12 11A4 4 0 1 0 12 3A4 4 0 0 0 12 11Z'},
   ];
-  var tabs = role === 'insp' ? iTabs : bTabs;
+  var wTabs = [
+    {id:'wrequests', l:'Requests', d:'M9 5H7C5.9 5 5 5.9 5 7V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V7C19 5.9 18.1 5 17 5H15M9 5A2 2 0 0 0 11 7H13A2 2 0 0 0 15 5M9 5A2 2 0 0 1 11 3H13A2 2 0 0 1 15 5'},
+    {id:'wquotes',   l:'My quotes', d:'M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2V4zM9 9h6M9 13h6'},
+    {id:'wprofile',  l:'Profile',  d:'M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21M12 11A4 4 0 1 0 12 3A4 4 0 0 0 12 11Z'},
+  ];
+  var tabs = role === 'ws' ? wTabs : role === 'insp' ? iTabs : bTabs;
 
   return h('div',{className:'lc-nav-wrap'},
     h('nav',{role:'navigation','aria-label':'Main navigation',className:'lc-nav'},
@@ -626,7 +632,7 @@ function AuthScreen(props) {
   function submit() {
     setErr(''); setLoading(true);
     var p = mode === 'signup'
-      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : 'buyer', name: name || email.split('@')[0], tierIds: pickedRole === 'insp' ? selectedTierIds : [], canMeasure: pickedRole === 'insp' && canMeasure })
+      ? Data.signUp({ email: email, password: pw, role: pickedRole === 'insp' ? 'inspector' : pickedRole === 'ws' ? 'workshop' : 'buyer', name: name || email.split('@')[0], tierIds: pickedRole === 'insp' ? selectedTierIds : [], canMeasure: pickedRole === 'insp' && canMeasure })
       : Data.signIn(email, pw);
     p.then(function(profile){ setLoading(false); props.login(profile); })
      .catch(function(e){ setLoading(false); setErr((e && e.message) || 'Something went wrong.'); });
@@ -644,6 +650,9 @@ function AuthScreen(props) {
       h('button',{className:'lc-role light',onClick:function(){haptic('selection');setPickedRole('insp');},'aria-label':'Continue as inspector'},
         h('span',null, h('b',null,"I'm an inspector"), h('small',null,'Accept jobs. Earn per inspection + resales.')),
         h(ArrowDot,{size:42})),
+      h('button',{className:'lc-role light',onClick:function(){haptic('selection');setPickedRole('ws');},'aria-label':'Continue as a partner workshop'},
+        h('span',null, h('b',null,"I'm a workshop"), h('small',null,'Quote on repairs found in reports. Win jobs.')),
+        h(ArrowDot,{size:42})),
       props.onBrowse && h('button',{type:'button',className:'lc-link',style:{display:'block',margin:'4px auto 0'},onClick:props.onBrowse},'Browse without an account'),
       h('p',{style:{textAlign:'center',fontSize:13,color:'var(--mt-text-3)',marginTop:18}}, 'Secured by PayFast \u00b7 South Africa')));
 
@@ -657,7 +666,7 @@ function AuthScreen(props) {
           h('path',{d:'M10 3L5 8L10 13',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}))),
       h('div',{style:{marginTop:48}}, h(Logo,{size:56})),
       h('h1',{className:'lc-title',style:{marginTop:24}}, signup?'Create':'Log into', h('br'), 'your account'),
-      h('p',{className:'lc-sub',style:{marginBottom:40}}, pickedRole==='buyer'?'Buyer account':'Inspector account'),
+      h('p',{className:'lc-sub',style:{marginBottom:40}}, pickedRole==='buyer'?'Buyer account':pickedRole==='ws'?'Partner workshop account':'Inspector account'),
       signup && h('input',{className:'lc-line',value:name,onChange:function(e){setName(e.target.value);},placeholder:'Full name','aria-label':'Full name',autoComplete:'name'}),
       signup && pickedRole==='insp' && h('div',{style:{margin:'4px 0 22px'}},
         h('p',{style:{fontSize:12,fontWeight:800,letterSpacing:'.08em',textTransform:'uppercase',color:C.t2,marginBottom:8}},'Which inspections can you offer?'),
@@ -2102,6 +2111,7 @@ function App() {
   var _user  = useState(null);         var user    = _user[0];  var setUser    = _user[1];
   var _onb   = useState(false);        var showOnb = _onb[0];   var setShowOnb = _onb[1];
   var _car   = useState(null);         var carData = _car[0];   var setCarData = _car[1];
+  var _wreq  = useState(null);         var wreq    = _wreq[0];  var setWreq    = _wreq[1];
   var _job   = useState(null);         var job     = _job[0];   var setJob     = _job[1];
   var _notifs= useState(NOTIFS_INIT);  var notifs  = _notifs[0];var setNotifs  = _notifs[1];
   var _toast = useState(null);         var toast   = _toast[0]; var setToast   = _toast[1];
@@ -2132,7 +2142,7 @@ function App() {
     Data.getCurrentProfile().then(function(profile){
       if (cancelled) return;
       if (profile) {
-        var r = profile.role === 'inspector' ? 'insp' : 'buyer';
+        var r = profile.role === 'inspector' ? 'insp' : profile.role === 'workshop' ? 'ws' : 'buyer';
         var adapted = Object.assign({}, profile, {
           first: profile.first_name, exp: profile.experience,
           jobs: profile.jobs_completed, earned: 0, rating: Number(profile.rating || 5),
@@ -2143,6 +2153,8 @@ function App() {
         if (r === 'buyer') {
           loadBuyerData(profile);
           setScreen(readPendingBooking() ? 'book' : 'home'); // returning from PayFast resumes the booking status
+        } else if (r === 'ws') {
+          setScreen('wrequests');
         } else {
           loadInspectorData(profile);
           setScreen('ijobs');
@@ -2228,22 +2240,23 @@ function App() {
   }
 
   function login(profile, opts){
-    var r = profile.role === 'inspector' ? 'insp' : 'buyer';
+    var r = profile.role === 'inspector' ? 'insp' : profile.role === 'workshop' ? 'ws' : 'buyer';
     var adapted = Object.assign({}, profile, {
       first: profile.first_name, exp: profile.experience,
       jobs: profile.jobs_completed, earned: 0, rating: Number(profile.rating || 5),
     });
     setRole(r); setUser(adapted); setShowOnb(!(opts && opts.skipOnb));
-    if (r === 'buyer') loadBuyerData(profile); else loadInspectorData(profile);
+    if (r === 'buyer') loadBuyerData(profile); else if (r === 'insp') loadInspectorData(profile);
   }
   function onSheetAuthed(profile){
     var next = sheet && sheet.next;
     login(profile, {skipOnb:true});
     setSheet(null);
     if (profile.role === 'inspector') setScreen('ijobs');
+    else if (profile.role === 'workshop') setScreen('wrequests');
     else setScreen(next || 'home');
   }
-  function doneOnb(){ setShowOnb(false); setScreen(role==='buyer'?'home':'ijobs'); }
+  function doneOnb(){ setShowOnb(false); setScreen(role==='buyer'?'home':role==='ws'?'wrequests':'ijobs'); }
   function logout(){
     Data.signOut().then(function(){
       // Reset the UI only after Supabase confirms the local session was cleared.
@@ -2285,12 +2298,16 @@ function App() {
     ijob:      function(){ return h(InspectionForm, {job:job||JOBS[0], nav:nav, showToast:showToast, onSubmitted:function(){ if (user) loadInspectorData(user); }}); },
     iearnings: function(){ return h(InspEarnScreen,sh); },
     iprofile:  function(){ return h(InspProfileScreen,sh); },
+    wrequests: function(){ return h('div',null,h(WorkshopInboxScreen, Object.assign({},sh,{ui:ui,setWreq:setWreq})),h(Nav,{sc:'wrequests',nav:nav,role:'ws'})); },
+    wquote:    function(){ return h(WorkshopQuoteScreen, Object.assign({},sh,{ui:ui,request:wreq})); },
+    wquotes: function(){ return h('div',null,h(WorkshopQuotesScreen, Object.assign({},sh,{ui:ui})),h(Nav,{sc:'wquotes',nav:nav,role:'ws'})); },
+    wprofile: function(){ return h('div',null,h(WorkshopProfileScreen, Object.assign({},sh,{ui:ui})),h(Nav,{sc:'wprofile',nav:nav,role:'ws'})); },
     withdraw:  function(){ return h(WithdrawScreen,  Object.assign({},sh,{ui:ui,backTo:homeOf})); },
-    support:   function(){ return h(SupportScreen,   Object.assign({},sh,{ui:ui,backTo:role === 'insp' ? 'iprofile' : 'earn'})); },
+    support:   function(){ return h(SupportScreen,   Object.assign({},sh,{ui:ui,backTo:role === 'ws' ? 'wprofile' : role === 'insp' ? 'iprofile' : 'earn'})); },
     documents: function(){ return h(DocumentsScreen, Object.assign({},sh,{ui:ui,backTo:'iprofile'})); },
   };
 
-  var isModal = ['book','report','ijob','withdraw','support','documents'].indexOf(screen) !== -1;
+  var isModal = ['book','report','ijob','withdraw','support','documents','wquote'].indexOf(screen) !== -1;
   var animCls = isModal ? 'sheet-up' : 'screen-push';
   return h('div',null,
     h(Toast,{t:toast}),
