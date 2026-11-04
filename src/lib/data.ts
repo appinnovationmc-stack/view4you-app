@@ -665,3 +665,32 @@ export async function demoConfirmReport(inspectionId: string): Promise<void> {
   const { error } = await supabase.rpc('demo_confirm_report', { p_inspection_id: inspectionId })
   if (error) throw new Error(error.message)
 }
+
+// ---------------------------------------------------------------------------
+// Workshops: repair quotes (all access goes through server functions)
+// ---------------------------------------------------------------------------
+export interface WorkshopDetails { business_name: string; area: string | null; address: string | null; services: string | null; brands: string | null }
+export interface RepairIssue { key: string; title: string; state: string; note: string }
+export interface WorkshopRequest {
+  id: string; vehicle_label: string; issues: RepairIssue[]; area: string; note: string | null; created_at: string; expires_at: string
+  buyer_first_name: string | null
+  my_quote: { id: string; total: number; days: number; note: string | null; status: string; lines: { key: string; price: number }[] } | null
+}
+export interface MyRepairQuote {
+  id: string; request_id: string; vehicle_label: string; area: string; issues: RepairIssue[]; total: number; days: number; note: string | null
+  status: 'submitted' | 'accepted' | 'rejected' | 'withdrawn'; valid_until: string; workshop_payout: number | null; payment_status: string; buyer_first_name: string | null
+}
+
+async function rpcJson<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(fn, args as never)
+  if (error) throw new Error(error.message)
+  return data as T
+}
+export const fetchMyWorkshopDetails = () => rpcJson<WorkshopDetails | null>('get_my_workshop_details')
+export const saveMyWorkshopDetails = (d: { business_name: string; area: string; address: string; services: string; brands: string }) =>
+  rpcJson<void>('save_my_workshop_details', { p_business_name: d.business_name, p_address: d.address, p_area: d.area, p_services: d.services, p_brands: d.brands })
+export const fetchOpenRepairRequests = () => rpcJson<WorkshopRequest[]>('list_open_repair_requests')
+export const submitRepairQuote = (q: { requestId: string; total: number; lines: { key: string; title: string; price: number }[]; days: number; note: string }) =>
+  rpcJson<unknown>('submit_repair_quote', { p_request_id: q.requestId, p_total: q.total, p_lines: q.lines, p_days: q.days, p_note: q.note })
+export const withdrawRepairQuote = (id: string) => rpcJson<void>('withdraw_repair_quote', { p_quote_id: id })
+export const fetchMyRepairQuotes = () => rpcJson<MyRepairQuote[]>('list_my_repair_quotes')

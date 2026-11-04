@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 import * as api from './api'
 import { AuditPage, BookingsPage, InspectorsPage, OverviewPage, PaymentsPage, type Page } from './pages'
 import { PayoutsPage, ReportsPage, SettingsPage, SupportPage } from './pages2'
-import { CertificatesPage, StationsPage } from './pages3'
+import { CertificatesPage, StationsPage, WorkshopsPage } from './pages3'
 import { ErrorBanner, useLoad } from './ui'
 import logoLight from '../../src/assets/brand/logo-light-bg.svg'
 import logoDark from '../../src/assets/brand/logo-dark-bg.svg'
@@ -48,6 +48,7 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
   const nav: { id: Page; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'inspectors', label: 'Inspectors', badge: (o?.inspectors_pending_approval ?? 0) + (o?.documents_pending ?? 0) },
+    { id: 'workshops', label: 'Workshops' },
     { id: 'bookings', label: 'Bookings' },
     { id: 'reports', label: 'Reports' },
     { id: 'payments', label: 'Refunds & payments', badge: (o?.refunds_due ?? 0) + (o?.payment_problems_7d ?? 0) },
@@ -76,6 +77,7 @@ function Console({ role, email }: { role: api.AdminRole; email: string }) {
       <main className="main" key={page + (filter ?? '')}>
         {page === 'overview' && <OverviewPage {...props} />}
         {page === 'inspectors' && <InspectorsPage {...props} />}
+        {page === 'workshops' && <WorkshopsPage canWrite={canWrite} />}
         {page === 'bookings' && <BookingsPage {...props} />}
         {page === 'reports' && <ReportsPage canWrite={canWrite} />}
         {page === 'payments' && <PaymentsPage {...props} />}

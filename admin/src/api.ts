@@ -175,3 +175,12 @@ export async function certificateUrl(path: string): Promise<string> {
   if (error || !data) throw new Error(error?.message ?? 'Could not open the file')
   return data.signedUrl
 }
+
+/* ───────── workshops ───────── */
+export interface WorkshopRow {
+  id: string; name: string; email: string; phone: string | null; business_name: string | null; area: string | null; address: string | null
+  services: string | null; brands: string | null; approved: boolean; created_at: string; quotes_sent: number; quotes_accepted: number
+}
+export const listWorkshops = (status: 'all' | 'pending' | 'approved') => rpc<WorkshopRow[]>('admin_list_workshops', { p_status: status })
+export const setWorkshopApproval = (id: string, approved: boolean, reason?: string) =>
+  rpc<void>('admin_set_workshop_approval', { p_workshop_id: id, p_approved: approved, p_reason: reason ?? null })

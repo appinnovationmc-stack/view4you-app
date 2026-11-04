@@ -1,6 +1,6 @@
 // CheckVertical domain types — mirror supabase/schema.sql exactly.
 
-export type UserRole = 'buyer' | 'inspector'
+export type UserRole = 'buyer' | 'inspector' | 'workshop'
 
 export interface Profile {
   id: string

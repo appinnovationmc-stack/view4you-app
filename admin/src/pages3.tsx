@@ -209,3 +209,55 @@ export function CertificatesPage({ canWrite }: PageProps) {
     </>
   )
 }
+
+/* ───────────────────────── Workshops ───────────────────────── */
+export function WorkshopsPage({ canWrite }: PageProps) {
+  const [status, setStatus] = useState<'all' | 'pending' | 'approved'>('all')
+  const { data, error, loading, reload } = useLoad(() => api.listWorkshops(status), [status])
+  const [suspend, setSuspend] = useState<api.WorkshopRow | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const approve = async (r: api.WorkshopRow) => {
+    setActionError(null)
+    try { await api.setWorkshopApproval(r.id, true); reload() } catch (e) { setActionError((e as Error).message) }
+  }
+  return (
+    <>
+      <Head title="Workshops" sub="Partner workshops quote on repairs found in reports. Only approved workshops see requests. Check their business before approving." onReload={reload} loading={loading} />
+      <div className="row" style={{ marginBottom: 12 }}>
+        <Tabs label="Show" value={status} onChange={(v) => setStatus(v as typeof status)} options={[{ value: 'all', label: 'All' }, { value: 'pending', label: 'Awaiting approval' }, { value: 'approved', label: 'Approved' }]} />
+      </div>
+      <ErrorBanner message={error ?? actionError} />
+      <div className="tablewrap">
+        {data && data.length === 0 ? <Empty>No workshops match.</Empty> : (
+          <table>
+            <thead><tr><th>Business</th><th>Contact</th><th>Area</th><th>Services</th><th>Quotes</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <tbody>
+              {data?.map((r) => (
+                <tr key={r.id}>
+                  <td><strong>{r.business_name ?? r.name}</strong><br /><span className="muted">{r.address ?? 'no address yet'}</span></td>
+                  <td>{r.email}<br /><span className="muted">{r.phone ?? 'no phone'}</span></td>
+                  <td>{r.area ?? '—'}</td>
+                  <td>{r.services ?? '—'}<br /><span className="muted">{r.brands ?? ''}</span></td>
+                  <td>{Number(r.quotes_sent)} sent · {Number(r.quotes_accepted)} accepted</td>
+                  <td>{r.approved ? <Pill value="approved" /> : <Pill value="pending" label="awaiting approval" />}</td>
+                  <td>{when(r.created_at)}</td>
+                  <td>
+                    {canWrite && (r.approved
+                      ? <button className="btn sm danger" onClick={() => setSuspend(r)}>Suspend</button>
+                      : <button className="btn sm primary" onClick={() => void approve(r)}>Approve</button>)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {suspend && (
+        <PromptModal title={`Suspend ${suspend.business_name ?? suspend.name}?`} danger multiline label="Reason" confirmLabel="Suspend"
+          description="They can no longer see requests or send quotes. Quotes already accepted are not cancelled."
+          onConfirm={async (reason) => { await api.setWorkshopApproval(suspend.id, false, reason); reload() }}
+          onClose={() => setSuspend(null)} />
+      )}
+    </>
+  )
+}
