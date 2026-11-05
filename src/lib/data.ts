@@ -694,3 +694,19 @@ export const submitRepairQuote = (q: { requestId: string; total: number; lines: 
   rpcJson<unknown>('submit_repair_quote', { p_request_id: q.requestId, p_total: q.total, p_lines: q.lines, p_days: q.days, p_note: q.note })
 export const withdrawRepairQuote = (id: string) => rpcJson<void>('withdraw_repair_quote', { p_quote_id: id })
 export const fetchMyRepairQuotes = () => rpcJson<MyRepairQuote[]>('list_my_repair_quotes')
+
+// Buyer side of repair quotes
+export interface BuyerRepairRequest {
+  id: string; inspection_id: string; vehicle_label: string; issues: RepairIssue[]; area: string; note: string | null
+  status: 'open' | 'accepted' | 'closed' | 'cancelled'; created_at: string; expires_at: string; accepted_quote_id: string | null; quote_count: number
+}
+export interface BuyerRepairQuote {
+  id: string; total: number; lines: { key: string; title?: string; price: number }[]; days: number; note: string | null
+  status: 'submitted' | 'accepted'; valid_until: string
+  workshop: { name: string; area: string | null; brands: string | null; rating: number | null; jobs: number | null }
+}
+export const createRepairRequest = (r: { inspectionId: string; issues: RepairIssue[]; area: string; note: string }) =>
+  rpcJson<unknown>('create_repair_request', { p_inspection_id: r.inspectionId, p_issues: r.issues, p_area: r.area, p_note: r.note })
+export const fetchMyRepairRequests = () => rpcJson<BuyerRepairRequest[]>('list_my_repair_requests')
+export const fetchRepairQuotes = (requestId: string) => rpcJson<BuyerRepairQuote[]>('list_repair_quotes', { p_request_id: requestId })
+export const acceptRepairQuote = (quoteId: string) => rpcJson<unknown>('accept_repair_quote', { p_quote_id: quoteId })
