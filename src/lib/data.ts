@@ -678,7 +678,7 @@ export interface WorkshopRequest {
 }
 export interface MyRepairQuote {
   id: string; request_id: string; vehicle_label: string; area: string; issues: RepairIssue[]; total: number; days: number; note: string | null
-  status: 'submitted' | 'accepted' | 'rejected' | 'withdrawn'; valid_until: string; workshop_payout: number | null; payment_status: string; buyer_first_name: string | null
+  status: 'submitted' | 'accepted' | 'rejected' | 'withdrawn'; valid_until: string; workshop_payout: number | null; payment_status: string; buyer_first_name: string | null; buyer_phone?: string | null
 }
 
 async function rpcJson<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
@@ -703,7 +703,7 @@ export interface BuyerRepairRequest {
 export interface BuyerRepairQuote {
   id: string; total: number; lines: { key: string; title?: string; price: number }[]; days: number; note: string | null
   status: 'submitted' | 'accepted'; valid_until: string
-  workshop: { name: string; area: string | null; brands: string | null; rating: number | null; jobs: number | null }
+  workshop: { name: string; area: string | null; brands: string | null; rating: number | null; jobs: number | null; phone?: string | null; address?: string | null }
 }
 export const createRepairRequest = (r: { inspectionId: string; issues: RepairIssue[]; area: string; note: string }) =>
   rpcJson<unknown>('create_repair_request', { p_inspection_id: r.inspectionId, p_issues: r.issues, p_area: r.area, p_note: r.note })
