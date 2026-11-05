@@ -4,6 +4,9 @@ import * as Data from './lib/data';
 import { redirectToPayFast } from './lib/payfastRedirect';
 import InspectionForm from './InspectionForm';
 import ReportView from './ReportView';
+import RepairQuotes from './RepairQuotes';
+import { buildSummary } from './lib/reportSummary';
+import { checklistForTier } from './lib/reportTemplate';
 import { WithdrawScreen, SupportScreen, DocumentsScreen } from './AccountScreens';
 import { WorkshopInboxScreen, WorkshopQuoteScreen, WorkshopQuotesScreen, WorkshopProfileScreen } from './WorkshopScreens';
 
@@ -1685,7 +1688,9 @@ function ReportScreen(props) {
             h(Tag,{label:extras.roadworthy_certificate.verified?'Checked by CheckVertical':'Not yet checked',bg:extras.roadworthy_certificate.verified?C.greenDim:C.s3,c:extras.roadworthy_certificate.verified?C.green:C.t3}),
             h(Tag,{label:'Station result: '+extras.roadworthy_certificate.result,bg:C.s3,c:C.t2})),
           h('p',{style:{fontSize:'var(--fs-caption)',color:C.t3,lineHeight:1.6}},'Issued by '+(extras.roadworthy_certificate.station_name||'a registered testing station')+' on '+extras.roadworthy_certificate.issued_on+'. This is the station\'s certificate, separate from the CheckVertical inspection.')))),
-      h(ReportView,detail));
+      h(ReportView,detail),
+      props.user && h(RepairQuotes,{ui:{C:C,Card:Card,PBtn:PBtn,GBtn:GBtn,Spin:Spin,R:R},inspectionId:insp.id,showToast:showToast,
+        issues:buildSummary(detail.items,detail.measurements,detail.tyres,checklistForTier(detail.tierName),{rows:detail.estimates||[],make:detail.vehicle&&detail.vehicle.make}).issues}));
   }
 
   var passC=(insp.findings||[]).filter(function(f){return f.s==='pass';}).length;
