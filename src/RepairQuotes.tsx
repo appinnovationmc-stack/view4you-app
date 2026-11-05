@@ -85,7 +85,8 @@ export default function RepairQuotes(props) {
     return wrap([].concat(title('Quote accepted'),
       won ? [h('p', { key: 'w', style: { fontWeight: 700, color: C.t } }, won.workshop.name),
         h('p', { key: 'p', style: { fontSize: 26, fontWeight: 800, color: C.t, letterSpacing: '-.03em', margin: '4px 0' } }, ui.R(won.total)),
-        h('p', { key: 'd', style: { fontSize: 'var(--fs-caption)', color: C.t3, lineHeight: 1.6 } }, won.days + (won.days === 1 ? ' day' : ' days') + ' of work' + (won.workshop.area ? ' · ' + won.workshop.area : '') + '. The workshop has been told.')] : null));
+        h('p', { key: 'd', style: { fontSize: 'var(--fs-caption)', color: C.t3, lineHeight: 1.6 } }, won.days + (won.days === 1 ? ' day' : ' days') + ' of work' + (won.workshop.area ? ' · ' + won.workshop.area : '') + '. The workshop has been told.'),
+        h('p', { key: 'c', style: { fontSize: 'var(--fs-caption)', color: C.t, lineHeight: 1.7, marginTop: 10 } }, won.workshop.address ? won.workshop.address : null, won.workshop.address && won.workshop.phone ? h('br') : null, won.workshop.phone ? h('a', { href: 'tel:' + won.workshop.phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + won.workshop.phone) : null)] : null));
   }
 
   /* Open: compare */
