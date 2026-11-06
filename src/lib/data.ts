@@ -713,3 +713,5 @@ export const acceptRepairQuote = (quoteId: string) => rpcJson<unknown>('accept_r
 
 export const payRepairQuoteDemo = (quoteId: string) => rpcJson<string>('pay_repair_quote_demo', { p_quote_id: quoteId })
 export const rateRepairQuote = (quoteId: string, stars: number, comment: string) => rpcJson<void>('rate_repair_quote', { p_quote_id: quoteId, p_stars: stars, p_comment: comment })
+/** Asks the server for a signed PayFast checkout for an accepted repair quote (amount comes from the database). */
+export const startRepairPayment = (quoteId: string) => invokePayment('create-repair-payment', { quote_id: quoteId })

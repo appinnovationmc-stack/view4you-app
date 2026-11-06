@@ -2,6 +2,7 @@
 // Buyer: ask partner workshops to quote on the faults in a report, compare and accept.
 import React, { useState, useEffect } from 'react';
 import * as Data from './lib/data';
+import { redirectToPayFast } from './lib/payfastRedirect';
 
 var h = React.createElement;
 var errMsg = function (e) { return (e && e.message) || 'Something went wrong. Try again.'; };
@@ -87,9 +88,9 @@ export default function RepairQuotes(props) {
     function pay() {
       setErr(''); setBusy(true);
       Data.demoPaymentsEnabled().then(function (demo) {
-        if (!demo) throw new Error('Online payment for repairs is being set up. Please check back soon.');
+        if (!demo) return Data.startRepairPayment(won.id).then(function (co) { redirectToPayFast(co); return 'redirect'; });
         return Data.payRepairQuoteDemo(won.id);
-      }).then(function () { props.showToast('Payment confirmed'); return load(false); })
+      }).then(function (r) { if (r === 'redirect') return; props.showToast('Payment confirmed'); return load(false); })
         .catch(function (e) { setErr(errMsg(e)); }).then(function () { setBusy(false); });
     }
     return wrap([].concat(title(paid ? 'Paid. Your repair is booked in' : 'Quote accepted'),

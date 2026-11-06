@@ -123,13 +123,13 @@ export function amountMatches(amountGross: string, expectedRand: number): boolea
 
 export const randToPayfast = (rand: number) => rand.toFixed(2)
 
-export type OrderRef = { kind: 'booking' | 'report'; id: string }
+export type OrderRef = { kind: 'booking' | 'report' | 'repair'; id: string }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export const orderRef = (kind: OrderRef['kind'], id: string) => `${kind === 'booking' ? 'b' : 'r'}_${id}`
+export const orderRef = (kind: OrderRef['kind'], id: string) => `${kind === 'booking' ? 'b' : kind === 'repair' ? 'q' : 'r'}_${id}`
 export function parseOrderRef(ref: string | undefined): OrderRef | null {
-  const m = /^([br])_(.+)$/.exec(ref ?? '')
+  const m = /^([brq])_(.+)$/.exec(ref ?? '')
   if (!m || !UUID.test(m[2])) return null
-  return { kind: m[1] === 'b' ? 'booking' : 'report', id: m[2].toLowerCase() }
+  return { kind: m[1] === 'b' ? 'booking' : m[1] === 'q' ? 'repair' : 'report', id: m[2].toLowerCase() }
 }
 
 export function payfastHosts(sandbox: boolean) {
