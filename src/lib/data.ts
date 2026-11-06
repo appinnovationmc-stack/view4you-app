@@ -702,7 +702,7 @@ export interface BuyerRepairRequest {
 }
 export interface BuyerRepairQuote {
   id: string; total: number; lines: { key: string; title?: string; price: number }[]; days: number; note: string | null
-  status: 'submitted' | 'accepted'; valid_until: string
+  status: 'submitted' | 'accepted'; valid_until: string; payment_status?: 'unpaid' | 'paid' | 'refund_due'
   workshop: { name: string; area: string | null; brands: string | null; rating: number | null; jobs: number | null; phone?: string | null; address?: string | null }
 }
 export const createRepairRequest = (r: { inspectionId: string; issues: RepairIssue[]; area: string; note: string }) =>
@@ -710,3 +710,5 @@ export const createRepairRequest = (r: { inspectionId: string; issues: RepairIss
 export const fetchMyRepairRequests = () => rpcJson<BuyerRepairRequest[]>('list_my_repair_requests')
 export const fetchRepairQuotes = (requestId: string) => rpcJson<BuyerRepairQuote[]>('list_repair_quotes', { p_request_id: requestId })
 export const acceptRepairQuote = (quoteId: string) => rpcJson<unknown>('accept_repair_quote', { p_quote_id: quoteId })
+
+export const payRepairQuoteDemo = (quoteId: string) => rpcJson<string>('pay_repair_quote_demo', { p_quote_id: quoteId })

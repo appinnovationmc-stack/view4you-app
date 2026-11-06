@@ -82,11 +82,24 @@ export default function RepairQuotes(props) {
   /* Accepted */
   if (req.status === 'accepted') {
     var won = quotes.filter(function (q) { return q.status === 'accepted'; })[0];
-    return wrap([].concat(title('Quote accepted'),
+    var paid = won && won.payment_status === 'paid';
+    function pay() {
+      setErr(''); setBusy(true);
+      Data.demoPaymentsEnabled().then(function (demo) {
+        if (!demo) throw new Error('Online payment for repairs is being set up. Please check back soon.');
+        return Data.payRepairQuoteDemo(won.id);
+      }).then(function () { props.showToast('Payment confirmed'); return load(false); })
+        .catch(function (e) { setErr(errMsg(e)); }).then(function () { setBusy(false); });
+    }
+    return wrap([].concat(title(paid ? 'Paid. Your repair is booked in' : 'Quote accepted'),
       won ? [h('p', { key: 'w', style: { fontWeight: 700, color: C.t } }, won.workshop.name),
         h('p', { key: 'p', style: { fontSize: 26, fontWeight: 800, color: C.t, letterSpacing: '-.03em', margin: '4px 0' } }, ui.R(won.total)),
-        h('p', { key: 'd', style: { fontSize: 'var(--fs-caption)', color: C.t3, lineHeight: 1.6 } }, won.days + (won.days === 1 ? ' day' : ' days') + ' of work' + (won.workshop.area ? ' · ' + won.workshop.area : '') + '. The workshop has been told.'),
-        h('p', { key: 'c', style: { fontSize: 'var(--fs-caption)', color: C.t, lineHeight: 1.7, marginTop: 10 } }, won.workshop.address ? won.workshop.address : null, won.workshop.address && won.workshop.phone ? h('br') : null, won.workshop.phone ? h('a', { href: 'tel:' + won.workshop.phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + won.workshop.phone) : null)] : null));
+        h('p', { key: 'd', style: { fontSize: 'var(--fs-caption)', color: C.t3, lineHeight: 1.6 } }, won.days + (won.days === 1 ? ' day' : ' days') + ' of work' + (won.workshop.area ? ' · ' + won.workshop.area : '') + '.'),
+        paid
+          ? h('p', { key: 'c', style: { fontSize: 'var(--fs-caption)', color: C.t, lineHeight: 1.7, marginTop: 10 } }, won.workshop.address ? won.workshop.address : null, won.workshop.address && won.workshop.phone ? h('br') : null, won.workshop.phone ? h('a', { href: 'tel:' + won.workshop.phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + won.workshop.phone) : null)
+          : [h('p', { key: 'n', style: { fontSize: 12, color: C.t3, lineHeight: 1.6, margin: '10px 0 12px' } }, 'Pay through CheckVertical to confirm. The workshop only gets your details once you have paid, and is paid after the work is done.'),
+            errBox,
+            h(ui.PBtn, { key: 'pay', label: 'Pay ' + ui.R(won.total), onClick: pay, loading: busy })]] : null));
   }
 
   /* Open: compare */

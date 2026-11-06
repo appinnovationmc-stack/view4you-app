@@ -156,7 +156,7 @@ export function WorkshopQuotesScreen(props) {
   var won = st.rows.filter(function (q) { return q.status === 'accepted'; });
   var wonTotal = won.reduce(function (a, q) { return a + (q.workshop_payout || 0); }, 0);
   return h('div', { style: { minHeight: '100vh', background: C.bg, paddingBottom: 130 } },
-    h(Title, { ui: ui, title: 'My quotes', sub: won.length ? won.length + ' accepted · ' + ui.R(wonTotal) + ' to be paid out' : 'Quotes you have sent and where they stand.' }),
+    h(Title, { ui: ui, title: 'My quotes', sub: won.length ? won.length + ' accepted · ' + ui.R(wonTotal) + ' payout' : 'Quotes you have sent and where they stand.' }),
     h('div', { style: { padding: '0 20px' } },
       st.error && h(Banner, { ui: ui, tone: 'bad' }, st.error),
       st.loading && h('div', { style: { display: 'flex', justifyContent: 'center', padding: 40 } }, h(ui.Spin, { size: 24 })),
@@ -169,7 +169,8 @@ export function WorkshopQuotesScreen(props) {
             h(Pill, { ui: ui, tone: m[1], label: m[0] })),
           h('p', { style: { fontSize: 22, fontWeight: 800, color: C.t, letterSpacing: '-.03em', margin: '10px 0 2px' } }, ui.R(q.total)),
           h('p', { style: { fontSize: 12, color: C.t3 } }, q.days + (q.days === 1 ? ' day' : ' days') + (q.status === 'accepted' && q.workshop_payout != null ? ' · you receive ' + ui.R(q.workshop_payout) : '')),
-          q.status === 'accepted' && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t, marginTop: 6 } }, q.buyer_phone ? h('a', { href: 'tel:' + q.buyer_phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + (q.buyer_first_name || 'buyer') + ' ' + q.buyer_phone) : 'The buyer has not added a phone number yet. They will contact you.'),
+          q.status === 'accepted' && q.payment_status !== 'paid' && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.amber, marginTop: 6 } }, 'Waiting for the buyer to pay. You will be notified.'),
+          q.status === 'accepted' && q.payment_status === 'paid' && h('p', { style: { fontSize: 'var(--fs-caption)', color: C.t, marginTop: 6 } }, q.buyer_phone ? h('a', { href: 'tel:' + q.buyer_phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + (q.buyer_first_name || 'buyer') + ' ' + q.buyer_phone) : 'The buyer has not added a phone number yet. They will contact you.'),
           h(IssueList, { ui: ui, issues: q.issues }),
           q.status === 'submitted' && h(ui.GBtn, { label: busy === q.id ? 'Please wait…' : 'Withdraw quote', onClick: function () { withdraw(q); } })));
       })));
