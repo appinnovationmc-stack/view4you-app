@@ -184,3 +184,10 @@ export interface WorkshopRow {
 export const listWorkshops = (status: 'all' | 'pending' | 'approved') => rpc<WorkshopRow[]>('admin_list_workshops', { p_status: status })
 export const setWorkshopApproval = (id: string, approved: boolean, reason?: string) =>
   rpc<void>('admin_set_workshop_approval', { p_workshop_id: id, p_approved: approved, p_reason: reason ?? null })
+
+export interface RepairPayoutRow {
+  quote_id: string; vehicle_label: string; workshop_name: string; workshop_email: string; total: number; referral_fee: number | null
+  workshop_payout: number | null; paid_at: string; payout_sent_at: string | null; payout_ref: string | null
+}
+export const listRepairPayouts = (status: 'due' | 'sent' | 'all') => rpc<RepairPayoutRow[]>('admin_list_repair_payouts', { p_status: status })
+export const markRepairPayoutSent = (quoteId: string, ref: string) => rpc<void>('admin_mark_repair_payout_sent', { p_quote_id: quoteId, p_ref: ref })
