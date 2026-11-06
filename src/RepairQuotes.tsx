@@ -14,6 +14,7 @@ export default function RepairQuotes(props) {
   var qs = useState([]), quotes = qs[0], setQuotes = qs[1];
   var ee = useState(''), err = ee[0], setErr = ee[1];
   var bb = useState(false), busy = bb[0], setBusy = bb[1];
+  var st0 = useState(0), stars = st0[0], setStars = st0[1];
   var cf = useState(null), confirmId = cf[0], setConfirmId = cf[1];
   var ar = useState(''), area = ar[0], setArea = ar[1];
   var nt = useState(''), note = nt[0], setNote = nt[1];
@@ -99,7 +100,20 @@ export default function RepairQuotes(props) {
           ? h('p', { key: 'c', style: { fontSize: 'var(--fs-caption)', color: C.t, lineHeight: 1.7, marginTop: 10 } }, won.workshop.address ? won.workshop.address : null, won.workshop.address && won.workshop.phone ? h('br') : null, won.workshop.phone ? h('a', { href: 'tel:' + won.workshop.phone, style: { color: C.t, fontWeight: 700 } }, 'Call ' + won.workshop.phone) : null)
           : [h('p', { key: 'n', style: { fontSize: 12, color: C.t3, lineHeight: 1.6, margin: '10px 0 12px' } }, 'Pay through CheckVertical to confirm. The workshop only gets your details once you have paid, and is paid after the work is done.'),
             errBox,
-            h(ui.PBtn, { key: 'pay', label: 'Pay ' + ui.R(won.total), onClick: pay, loading: busy })]] : null));
+            h(ui.PBtn, { key: 'pay', label: 'Pay ' + ui.R(won.total), onClick: pay, loading: busy })],
+        paid && !won.my_rating ? h('div', { key: 'rate', style: { borderTop: '1px solid var(--b)', marginTop: 14, paddingTop: 14 } },
+          h('p', { style: { fontWeight: 700, color: C.t, fontSize: 'var(--fs-caption)', marginBottom: 8 } }, 'Rate this workshop once the work is done'),
+          h('div', { style: { display: 'flex', gap: 6, marginBottom: 10 } }, [1, 2, 3, 4, 5].map(function (n) {
+            return h('button', { key: n, 'aria-label': n + ' stars', onClick: function () { setStars(n); }, style: { fontSize: 28, lineHeight: 1, background: 'none', border: 'none', padding: 4, color: n <= stars ? C.amber : C.t3 } }, n <= stars ? '★' : '☆');
+          })),
+          errBox,
+          h(ui.GBtn, { label: 'Submit rating', onClick: function () {
+            if (!stars) return;
+            setErr(''); setBusy(true);
+            Data.rateRepairQuote(won.id, stars, '').then(function () { props.showToast('Thanks for rating'); return load(false); })
+              .catch(function (e) { setErr(errMsg(e)); }).then(function () { setBusy(false); });
+          } })) : null,
+        paid && won.my_rating ? h('p', { key: 'rated', style: { fontSize: 12, color: C.t3, marginTop: 10 } }, 'You rated this workshop ' + won.my_rating + ' out of 5.') : null] : null));
   }
 
   /* Open: compare */
