@@ -4,7 +4,7 @@ import { Empty, ErrorBanner, Pill, PromptModal, Tabs, money, useLoad, when } fro
 import { DailyChart, Funnel } from './charts'
 import { DocumentsModal, ReassignModal } from './pages2'
 
-export type Page = 'overview' | 'inspectors' | 'bookings' | 'reports' | 'payments' | 'payouts' | 'support' | 'stations' | 'certificates' | 'workshops' | 'settings' | 'audit'
+export type Page = 'overview' | 'inspectors' | 'bookings' | 'reports' | 'payments' | 'payouts' | 'support' | 'stations' | 'certificates' | 'workshops' | 'repairpay' | 'settings' | 'audit'
 interface PageProps { canWrite: boolean; go: (p: Page, filter?: string) => void; initialFilter?: string }
 
 const Head = ({ title, sub, onReload, loading }: { title: string; sub?: string; onReload: () => void; loading: boolean }) => (

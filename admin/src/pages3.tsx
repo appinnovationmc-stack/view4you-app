@@ -261,3 +261,49 @@ export function WorkshopsPage({ canWrite }: PageProps) {
     </>
   )
 }
+
+/* ───────────────────── Repair payouts to workshops ───────────────────── */
+export function RepairPayoutsPage({ canWrite }: PageProps) {
+  const [status, setStatus] = useState<'due' | 'sent' | 'all'>('due')
+  const { data, error, loading, reload } = useLoad(() => api.listRepairPayouts(status), [status])
+  const [pay, setPay] = useState<api.RepairPayoutRow | null>(null)
+  const owed = (data ?? []).filter((r) => !r.payout_sent_at).reduce((a, r) => a + Number(r.workshop_payout ?? 0), 0)
+  return (
+    <>
+      <Head title="Repair payouts" sub="Buyers pay CheckVertical for accepted repair quotes. Pay the workshop its share (total minus our referral fee) by EFT, then record the reference here." onReload={reload} loading={loading} />
+      <div className="row" style={{ marginBottom: 12 }}>
+        <Tabs label="Show" value={status} onChange={(v) => setStatus(v as typeof status)} options={[{ value: 'due', label: 'To pay out' }, { value: 'sent', label: 'Paid out' }, { value: 'all', label: 'All' }]} />
+        {status !== 'sent' && <span className="muted">Owed to workshops: <strong>{money(owed)}</strong></span>}
+      </div>
+      <ErrorBanner message={error} />
+      <div className="tablewrap">
+        {data && data.length === 0 ? <Empty>Nothing here.</Empty> : (
+          <table>
+            <thead><tr><th>Vehicle</th><th>Workshop</th><th>Buyer paid</th><th>Our fee</th><th>Pay workshop</th><th>Paid on</th><th>Payout</th></tr></thead>
+            <tbody>
+              {data?.map((r) => (
+                <tr key={r.quote_id}>
+                  <td>{r.vehicle_label}</td>
+                  <td>{r.workshop_name}<br /><span className="muted">{r.workshop_email}</span></td>
+                  <td>{money(r.total)}</td>
+                  <td>{money(r.referral_fee)}</td>
+                  <td><strong>{money(r.workshop_payout)}</strong></td>
+                  <td>{when(r.paid_at)}</td>
+                  <td>{r.payout_sent_at
+                    ? <span className="muted">Sent {when(r.payout_sent_at)}<br />{r.payout_ref}</span>
+                    : canWrite ? <button className="btn sm primary" onClick={() => setPay(r)}>Mark paid out</button> : <Pill value="pending" label="to pay" />}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {pay && (
+        <PromptModal title={`Record payout to ${pay.workshop_name}`} label="Payment reference" confirmLabel="Mark as paid out"
+          description={`You have paid ${money(pay.workshop_payout)}. The workshop is notified.`}
+          onConfirm={async (ref) => { await api.markRepairPayoutSent(pay.quote_id, ref); reload() }}
+          onClose={() => setPay(null)} />
+      )}
+    </>
+  )
+}
