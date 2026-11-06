@@ -465,10 +465,21 @@ export async function uploadReportPhotos(inspectionId: string, photos: PhotoUplo
 }
 
 /** Loads a full detailed report for ReportView. Photos come back as short-lived signed URLs. */
+/** Price ranges shown on reports: verified rows, overridden by ranges built from real workshop quotes (3+ workshops). */
 export async function fetchRepairEstimates(): Promise<RepairEstimate[]> {
-  const { data, error } = await supabase.from('repair_estimates').select('key,label,low,high,premium_factor').eq('verified', true)
-  if (error) throw error
-  return (data ?? []) as RepairEstimate[]
+  const [table, bench] = await Promise.all([
+    supabase.from('repair_estimates').select('key,label,low,high,premium_factor').eq('verified', true),
+    supabase.rpc('repair_quote_benchmarks'),
+  ])
+  if (table.error) throw table.error
+  const rows = new Map(((table.data ?? []) as RepairEstimate[]).map(r => [r.key, r] as const))
+  if (!bench.error) {
+    for (const b of (bench.data ?? []) as Array<RepairEstimate & { n: number }>) {
+      const prior = rows.get(b.key)
+      rows.set(b.key, { key: b.key, label: prior?.label ?? b.label, low: b.low, high: b.high, premium_factor: 1 })
+    }
+  }
+  return [...rows.values()]
 }
 
 export async function fetchDetailedReport(inspectionId: string): Promise<ReportViewProps | null> {
