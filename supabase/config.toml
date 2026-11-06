@@ -17,3 +17,10 @@ verify_jwt = true
 
 [functions.create-report-payment]
 verify_jwt = true
+
+[functions.create-repair-payment]
+verify_jwt = true
+
+# PayFast cannot send a JWT; same authentication as the other ITN receivers (merchant, signature, IP, server confirmation).
+[functions.payfast-repair-itn]
+verify_jwt = false
